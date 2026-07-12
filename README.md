@@ -40,6 +40,35 @@ First-time setup: `python3 -m venv backend/.venv`, then
 - `BEACON_DEMO_MODE` - `1` for keyless demo mode (currently ON)
 - `BEACON_NORA_MODEL` - generation model, default `gpt-5-mini`
 - `BEACON_DATABASE_URL`, `BEACON_CHROMA_DIR`, `BEACON_DATA_DIR` - defaults fine
+- `BEACON_ACCESS_KEY` - hosted deployments only: when set, every /api request
+  except /api/health must send it in the X-Beacon-Key header; the frontend
+  asks for it once and remembers it. Leave unset locally (no login).
+- `BEACON_CORS_ORIGINS` - hosted deployments only: extra allowed origins,
+  comma-separated (the Render frontend URL).
+
+## 2b. Deploying to Render
+
+The repo carries a `render.yaml` blueprint: a Python web service for the
+backend (Starter plan with a 1 GB disk at `/var/data` holding the SQLite DB,
+Chroma index, and uploaded files) and a Node web service for the frontend
+(free plan). One-time setup:
+
+1. Push this repo to GitHub (private).
+2. In the Render dashboard: New > Blueprint > pick the repo. Render reads
+   `render.yaml` and creates both services.
+3. When prompted for the two secrets, paste the OpenAI key
+   (`BEACON_OPENAI_API_KEY`, same value as `backend/.env`) and invent a long
+   random `BEACON_ACCESS_KEY` (this is what you type on first visit).
+4. If Render renames a service because the name is taken, update
+   `BEACON_CORS_ORIGINS` (backend) and `NEXT_PUBLIC_API_BASE` (frontend) to
+   the real URLs and redeploy.
+
+Migrations run automatically on every deploy (`alembic upgrade head` in the
+start command). The Render database starts EMPTY - re-upload the CSV exports
+through the Uploads page, re-fetch website content, and hit Rebuild RAG Index
+on Admin (or copy the local `backend/beacon.db`, `backend/.chroma`, and
+`backend/data/` to `/var/data/` over Render SSH). Deploys are triggered by
+pushing to the connected GitHub branch.
 
 ## 3. OpenAI billing (LIVE as of 2026-07-05)
 
