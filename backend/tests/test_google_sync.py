@@ -131,9 +131,11 @@ def test_ga4_sync_writes_rows_with_provenance(client, db, monkeypatch):
         "ga4_run_report",
         lambda t, res, lo, hi: [
             {"date": hi, "session_source": "chatgpt.com", "session_medium": "referral",
-             "sessions": 5, "engaged_sessions": 4, "total_users": 5, "key_events": 1},
+             "landing_page": "/apply", "sessions": 5, "engaged_sessions": 4,
+             "total_users": 5, "key_events": 1},
             {"date": hi, "session_source": "google", "session_medium": "organic",
-             "sessions": 40, "engaged_sessions": 30, "total_users": 38, "key_events": 3},
+             "landing_page": "/", "sessions": 40, "engaged_sessions": 30,
+             "total_users": 38, "key_events": 3},
         ],
     )
     r = client.post(f"/api/google/connections/{conn.id}/sync")
@@ -145,6 +147,7 @@ def test_ga4_sync_writes_rows_with_provenance(client, db, monkeypatch):
     assert len(rows) == 2
     ai = next(r for r in rows if r.session_source == "chatgpt.com")
     assert ai.is_ai_referral is True and ai.ai_platform is not None
+    assert ai.landing_page == "/apply"  # landing page captured for page-join
     assert all(r.sync_job_id is not None and r.upload_id is None for r in rows)
     db.refresh(conn)
     assert conn.last_sync_at is not None

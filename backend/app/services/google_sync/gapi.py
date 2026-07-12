@@ -69,10 +69,14 @@ def ga4_run_report(
         access_token,
         json={
             "dateRanges": [{"startDate": start.isoformat(), "endDate": end.isoformat()}],
+            # landingPagePlusQueryString lets AI Query Signals join an AI-
+            # referred session's landing page to Search Console pages (the CSV
+            # source/medium export lacked it).
             "dimensions": [
                 {"name": "date"},
                 {"name": "sessionSource"},
                 {"name": "sessionMedium"},
+                {"name": "landingPagePlusQueryString"},
             ],
             "metrics": [
                 {"name": "sessions"},
@@ -87,11 +91,13 @@ def ga4_run_report(
     for r in body.get("rows", []):
         dims = [d["value"] for d in r["dimensionValues"]]
         mets = [m["value"] for m in r["metricValues"]]
+        landing = dims[3]
         rows.append(
             {
                 "date": date(int(dims[0][:4]), int(dims[0][4:6]), int(dims[0][6:8])),
                 "session_source": dims[1] or "(not set)",
                 "session_medium": dims[2] or "(not set)",
+                "landing_page": landing if landing and landing != "(not set)" else None,
                 "sessions": int(float(mets[0] or 0)),
                 "engaged_sessions": int(float(mets[1] or 0)),
                 "total_users": int(float(mets[2] or 0)),

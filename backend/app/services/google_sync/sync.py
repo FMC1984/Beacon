@@ -52,6 +52,7 @@ def _write_ga4(db: Session, conn: DataConnection, job: SyncJob, rows: list[dict]
                 date=r["date"],
                 session_source=r["session_source"],
                 session_medium=r["session_medium"],
+                landing_page=r.get("landing_page"),
                 sessions=r["sessions"],
                 engaged_sessions=r["engaged_sessions"],
                 total_users=r["total_users"],
