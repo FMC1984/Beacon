@@ -51,6 +51,10 @@ services:
         value: https://beacon-frontend-app.onrender.com
       - key: BEACON_GOOGLE_AUTOSYNC
         value: "1"
+      # Weekly AI Visibility standing-prompt runs (spends OpenAI budget, capped
+      # by the per-property daily limit). Off by default; set to "1" to enable.
+      - key: BEACON_AI_VISIBILITY_AUTORUN
+        value: "0"
 
   - type: web
     name: beacon-frontend-app

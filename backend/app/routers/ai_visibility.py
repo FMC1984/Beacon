@@ -9,17 +9,23 @@ Phase 12 and deliberately absent here.
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.extensions.hooks import trigger_rag_sync
-from app.models import AIVisibilityQuery, Property
+from app.models import AIVisibilityPrompt, AIVisibilityQuery, Property
 from app.providers.base import MissingAPIKeyError
 from app.schemas.ai_visibility import AIVisibilityQueryIn, AIVisibilityQueryOut
 from app.services.ai_visibility.analyzer import analyze_ai_visibility
 from app.services.ai_visibility.execution import RateLimitExceeded, budget_status, run_query
 from app.services.ai_visibility.hallucination import check_response_against_context
 from app.services.ai_visibility.providers import PlatformNotConnectedError, provider_name
+from app.services.ai_visibility.schedule import (
+    prompt_suggestions,
+    run_standing_prompts,
+    score_history,
+)
 from app.services.ai_visibility.reference import (
     InvalidPlatformError,
     methodology,
@@ -122,6 +128,89 @@ def list_queries(
         "budget": budget_status(db, property_id),
         "provider": provider_name(),
     }
+
+
+# --- standing prompts + scheduled scoring (registered before the
+# /{property_id}/{query_id} catch-all so string paths match cleanly) ---
+
+
+class PromptIn(BaseModel):
+    prompt_text: str
+    platform: str = "chatgpt"
+
+
+@router.get("/{property_id}/prompts")
+def list_prompts(property_id: int, db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    rows = (
+        db.query(AIVisibilityPrompt)
+        .filter_by(property_id=property_id)
+        .order_by(AIVisibilityPrompt.id)
+        .all()
+    )
+    return {
+        "prompts": [
+            {
+                "id": r.id,
+                "prompt_text": r.prompt_text,
+                "platform": r.platform,
+                "active": r.active,
+            }
+            for r in rows
+        ],
+        "budget": budget_status(db, property_id),
+    }
+
+
+@router.get("/{property_id}/prompt-suggestions")
+def suggestions(property_id: int, db: Session = Depends(get_db)):
+    prop = _require_property(db, property_id)
+    return {"suggestions": prompt_suggestions(prop)}
+
+
+@router.post("/{property_id}/prompts", status_code=201)
+def add_prompt(property_id: int, payload: PromptIn, db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    text = (payload.prompt_text or "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="Prompt text is empty.")
+    row = AIVisibilityPrompt(
+        property_id=property_id, prompt_text=text, platform=payload.platform
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"id": row.id, "prompt_text": row.prompt_text, "platform": row.platform, "active": row.active}
+
+
+@router.delete("/{property_id}/prompts/{prompt_id}")
+def delete_prompt(property_id: int, prompt_id: int, db: Session = Depends(get_db)):
+    row = db.query(AIVisibilityPrompt).filter_by(id=prompt_id, property_id=property_id).one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Prompt not found.")
+    db.delete(row)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/{property_id}/run-standing")
+def run_standing(property_id: int, db: Session = Depends(get_db)):
+    """Run every active standing prompt now, then snapshot the score. This
+    spends OpenAI budget; it is user-initiated (a button) or scheduled."""
+    _require_property(db, property_id)
+    try:
+        result = run_standing_prompts(db, property_id)
+    except PlatformNotConnectedError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except MissingAPIKeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return result
+
+
+@router.get("/{property_id}/score-history")
+def get_score_history(property_id: int, db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    return {"history": score_history(db, property_id)}
 
 
 @router.get("/{property_id}/{query_id}")

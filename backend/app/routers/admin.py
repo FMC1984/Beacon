@@ -79,6 +79,117 @@ def status(db: Session = Depends(get_db)):
     }
 
 
+def _check(name: str, status: str, detail: str) -> dict:
+    # status is one of ok | warn | fail
+    return {"name": name, "status": status, "detail": detail}
+
+
+@router.get("/healthcheck")
+def healthcheck(db: Session = Depends(get_db)):
+    """One-call self-check: is every moving part healthy? Each item is ok/warn/
+    fail with an honest reason. Read-only and cheap enough to run on page load."""
+    import shutil
+
+    from app.models import DataConnection, OAuthStatus
+
+    checks: list[dict] = []
+
+    # Database
+    try:
+        from sqlalchemy import text
+
+        db.execute(text("SELECT 1"))
+        checks.append(_check("Database", "ok", "Reachable."))
+    except Exception as exc:
+        checks.append(_check("Database", "fail", f"Unreachable: {str(exc)[:200]}"))
+
+    # RAG index parity: Chroma vector count vs SQLite registry count.
+    registry = db.query(func.count(RAGChunk.id)).scalar() or 0
+    chroma = _chroma_status()
+    indexed = chroma.get("indexed_chunks")
+    if chroma["status"] != "ok":
+        checks.append(_check("Search index", "fail", str(chroma["status"])))
+    elif indexed != registry:
+        checks.append(_check(
+            "Search index", "warn",
+            f"{indexed} vectors vs {registry} registered chunks. Rebuild the "
+            "RAG index to reconcile.",
+        ))
+    else:
+        checks.append(_check("Search index", "ok", f"{indexed} chunks indexed."))
+
+    # Providers
+    checks.append(_check(
+        "Embedding provider", "ok", embedding_provider_name()
+    ))
+    quota = _openai_quota_check()
+    if quota == "ok" or quota.startswith("skipped"):
+        checks.append(_check("OpenAI / LLM", "ok", f"{llm_provider_name()} ({quota})"))
+    else:
+        checks.append(_check("OpenAI / LLM", "fail", quota))
+
+    # Background RAG queue not stuck
+    queued = (
+        db.query(func.count(RagSyncJob.id))
+        .filter(RagSyncJob.status == RagSyncStatus.QUEUED)
+        .scalar()
+    )
+    if queued and queued > 5:
+        checks.append(_check(
+            "Sync queue", "warn",
+            f"{queued} jobs queued. Click Process Queue if this does not clear.",
+        ))
+    else:
+        checks.append(_check("Sync queue", "ok", f"{queued} queued."))
+
+    # Google connections freshness (48h)
+    now = datetime.now(timezone.utc)
+    conns = (
+        db.query(DataConnection)
+        .filter(DataConnection.oauth_status == OAuthStatus.CONNECTED)
+        .all()
+    )
+    if not conns:
+        checks.append(_check("Google auto-sync", "ok", "No Google connections (manual uploads only)."))
+    else:
+        stale = []
+        for c in conns:
+            last = c.last_sync_at
+            if last is not None and last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            hours = (now - last).total_seconds() / 3600 if last else None
+            if hours is None or hours > 48:
+                stale.append(f"{c.source_type.value} ({'never' if hours is None else f'{int(hours)}h ago'})")
+        if stale:
+            checks.append(_check("Google auto-sync", "warn", "Stale: " + ", ".join(stale)))
+        else:
+            checks.append(_check("Google auto-sync", "ok", f"{len(conns)} connection(s) synced within 48h."))
+
+    # Disk space on the data directory (the Render persistent disk)
+    try:
+        target = Path(settings.data_dir)
+        probe = target if target.exists() else target.parent
+        usage = shutil.disk_usage(probe if probe.exists() else Path("."))
+        free_pct = usage.free / usage.total * 100
+        free_mb = usage.free / (1024 * 1024)
+        detail = f"{free_mb:.0f} MB free ({free_pct:.0f}%)."
+        if free_pct < 10:
+            checks.append(_check("Disk space", "fail", detail + " Nearly full."))
+        elif free_pct < 25:
+            checks.append(_check("Disk space", "warn", detail))
+        else:
+            checks.append(_check("Disk space", "ok", detail))
+    except Exception as exc:
+        checks.append(_check("Disk space", "warn", f"Could not measure: {str(exc)[:120]}"))
+
+    overall = (
+        "fail" if any(c["status"] == "fail" for c in checks)
+        else "warn" if any(c["status"] == "warn" for c in checks)
+        else "ok"
+    )
+    return {"overall": overall, "checked_at": now.isoformat(), "checks": checks}
+
+
 @router.get("/sync-status")
 def sync_status(db: Session = Depends(get_db)):
     """Knowledge Base synchronization status (Objective 6). Administrator view."""

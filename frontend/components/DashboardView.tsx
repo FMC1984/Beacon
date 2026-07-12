@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  API_BASE,
   Company,
   Dashboard,
   Property,
@@ -40,11 +41,38 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isProperty);
+  const [staleSources, setStaleSources] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProperties().then(setProperties).catch(() => {});
     fetchCompanies().then(setCompanies).catch(() => {});
   }, []);
+
+  // Honesty check: if this property's Google connections have not synced in
+  // 48h, say so rather than quietly showing aging numbers.
+  useEffect(() => {
+    if (!isProperty) {
+      setStaleSources([]);
+      return;
+    }
+    fetch(`${API_BASE}/google/status?property_id=${propertyId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => {
+        if (!b?.connections) return;
+        const now = Date.now();
+        const stale = b.connections
+          .filter((c: { oauth_status: string }) => c.oauth_status === "connected")
+          .filter((c: { last_sync_at: string | null }) => {
+            if (!c.last_sync_at) return true;
+            return now - new Date(c.last_sync_at).getTime() > 48 * 3600 * 1000;
+          })
+          .map((c: { source_type: string }) =>
+            c.source_type === "ga4" ? "GA4 traffic" : "Search Console",
+          );
+        setStaleSources(stale);
+      })
+      .catch(() => {});
+  }, [isProperty, propertyId]);
 
   // Restore the last-used company scope (portfolio mode only).
   useEffect(() => {
@@ -126,6 +154,13 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
 
   return (
     <div className="space-y-6">
+      {staleSources.length > 0 && (
+        <div className="rounded-2xl border border-amber-a/40 bg-amber-a/10 px-4 py-3 text-sm text-amber-a">
+          Google auto-sync is behind for {staleSources.join(" and ")} (no successful
+          sync in over 48 hours). The numbers below may be stale. Open Uploads to
+          Sync now, or check Admin for the reason.
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{scopeTitle}</h1>

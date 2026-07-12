@@ -1,0 +1,26 @@
+{
+  "version": "2026-07-12",
+  "notes": "Suggested standing prompts by property type, offered one-click in the UI. These are the kinds of questions a real prospective applicant or renter would ask an AI assistant. The operator edits or replaces them; Beacon never runs a prompt the operator did not choose.",
+  "by_type": {
+    "housing_authority": [
+      "How do I apply for housing assistance in {city}, {state}?",
+      "What is the Section 8 waitlist status for {city}, {state}?",
+      "Who provides affordable housing in {city}, {state}?",
+      "How do housing choice vouchers work in {county}?",
+      "What income limits qualify for affordable housing in {state}?",
+      "How do I contact {name}?",
+      "What housing programs does {name} offer?",
+      "Where can I find low income apartments in {city}, {state}?"
+    ],
+    "multifamily_apartment": [
+      "What are the best apartments in {city}, {state}?",
+      "Where should I rent an apartment in {city}, {state}?",
+      "What apartments in {city} allow pets?",
+      "What is a good apartment community near {city}, {state}?",
+      "How much is rent for apartments in {city}, {state}?",
+      "Tell me about {name} apartments.",
+      "What amenities does {name} offer?",
+      "Are there luxury apartments in {city}, {state}?"
+    ]
+  }
+}

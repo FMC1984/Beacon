@@ -57,9 +57,24 @@ type ReindexResult = {
   error?: string;
 };
 
+type HealthCheck = { name: string; status: "ok" | "warn" | "fail"; detail: string };
+type Health = { overall: "ok" | "warn" | "fail"; checked_at: string; checks: HealthCheck[] };
+
+const DOT: Record<string, string> = {
+  ok: "bg-emerald-a",
+  warn: "bg-amber-a",
+  fail: "bg-pink-a",
+};
+const OVERALL_LABEL: Record<string, string> = {
+  ok: "All systems healthy",
+  warn: "Needs attention",
+  fail: "Problem detected",
+};
+
 export default function AdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [sync, setSync] = useState<SyncStatus | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reindexing, setReindexing] = useState(false);
   const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
@@ -73,6 +88,10 @@ export default function AdminPage() {
     fetch(`${API_BASE}/admin/sync-status`)
       .then((r) => r.json())
       .then(setSync)
+      .catch(() => {});
+    fetch(`${API_BASE}/admin/healthcheck`)
+      .then((r) => r.json())
+      .then(setHealth)
       .catch(() => {});
   }, []);
 
@@ -119,6 +138,35 @@ export default function AdminPage() {
         <div className="rounded-2xl border border-pink-a/40 bg-pink-a/10 p-4 text-sm text-pink-a">
           {error}
         </div>
+      )}
+
+      {health && (
+        <section className="rounded-2xl border border-line bg-surface p-5">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${DOT[health.overall]}`} />
+            <h2 className="text-sm font-medium">
+              System health — {OVERALL_LABEL[health.overall]}
+            </h2>
+            <button
+              onClick={load}
+              className="ml-auto text-xs text-muted underline decoration-dotted hover:text-foreground"
+            >
+              Re-check
+            </button>
+          </div>
+          <ul className="space-y-2">
+            {health.checks.map((c) => (
+              <li key={c.name} className="flex items-start gap-2.5 text-sm">
+                <span className={`mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full ${DOT[c.status]}`} />
+                <span className="min-w-36 shrink-0 font-medium">{c.name}</span>
+                <span className="text-muted">{c.detail}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted">
+            Checked {fmtDateTime(health.checked_at)}.
+          </p>
+        </section>
       )}
 
       {status && (

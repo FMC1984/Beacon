@@ -103,6 +103,25 @@ Disconnecting revokes the token and keeps the already-synced data.
 `/api/google/callback` is exempt from the access key (Google's redirect
 cannot send headers); it is protected by an HMAC-signed state instead.
 
+## 2d. Health self-check + scheduled AI Visibility
+
+**Admin self-check** — `GET /api/admin/healthcheck` (rendered as a panel on the
+Admin page) verifies database, search-index parity (Chroma vs the SQLite
+registry), providers, the RAG queue, Google-connection freshness (warns past
+48h), and disk space on the Render data disk. Each item is ok/warn/fail with an
+honest reason; the dashboard also shows a stale banner when a property's Google
+sync is 48h+ behind.
+
+**Scheduled AI Visibility** — the AI Visibility page has a "Standing & Trend"
+tab: save a reusable set of prompts a real applicant would ask an AI ("how do I
+apply for housing assistance in {city}"), run them all with one button, and
+watch the visibility score accumulate a trend over time. The scanner only
+scores at 3+ queries, so a standing set run weekly is how a property crosses
+that bar. `BEACON_AI_VISIBILITY_AUTORUN=1` runs every property's active prompts
+weekly in the background; it spends OpenAI budget, capped by
+`BEACON_AI_VISIBILITY_DAILY_LIMIT`. Score points below the minimum are stored
+as "not enough data yet," never a fabricated number.
+
 ## 3. OpenAI billing (LIVE as of 2026-07-05)
 
 Beacon is running LIVE: `BEACON_DEMO_MODE=0`, OpenAI quota passes, both

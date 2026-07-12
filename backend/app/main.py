@@ -127,3 +127,44 @@ async def start_google_autosync():
             await asyncio.sleep(24 * 60 * 60)
 
     asyncio.create_task(loop())
+
+
+@app.on_event("startup")
+async def start_ai_visibility_autorun():
+    """Weekly scheduled AI Visibility run: execute each property's active
+    standing prompts and snapshot the score, so visibility accumulates a real
+    trend. Costs OpenAI budget, so gated behind BEACON_AI_VISIBILITY_AUTORUN.
+    The per-property daily budget still caps spend; failures never crash the
+    loop."""
+    if not settings.ai_visibility_autorun:
+        return
+    import asyncio
+
+    async def loop():
+        from app.db import SessionLocal
+        from app.models import AIVisibilityPrompt, Property
+        from app.services.ai_visibility.schedule import run_standing_prompts
+        from app.services.rag_sync_service import drain_queue
+
+        while True:
+            db = SessionLocal()
+            try:
+                property_ids = [
+                    pid
+                    for (pid,) in db.query(AIVisibilityPrompt.property_id)
+                    .filter(AIVisibilityPrompt.active.is_(True))
+                    .distinct()
+                    .all()
+                ]
+                for pid in property_ids:
+                    try:
+                        run_standing_prompts(db, pid)
+                    except Exception:
+                        pass  # a bad property never aborts the weekly batch
+                if property_ids and settings.rag_autosync:
+                    drain_queue()
+            finally:
+                db.close()
+            await asyncio.sleep(7 * 24 * 60 * 60)
+
+    asyncio.create_task(loop())

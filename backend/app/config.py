@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     google_sync_days: int = 30
     # When on, a background task re-syncs every connected Google source daily.
     google_autosync: bool = False
+    # When on, a weekly background task runs each property's active AI Visibility
+    # standing prompts (spends OpenAI budget) and snapshots the score. Off by
+    # default because it costs money; enable deliberately.
+    ai_visibility_autorun: bool = False
 
     model_config = SettingsConfigDict(
         env_prefix="BEACON_", env_file=".env", extra="ignore"

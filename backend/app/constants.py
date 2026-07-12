@@ -15,6 +15,8 @@ APP_PHASE = (
     "Phase 11.5 AI Visibility Foundation, Phase 12 AI Visibility Scanner, Phase "
     "13 Competitor Intelligence, and Phase 14 Opportunity Engine complete; "
     "Phase 15a Semantic Intelligence (enrichment + negation) and 15b hybrid "
-    "retrieval (deterministic rerank + debug) complete; 15c clustering pending"
+    "retrieval (deterministic rerank + debug) complete; 15c clustering pending. "
+    "Google GA4/GSC auto-sync, admin self-check, and scheduled AI Visibility "
+    "standing prompts live"
 )
-TEST_COUNT = 383
+TEST_COUNT = 395

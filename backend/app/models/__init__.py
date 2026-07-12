@@ -26,6 +26,10 @@ from app.models.reviews import PropertyReview
 from app.models.nora import NoraConversation, NoraMessage, MessageRole
 from app.models.reports import Report, ReportType
 from app.models.ai_visibility import AIVisibilityQuery
+from app.models.ai_visibility_schedule import (
+    AIVisibilityPrompt,
+    AIVisibilityScoreHistory,
+)
 from app.models.competitor import Competitor
 
 __all__ = [
@@ -59,5 +63,7 @@ __all__ = [
     "Report",
     "ReportType",
     "AIVisibilityQuery",
+    "AIVisibilityPrompt",
+    "AIVisibilityScoreHistory",
     "Competitor",
 ]

@@ -28,6 +28,8 @@ EXPECTED_TABLES = {
     "property_profile",
     "property_reviews",
     "ai_visibility_queries",
+    "ai_visibility_prompts",
+    "ai_visibility_score_history",
     "competitors",
 }
 
