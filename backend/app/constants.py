@@ -17,4 +17,4 @@ APP_PHASE = (
     "Phase 15a Semantic Intelligence (enrichment + negation) and 15b hybrid "
     "retrieval (deterministic rerank + debug) complete; 15c clustering pending"
 )
-TEST_COUNT = 380
+TEST_COUNT = 383

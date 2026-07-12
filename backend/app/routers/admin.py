@@ -1,15 +1,18 @@
 """Internal status + maintenance endpoints. Single-user app, no auth by
 design; these exist for debugging and demo prep, not for exposure."""
 
+import shutil
+import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.constants import APP_PHASE, APP_VERSION, TEST_COUNT
-from app.db import get_db
+from app.db import engine, get_db
 from app.models import NoraMessage, RAGChunk, RagSyncJob, RagSyncStatus
 from app.providers.registry import embedding_provider_name, llm_provider_name
 from app.services.rag.embedder import get_embedder
@@ -144,6 +147,74 @@ def reindex(db: Session = Depends(get_db)):
     except Exception as exc:
         db.rollback()
         return {"status": "failed", "error": str(exc)[:500]}
+
+
+def _sqlite_path() -> Path:
+    url = settings.database_url
+    if not url.startswith("sqlite"):
+        raise HTTPException(status_code=400, detail="Restore only supports SQLite.")
+    # sqlite:///relative/path  or  sqlite:////absolute/path
+    return Path(url.split("sqlite:///", 1)[1])
+
+
+@router.post("/restore-db")
+async def restore_db(file: UploadFile):
+    """One-time migration helper: replace this instance's SQLite database with
+    an uploaded one (e.g. copying a local Beacon up to the hosted instance).
+    Protected by the access key like every other /api route. The current
+    database is backed up next to the live file first, and the upload is
+    validated as a real Beacon DB before the swap. Rebuild the RAG index after
+    this (the /reindex call is issued automatically)."""
+    data = await file.read()
+    live = _sqlite_path()
+    incoming = live.with_suffix(".incoming.db")
+    incoming.write_bytes(data)
+
+    # Validate: it must open and carry Beacon's tables at the same schema head.
+    try:
+        conn = sqlite3.connect(incoming)
+        tables = {
+            r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        version = conn.execute("SELECT version_num FROM alembic_version").fetchone()
+        prop_count = conn.execute("SELECT COUNT(*) FROM properties").fetchone()[0]
+        conn.close()
+    except Exception as exc:
+        incoming.unlink(missing_ok=True)
+        raise HTTPException(status_code=422, detail=f"Not a valid Beacon database: {exc}")
+    if "properties" not in tables or not version:
+        incoming.unlink(missing_ok=True)
+        raise HTTPException(status_code=422, detail="Uploaded file is not a Beacon database.")
+
+    # Back up the current DB, then swap atomically. Single uvicorn worker +
+    # engine.dispose() means no stale handle keeps the old file open.
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    backup_name = None
+    if live.exists():
+        backup_name = f"{live.stem}.backup-{stamp}.db"
+        shutil.copy2(live, live.with_name(backup_name))
+    engine.dispose()
+    for sidecar in ("-wal", "-shm"):
+        Path(str(live) + sidecar).unlink(missing_ok=True)
+    incoming.replace(live)
+
+    # Rebuild the vector index from the restored rows so Nora/search match.
+    reindex_summary = None
+    try:
+        with Session(engine) as db:
+            reindex_summary = build_index(db, get_embedder())
+    except Exception as exc:
+        reindex_summary = {"status": "reindex_failed", "error": str(exc)[:300]}
+
+    return {
+        "status": "ok",
+        "restored_schema_version": version[0],
+        "properties_restored": prop_count,
+        "backup": f"{live.stem}.backup-{stamp}.db" if live.exists() else None,
+        "reindex": reindex_summary,
+    }
 
 
 @router.get("/retrieval-debug")
