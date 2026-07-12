@@ -721,4 +721,3 @@ Known limitations of Content Intelligence (Phase 10):
 CRM API access remains a documented placeholder (no API available); if
 granted, it uses `data_connections` with `source_type=crm` plus the existing
 CRMAdapter, no schema changes.
-# Beacon
