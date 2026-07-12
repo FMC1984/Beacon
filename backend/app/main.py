@@ -17,6 +17,7 @@ from app.routers import (
     content_intelligence,
     dashboard,
     export,
+    google,
     health,
     opportunities,
     nora,
@@ -39,7 +40,9 @@ async def require_access_key(request: Request, call_next):
     if (
         settings.access_key
         and request.url.path.startswith("/api")
-        and request.url.path != "/api/health"
+        # /api/google/callback: Google's browser redirect cannot carry the
+        # key header; the endpoint verifies its own HMAC-signed state instead.
+        and request.url.path not in ("/api/health", "/api/google/callback")
         and request.method != "OPTIONS"
         and not secrets.compare_digest(
             request.headers.get("x-beacon-key", ""), settings.access_key
@@ -83,3 +86,44 @@ app.include_router(property_context.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(review_intelligence.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
+app.include_router(google.router, prefix="/api")
+
+
+@app.on_event("startup")
+async def start_google_autosync():
+    """Scheduled sync: when BEACON_GOOGLE_AUTOSYNC is on, re-pull every
+    authorized Google connection once a day. Failures are recorded on the
+    connection (visible in the UI) and never crash the loop."""
+    if not settings.google_autosync:
+        return
+    import asyncio
+
+    async def loop():
+        from app.db import SessionLocal
+        from app.models import DataConnection, OAuthStatus
+        from app.services.google_sync import run_google_sync
+        from app.services.rag_sync_service import drain_queue
+
+        while True:
+            db = SessionLocal()
+            try:
+                ready = (
+                    db.query(DataConnection)
+                    .filter(
+                        DataConnection.oauth_status == OAuthStatus.CONNECTED,
+                        DataConnection.resource_id.isnot(None),
+                    )
+                    .all()
+                )
+                for conn in ready:
+                    try:
+                        run_google_sync(db, conn.id)
+                    except Exception:
+                        pass  # recorded on the connection by run_google_sync
+                if ready and settings.rag_autosync:
+                    drain_queue()
+            finally:
+                db.close()
+            await asyncio.sleep(24 * 60 * 60)
+
+    asyncio.create_task(loop())

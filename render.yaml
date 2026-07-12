@@ -39,6 +39,18 @@ services:
         sync: false
       - key: BEACON_ACCESS_KEY
         sync: false
+      # Google auto-sync (GA4 Data API + Search Console). Client id/secret come
+      # from the Google Cloud OAuth client; leave blank to keep it disabled.
+      - key: BEACON_GOOGLE_CLIENT_ID
+        sync: false
+      - key: BEACON_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: BEACON_GOOGLE_REDIRECT_URI
+        value: https://beacon-backend-s6yd.onrender.com/api/google/callback
+      - key: BEACON_FRONTEND_URL
+        value: https://beacon-frontend-app.onrender.com
+      - key: BEACON_GOOGLE_AUTOSYNC
+        value: "1"
 
   - type: web
     name: beacon-frontend-app

@@ -70,6 +70,39 @@ on Admin (or copy the local `backend/beacon.db`, `backend/.chroma`, and
 `backend/data/` to `/var/data/` over Render SSH). Deploys are triggered by
 pushing to the connected GitHub branch.
 
+## 2c. Google auto-sync (GA4 + Search Console)
+
+Instead of exporting CSVs, Beacon can pull GA4 traffic and Search Console
+performance directly from Google's APIs on a schedule. Uploads keep working
+alongside; synced rows carry `sync_job_id` provenance the way uploaded rows
+carry `upload_id`, run through the same AI-referral classifier, replace
+overlapping dates idempotently, and trigger the same RAG sync. Product
+language is fixed: this is "Scheduled sync" with a "Last updated" time, never
+real-time (Google's own data lags a day or two).
+
+One-time Google Cloud setup (free):
+
+1. console.cloud.google.com > new project > enable the **Google Analytics
+   Data API**, **Google Analytics Admin API**, and **Google Search Console
+   API** (APIs & Services > Library).
+2. APIs & Services > OAuth consent screen: External, add yourself as a test
+   user. Scopes are requested at runtime; no need to add them here.
+3. APIs & Services > Credentials > Create credentials > OAuth client ID >
+   Web application. Authorized redirect URI:
+   `https://<backend>.onrender.com/api/google/callback` (and
+   `http://localhost:8600/api/google/callback` for local use).
+4. Put the client ID and secret in `BEACON_GOOGLE_CLIENT_ID` /
+   `BEACON_GOOGLE_CLIENT_SECRET` (Render env vars, or `backend/.env`).
+
+Then on the Uploads page: pick a property > "Connect Google" > sign in with
+an account that can read the GA4 property and GSC site > choose which GA4
+property and site feed this Beacon property > Sync now. Each sync pulls the
+trailing `BEACON_GOOGLE_SYNC_DAYS` (default 30) days. With
+`BEACON_GOOGLE_AUTOSYNC=1`, every authorized connection re-syncs daily.
+Disconnecting revokes the token and keeps the already-synced data.
+`/api/google/callback` is exempt from the access key (Google's redirect
+cannot send headers); it is protected by an HMAC-signed state instead.
+
 ## 3. OpenAI billing (LIVE as of 2026-07-05)
 
 Beacon is running LIVE: `BEACON_DEMO_MODE=0`, OpenAI quota passes, both

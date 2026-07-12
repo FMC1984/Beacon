@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { Disclosure } from "@/components/MetricCard";
+import { GoogleConnections } from "@/components/GoogleConnections";
 
 // `connector` is the key each source maps to in a property type's
 // allowed_connectors list (note paid_media -> "paid").
@@ -264,6 +265,8 @@ export default function UploadsPage() {
           </div>
         )}
       </form>
+
+      <GoogleConnections propertyId={propertyId} />
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted">Ingest history</h2>

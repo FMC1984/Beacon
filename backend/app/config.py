@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     # Extra allowed CORS origins for hosted deployments, comma-separated
     # (e.g. "https://beacon-frontend.onrender.com").
     cors_origins: str = ""
+    # Google OAuth (GA4 Data API + Search Console auto-sync). Empty = the
+    # Connect button explains what to configure instead of erroring.
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    # Must exactly match an authorized redirect URI on the OAuth client.
+    google_redirect_uri: str = "http://localhost:8600/api/google/callback"
+    # Where the OAuth callback sends the browser back to (the frontend).
+    frontend_url: str = "http://localhost:3100"
+    # How many trailing days each sync pulls (replace-on-overlap by date).
+    google_sync_days: int = 30
+    # When on, a background task re-syncs every connected Google source daily.
+    google_autosync: bool = False
 
     model_config = SettingsConfigDict(
         env_prefix="BEACON_", env_file=".env", extra="ignore"

@@ -52,6 +52,13 @@ class DataConnection(Base):
     )
     account_name: Mapped[str] = mapped_column(String(300))
     external_account_id: Mapped[str] = mapped_column(String(200))
+    # Live-connection fields (Google OAuth build, 2026-07): which Beacon
+    # property this feeds, the offline refresh token, and the external
+    # resource pulled (GA4 "properties/123" or a GSC site URL).
+    property_id: Mapped[int | None] = mapped_column(ForeignKey("properties.id"))
+    refresh_token: Mapped[str | None] = mapped_column(Text)
+    resource_id: Mapped[str | None] = mapped_column(String(300))
+    resource_name: Mapped[str | None] = mapped_column(String(300))
     oauth_status: Mapped[OAuthStatus] = mapped_column(
         str_enum(OAuthStatus, "oauth_status"), default=OAuthStatus.DISCONNECTED
     )
