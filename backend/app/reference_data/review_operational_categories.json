@@ -1,0 +1,51 @@
+{
+  "version": "2026-07-05",
+  "notes": "Per-category operational config. 'effort' is author-configured (never derived from reviews) and is the fixed default effort to address that category. 'severity_weight' scales the severity formula. 'severity_multiplier' applies an extra multiplier to safety/pest/maintenance/billing concerns. severity_settings and recency define the deterministic scoring.",
+  "severity_settings": {
+    "recency": {
+      "method": "date_windows",
+      "windows": [
+        {"key": "recent", "max_age_days": 90, "weight": 1.5},
+        {"key": "mid", "max_age_days": 365, "weight": 1.0},
+        {"key": "old", "max_age_days": null, "weight": 0.5}
+      ],
+      "notes": "Recency-adjusted severity uses explicit date windows anchored to the most recent review date (not today). A negative mention's weight is the window its review falls in. No decay function is used."
+    }
+  },
+  "categories": {
+    "maintenance": {"label": "Maintenance", "effort": "Medium", "severity_weight": 3, "severity_multiplier": 1.5},
+    "leasing_movein": {"label": "Leasing and move-in", "effort": "Medium", "severity_weight": 2, "severity_multiplier": 1.0},
+    "staff_service": {"label": "Staff and service", "effort": "High", "severity_weight": 3, "severity_multiplier": 1.0},
+    "cleanliness": {"label": "Cleanliness", "effort": "Low", "severity_weight": 2, "severity_multiplier": 1.0},
+    "noise": {"label": "Noise", "effort": "High", "severity_weight": 2, "severity_multiplier": 1.0},
+    "parking": {"label": "Parking", "effort": "High", "severity_weight": 2, "severity_multiplier": 1.0},
+    "safety": {"label": "Safety", "effort": "High", "severity_weight": 4, "severity_multiplier": 2.0},
+    "amenities": {"label": "Amenities", "effort": "Medium", "severity_weight": 2, "severity_multiplier": 1.0},
+    "rent_fees": {"label": "Rent and fees", "effort": "High", "severity_weight": 2, "severity_multiplier": 1.0},
+    "communication": {"label": "Communication", "effort": "Low", "severity_weight": 3, "severity_multiplier": 1.0},
+    "pest": {"label": "Pest concerns", "effort": "Medium", "severity_weight": 4, "severity_multiplier": 2.0},
+    "grounds": {"label": "Grounds and common areas", "effort": "Low", "severity_weight": 2, "severity_multiplier": 1.0},
+    "neighbor_behavior": {"label": "Neighbor behavior", "effort": "High", "severity_weight": 1, "severity_multiplier": 1.0},
+    "package_delivery": {"label": "Package delivery", "effort": "Medium", "severity_weight": 2, "severity_multiplier": 1.0},
+    "appliances": {"label": "Appliances", "effort": "Medium", "severity_weight": 2, "severity_multiplier": 1.0},
+    "billing": {"label": "Billing", "effort": "Low", "severity_weight": 3, "severity_multiplier": 1.5}
+  },
+  "suggested_actions": {
+    "maintenance": "Review the maintenance response workflow and communicate expected service timelines to residents.",
+    "leasing_movein": "Audit the move-in checklist so units are ready and the leasing handoff is smooth.",
+    "staff_service": "Review front-office service standards and follow up on specific resident interactions.",
+    "cleanliness": "Increase common-area cleaning frequency and inspect trash areas.",
+    "noise": "Review noise policy enforcement and quiet-hours communication.",
+    "parking": "Reassess parking allocation and communicate the parking policy clearly.",
+    "safety": "Review lighting, access control, and security patrol coverage, and communicate steps taken.",
+    "amenities": "Audit amenity uptime and post clear hours and maintenance status.",
+    "rent_fees": "Review fee transparency and ensure charges are clearly explained before signing.",
+    "communication": "Set response-time standards for resident inquiries and confirm receipt of requests.",
+    "pest": "Escalate pest-control cadence and schedule preventive treatments across affected units.",
+    "grounds": "Increase landscaping and common-area upkeep frequency.",
+    "neighbor_behavior": "Reinforce community guidelines and provide a clear path to report issues.",
+    "package_delivery": "Review package handling and secure-locker capacity to reduce lost packages.",
+    "appliances": "Plan appliance inspection and replacement for units with recurring failures.",
+    "billing": "Audit the billing process to eliminate incorrect charges and clarify statements."
+  }
+}

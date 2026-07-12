@@ -1,0 +1,13 @@
+# ----------------------------------------
+# Traffic acquisition: Session primary channel group (Default Channel Group)
+# Account: Example Account
+# Property: Example Property
+# ----------------------------------------
+#
+# All Users
+# Start date: 20260601
+# End date: 20260630
+Session primary channel group (Default Channel Group),Sessions,Engaged sessions,Engagement rate,Average engagement time per session,Events per session,Event count,Key events,Session key event rate,Total revenue
+Direct,1148,439,0.382404181184669,40.78397212543554,6.9782229965156795,8011,0,0,0
+Organic Search,912,621,0.680921052631579,86.58004385964912,9.448464912280702,8617,0,0,0
+AI Assistant,21,10,0.47619047619047616,24.571428571428573,4.761904761904762,100,0,0,0

@@ -1,0 +1,35 @@
+{
+  "version": "2026-07-05",
+  "notes": "Global sentiment terms used to classify a review's overall sentiment and to override star-based classification. Terms flagged strong:true can flip a rating-based classification (e.g. a 5-star review containing a strong negative term becomes negative). Whole-word/phrase, case-insensitive, on normalized text. Literal matching; negation not detected.",
+  "positive": [
+    {"term": "love it here", "strong": true},
+    {"term": "highly recommend", "strong": true},
+    {"term": "best place", "strong": true},
+    {"term": "amazing", "strong": false},
+    {"term": "wonderful", "strong": false},
+    {"term": "great", "strong": false},
+    {"term": "excellent", "strong": false},
+    {"term": "fantastic", "strong": false},
+    {"term": "friendly", "strong": false},
+    {"term": "clean", "strong": false},
+    {"term": "quiet", "strong": false},
+    {"term": "responsive", "strong": false},
+    {"term": "happy", "strong": false}
+  ],
+  "negative": [
+    {"term": "worst place", "strong": true},
+    {"term": "do not move here", "strong": true},
+    {"term": "avoid this place", "strong": true},
+    {"term": "stay away", "strong": true},
+    {"term": "terrible", "strong": false},
+    {"term": "horrible", "strong": false},
+    {"term": "awful", "strong": false},
+    {"term": "dirty", "strong": false},
+    {"term": "rude", "strong": false},
+    {"term": "roaches", "strong": true},
+    {"term": "infestation", "strong": true},
+    {"term": "unsafe", "strong": false},
+    {"term": "overpriced", "strong": false},
+    {"term": "disappointed", "strong": false}
+  ]
+}

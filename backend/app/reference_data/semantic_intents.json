@@ -1,0 +1,14 @@
+{
+  "version": "2026-07-08",
+  "notes": "Deterministic intent vocabulary for the shared semantic layer (Phase 15a). A document can carry multiple intents; each intent is asserted only when one of its cue terms matches (whole-word/phrase, normalized). complaint/praise additionally use the global sentiment terms with negation awareness in the enrichment service, so 'not helpful' contributes to complaint, not praise.",
+  "intents": [
+    {"key": "information_request", "label": "Information request", "terms": ["how do i", "how do we", "how can i", "what is", "what are", "where is", "where can", "when is", "do you", "is there", "are there", "can i"]},
+    {"key": "complaint", "label": "Complaint", "terms": ["complaint", "disappointed", "frustrated", "unacceptable", "terrible", "awful", "worst", "avoid this place"]},
+    {"key": "praise", "label": "Praise", "terms": ["love it here", "highly recommend", "great experience", "amazing", "wonderful", "best place", "five stars"]},
+    {"key": "recommendation", "label": "Recommendation", "terms": ["recommend", "recommended", "would suggest", "suggest"]},
+    {"key": "comparison", "label": "Comparison", "terms": ["compared to", "versus", "vs", "better than", "worse than", "instead of", "other apartments", "other properties"]},
+    {"key": "leasing_intent", "label": "Leasing intent", "terms": ["apply", "application", "schedule a tour", "tour", "move in", "availability", "available units", "lease", "sign a lease", "pricing", "waitlist"]},
+    {"key": "maintenance_request", "label": "Maintenance request", "terms": ["work order", "maintenance request", "service request", "needs repair", "please fix", "broken"]},
+    {"key": "support_request", "label": "Support request", "terms": ["help me", "need help", "contact", "call me", "reach out", "customer service"]}
+  ]
+}

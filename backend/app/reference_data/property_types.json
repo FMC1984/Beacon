@@ -1,0 +1,45 @@
+{
+  "version": "2026-07-06",
+  "notes": "Client/site type for a Property (distinct from PropertyProfile.property_type, which is the operator-asserted regulatory/marketing type like affordable/senior). This drives terminology, which knowledge bases Content Intelligence uses, which connectors are offered, and how Nora frames answers. Vocabulary-in-JSON: add a type here (plus its KB files) with no migration.",
+  "default": "multifamily_apartment",
+  "types": {
+    "multifamily_apartment": {
+      "label": "Multifamily apartment",
+      "short_label": "Apartments",
+      "description": "A single apartment community leasing units to residents.",
+      "terminology": {
+        "site": "property",
+        "site_plural": "properties",
+        "audience": "renters",
+        "audience_singular": "renter",
+        "unit": "unit",
+        "unit_plural": "units",
+        "unit_count_label": "Unit count"
+      },
+      "content_intelligence": {
+        "renter_questions": "renter_questions.json",
+        "content_intent": "content_intent.json"
+      },
+      "allowed_connectors": ["ga4", "gsc", "gbp", "paid", "crm"]
+    },
+    "housing_authority": {
+      "label": "Housing authority",
+      "short_label": "Housing authority",
+      "description": "A public housing authority or nonprofit administering programs (vouchers, public housing, rental/homeownership assistance) across developments.",
+      "terminology": {
+        "site": "agency",
+        "site_plural": "agencies",
+        "audience": "applicants and households",
+        "audience_singular": "applicant",
+        "unit": "development",
+        "unit_plural": "developments",
+        "unit_count_label": "Developments / units administered"
+      },
+      "content_intelligence": {
+        "renter_questions": "renter_questions_housing_authority.json",
+        "content_intent": "content_intent_housing_authority.json"
+      },
+      "allowed_connectors": ["ga4", "gsc", "gbp"]
+    }
+  }
+}

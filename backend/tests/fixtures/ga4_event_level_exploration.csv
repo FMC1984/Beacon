@@ -1,0 +1,16 @@
+# ----------------------------------------
+# DCHP
+# Untitled exploration-Free form 1
+# 20260607-20260608
+# ----------------------------------------
+
+,,,,Segment,Organic traffic,Organic traffic,Organic traffic,Organic traffic,Totals,Totals,Totals,Totals
+Session source / medium,Date + hour (YYYYMMDDHH),Landing page + query string,Event name,Search term,Sessions,Event count,First visits,Key events,Sessions,Event count,First visits,Key events
+,,,,,10,50,5,1,10,50,5,1,Grand total
+google / organic,2026060708,/,session_start,,4,4,0,0,4,4,0,0
+google / organic,2026060708,/,page_view,,4,8,0,0,4,8,0,0
+google / organic,2026060708,/,scroll,,4,3,0,0,4,3,0,0
+google / organic,2026060710,/,key_event,section 8,0,0,0,1,0,0,0,1
+chatgpt.com / referral,2026060709,/floorplans,session_start,,6,6,6,0,6,6,6,0
+chatgpt.com / referral,2026060709,/floorplans,page_view,,6,12,0,0,6,12,0,0
+chatgpt.com / referral,2026060709,/floorplans,user_engagement,,6,6,0,0,6,6,0,0

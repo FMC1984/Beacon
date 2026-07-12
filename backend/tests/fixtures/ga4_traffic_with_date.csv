@@ -1,0 +1,13 @@
+# ----------------------------------------
+# All Users
+# Traffic acquisition: Session source/medium
+# 20260601-20260630
+# ----------------------------------------
+
+Date,Session source,Session medium,Session campaign,Sessions,Engaged sessions,Total users,Key events
+20260601,google,organic,(not set),120,90,100,5
+20260601,chatgpt.com,referral,(not set),8,7,8,1
+20260602,google,cpc,summer_lease_up,45,30,40,3
+20260602,perplexity.ai,referral,(not set),4,3,4,0
+20260603,(direct),(none),(not set),"1,234",800,1000,12
+Grand total,,,,1411,930,1152,21

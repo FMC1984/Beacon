@@ -1,0 +1,65 @@
+{
+  "version": "2026-07-05",
+  "notes": "Vocabulary and gating rules for operator-asserted property context. Property type, regulatory status, and programs are ALWAYS operator-provided and NEVER inferred by Beacon. Add a property type, program, restriction flag, theme, or gating rule here without a code change. Gating is deterministic: identical (context, theme) always yields identical output.",
+  "property_types": [
+    "affordable",
+    "conventional",
+    "luxury",
+    "student",
+    "senior",
+    "active_adult",
+    "military",
+    "mixed_income"
+  ],
+  "regulatory_programs": [
+    "LIHTC",
+    "Section_8",
+    "PBV",
+    "voucher_accepting",
+    "other"
+  ],
+  "restriction_flags": [
+    "no_exclusivity_language",
+    "no_demographic_targeting",
+    "no_income_based_claims",
+    "no_nightlife_framing",
+    "fair_housing_sensitive"
+  ],
+  "unknown_status_message": "Program status not specified; compliance-sensitive guidance withheld.",
+  "themes": [
+    {"key": "exclusivity", "label": "Exclusivity / prestige framing", "phrases": ["exclusive", "exclusivity", "elite", "prestigious", "luxury living", "upscale living"]},
+    {"key": "young_professional", "label": "Young-professional targeting", "phrases": ["young professional", "young professionals", "young and", "perfect for millennials", "millennial"]},
+    {"key": "demographic_targeting", "label": "Demographic targeting", "phrases": ["perfect for singles", "ideal for families", "great for students only", "adults only", "no kids"]},
+    {"key": "nightlife", "label": "Nightlife / party framing", "phrases": ["nightlife", "party scene", "vibrant nightlife", "bar scene", "party atmosphere"]},
+    {"key": "quiet_community", "label": "Quiet-community framing", "phrases": ["quiet community", "peaceful retreat", "serene", "tranquil setting"]}
+  ],
+  "compliance_sensitive_themes": ["exclusivity", "young_professional", "demographic_targeting", "nightlife"],
+  "restriction_flag_themes": {
+    "no_exclusivity_language": ["exclusivity"],
+    "no_demographic_targeting": ["demographic_targeting", "young_professional"],
+    "no_nightlife_framing": ["nightlife"]
+  },
+  "gating_rules": [
+    {
+      "id": "regulated_no_exclusivity",
+      "when": {"is_regulated": true},
+      "themes": ["exclusivity", "demographic_targeting", "young_professional"],
+      "status": "suppressed",
+      "reason": "Regulated affordable housing: exclusivity and demographic-targeting language is a fair-housing and compliance risk, not merely low quality."
+    },
+    {
+      "id": "senior_no_young_framing",
+      "when": {"property_type": ["senior", "active_adult"]},
+      "themes": ["nightlife", "young_professional"],
+      "status": "suppressed",
+      "reason": "Senior / active-adult community: nightlife and young-professional framing is off-audience and a fair-housing concern."
+    },
+    {
+      "id": "student_quiet_caution",
+      "when": {"property_type": ["student"]},
+      "themes": ["quiet_community"],
+      "status": "caution-only",
+      "reason": "Student housing: a quiet-community angle can conflict with the target audience. Use as caution, not a headline strength."
+    }
+  ]
+}

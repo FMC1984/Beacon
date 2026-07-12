@@ -1,0 +1,22 @@
+{
+  "version": "2026-07-12",
+  "notes": "Hybrid retrieval + deterministic reranking config (Phase 15b). Vector search proposes a candidate pool; these transparent, weighted components pick and order the final results. No LLM ever influences ranking. Weights are renormalized over the components present, tie-break is by chroma_id, and every retrieved chunk carries its component scores so a developer can see exactly why it matched.",
+  "candidate_pool_multiplier": 3,
+  "min_candidate_pool": 12,
+  "weights": {
+    "semantic_similarity": 0.5,
+    "keyword_overlap": 0.2,
+    "phrase_match": 0.1,
+    "topic_overlap": 0.1,
+    "entity_overlap": 0.05,
+    "recency": 0.05
+  },
+  "stopwords": [
+    "the", "a", "an", "and", "or", "but", "of", "for", "to", "in", "on", "at",
+    "is", "are", "was", "were", "be", "been", "do", "does", "did", "have",
+    "has", "had", "what", "which", "who", "whom", "how", "when", "where",
+    "why", "can", "could", "should", "would", "will", "it", "its", "this",
+    "that", "these", "those", "we", "our", "us", "i", "my", "me", "you",
+    "your", "they", "their", "them", "with", "about", "as", "by", "from"
+  ]
+}

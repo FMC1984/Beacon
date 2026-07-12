@@ -1,0 +1,134 @@
+{
+  "version": "2026-07-06",
+  "notes": "Applicant/household questions for a housing_authority property type. Same schema as renter_questions.json; selected by property_type via property_types.json.",
+  "questions": [
+    {
+      "id": "how_to_apply",
+      "category": "application",
+      "importance": "high",
+      "question": "How do I apply for housing assistance?",
+      "concept_terms": ["apply", "application", "applying", "pre-application", "pre application"],
+      "detail_terms": ["online application", "apply online", "in person", "portal", "submit an application", "how to apply"]
+    },
+    {
+      "id": "eligibility",
+      "category": "eligibility",
+      "importance": "high",
+      "question": "Am I eligible and what are the income limits?",
+      "concept_terms": ["eligible", "eligibility", "qualify", "income limit", "income limits"],
+      "detail_terms": ["area median income", "ami", "household size", "income limits", "gross income", "50 percent", "80 percent"]
+    },
+    {
+      "id": "voucher_hcv",
+      "category": "programs",
+      "importance": "high",
+      "question": "What is the Housing Choice Voucher (Section 8) program?",
+      "concept_terms": ["section 8", "housing choice voucher", "hcv", "voucher", "vouchers"],
+      "detail_terms": ["payment standard", "portability", "how vouchers work", "utility allowance", "landlord"]
+    },
+    {
+      "id": "waitlist",
+      "category": "application",
+      "importance": "high",
+      "question": "How does the waitlist work?",
+      "concept_terms": ["waitlist", "waiting list", "wait list"],
+      "detail_terms": ["open", "closed", "lottery", "position", "notification", "preference"]
+    },
+    {
+      "id": "programs_offered",
+      "category": "programs",
+      "importance": "high",
+      "question": "What housing programs do you offer?",
+      "concept_terms": ["program", "programs", "assistance"],
+      "detail_terms": ["public housing", "rental assistance", "homeownership", "rehabilitation", "senior", "disabled", "supportive housing"]
+    },
+    {
+      "id": "required_documents",
+      "category": "application",
+      "importance": "high",
+      "question": "What documents do I need to apply?",
+      "concept_terms": ["document", "documents", "paperwork", "verification"],
+      "detail_terms": ["photo id", "social security", "birth certificate", "income verification", "proof of income", "proof of"]
+    },
+    {
+      "id": "recertification",
+      "category": "service",
+      "importance": "medium",
+      "question": "How do I recertify or report a change?",
+      "concept_terms": ["recertify", "recertification", "annual review", "reexamination", "reexam"],
+      "detail_terms": ["interim", "report changes", "income change", "annual recertification", "update your information"]
+    },
+    {
+      "id": "report_repairs",
+      "category": "service",
+      "importance": "high",
+      "question": "How do I report a repair or maintenance issue?",
+      "concept_terms": ["repair", "maintenance", "work order"],
+      "detail_terms": ["emergency", "hotline", "submit a request", "report a", "after hours"]
+    },
+    {
+      "id": "developments",
+      "category": "programs",
+      "importance": "medium",
+      "question": "What developments or properties do you manage?",
+      "concept_terms": ["development", "developments", "communities", "properties we manage"],
+      "detail_terms": ["locations", "addresses", "availability", "our properties", "our communities"]
+    },
+    {
+      "id": "fair_housing",
+      "category": "resources",
+      "importance": "high",
+      "question": "How do I request a reasonable accommodation or file a fair-housing concern?",
+      "concept_terms": ["fair housing", "accommodation", "accessibility", "ada", "reasonable accommodation"],
+      "detail_terms": ["disability", "reasonable modification", "discrimination", "complaint", "504"]
+    },
+    {
+      "id": "landlord_participation",
+      "category": "programs",
+      "importance": "medium",
+      "question": "How can landlords participate?",
+      "concept_terms": ["landlord", "landlords", "property owner", "owners"],
+      "detail_terms": ["participate", "inspection", "hap contract", "payment", "list your property", "become a landlord"]
+    },
+    {
+      "id": "contact_office",
+      "category": "service",
+      "importance": "medium",
+      "question": "How do I contact the office and what are the hours?",
+      "concept_terms": ["contact", "office", "hours"],
+      "detail_terms": ["phone", "email", "address", "appointment", "office hours", "hours of operation"]
+    },
+    {
+      "id": "rent_calculation",
+      "category": "eligibility",
+      "importance": "medium",
+      "question": "How is my rent portion calculated?",
+      "concept_terms": ["rent", "portion", "tenant rent"],
+      "detail_terms": ["30 percent", "adjusted income", "utility allowance", "total tenant payment"]
+    },
+    {
+      "id": "homeownership",
+      "category": "programs",
+      "importance": "low",
+      "question": "Do you offer homeownership assistance?",
+      "concept_terms": ["homeownership", "homebuyer", "buy a home"],
+      "detail_terms": ["down payment", "counseling", "first-time", "first time homebuyer"]
+    },
+    {
+      "id": "emergency_assistance",
+      "category": "resources",
+      "importance": "medium",
+      "question": "Do you offer emergency or homelessness assistance?",
+      "concept_terms": ["emergency", "homeless", "homelessness"],
+      "detail_terms": ["shelter", "rapid rehousing", "prevention", "emergency assistance"]
+    },
+    {
+      "id": "languages_help",
+      "category": "resources",
+      "importance": "low",
+      "question": "Is language assistance available?",
+      "concept_terms": ["language", "translation", "interpreter"],
+      "detail_terms": ["spanish", "language assistance", "interpretation", "accessible"]
+    }
+  ]
+}

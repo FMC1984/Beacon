@@ -1,0 +1,23 @@
+{
+  "version": "2026-07-08",
+  "notes": "Cross-module topic taxonomy for the shared semantic layer (Phase 15a). Used to enrich every indexed chunk with negation-aware topic tags; existing module KBs (review_themes, renter_questions, content_intent) keep driving their engines and are consolidated onto this taxonomy in later 15x work. Whole-word/phrase matching on normalized text; add topics or terms here with no code change.",
+  "topics": [
+    {"key": "maintenance", "label": "Maintenance", "terms": ["maintenance", "repair", "repairs", "work order", "fix", "fixed", "broken", "leak", "leaking", "hvac"]},
+    {"key": "leasing", "label": "Leasing", "terms": ["lease", "leasing", "renewal", "renew", "application", "apply", "tour", "leasing office"]},
+    {"key": "staff", "label": "Staff & Service", "terms": ["staff", "manager", "management", "office", "front office", "leasing agent", "concierge", "helpful", "rude"]},
+    {"key": "amenities", "label": "Amenities", "terms": ["amenities", "pool", "gym", "fitness center", "clubhouse", "dog park", "playground", "grill", "business center", "package locker"]},
+    {"key": "parking", "label": "Parking", "terms": ["parking", "garage", "carport", "parking lot", "parking spot", "guest parking"]},
+    {"key": "noise", "label": "Noise", "terms": ["noise", "noisy", "loud", "quiet", "thin walls", "soundproof"]},
+    {"key": "cleanliness", "label": "Cleanliness", "terms": ["clean", "cleanliness", "dirty", "filthy", "spotless", "trash", "smell", "odor"]},
+    {"key": "pricing", "label": "Pricing & Fees", "terms": ["rent", "price", "pricing", "fees", "fee", "deposit", "expensive", "affordable", "rent increase", "specials"]},
+    {"key": "availability", "label": "Availability", "terms": ["availability", "available", "waitlist", "waiting list", "vacancy", "move in date"]},
+    {"key": "move_in", "label": "Move-in", "terms": ["move in", "moving in", "moved in", "move out", "moving out", "movein"]},
+    {"key": "location", "label": "Location & Neighborhood", "terms": ["location", "neighborhood", "close to", "nearby", "commute", "walkable", "downtown", "highway", "school district"]},
+    {"key": "safety", "label": "Safety & Security", "terms": ["safe", "safety", "security", "secure", "gated", "break in", "crime", "well lit"]},
+    {"key": "pets", "label": "Pets", "terms": ["pet", "pets", "pet policy", "pet friendly", "dog", "dogs", "cat", "cats", "pet deposit", "pet rent", "breed restrictions"]},
+    {"key": "floor_plans", "label": "Floor Plans & Units", "terms": ["floor plan", "floorplan", "studio", "one bedroom", "two bedroom", "three bedroom", "square feet", "layout", "unit", "townhome"]},
+    {"key": "applications_eligibility", "label": "Applications & Eligibility", "terms": ["eligibility", "eligible", "income limit", "income limits", "qualify", "voucher", "section 8", "housing assistance", "required documents", "recertification"]},
+    {"key": "communication", "label": "Communication", "terms": ["communication", "responsive", "response", "call back", "email", "unresponsive", "ignored"]},
+    {"key": "pest", "label": "Pests", "terms": ["pest", "pests", "roach", "roaches", "bed bug", "bed bugs", "mice", "rats", "ants", "infestation"]}
+  ]
+}

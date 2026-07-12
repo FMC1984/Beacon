@@ -1,0 +1,8 @@
+{
+  "version": "2026-07-08",
+  "notes": "Static entity vocabularies for the shared semantic layer (Phase 15a). These cover entity TYPES whose surface forms are generic (amenities, unit types). Named entities that are specific to a property - the property name, its city, tracked competitor names and aliases - come from the database at enrichment time, never from this file, so nothing here is fabricated per property.",
+  "entity_types": {
+    "amenity": ["pool", "gym", "fitness center", "clubhouse", "dog park", "playground", "business center", "package lockers", "grill area", "fire pit", "ev charging", "bike storage", "rooftop deck", "courtyard"],
+    "unit_type": ["studio", "one bedroom", "two bedroom", "three bedroom", "1 bedroom", "2 bedroom", "3 bedroom", "townhome", "loft", "penthouse", "den"]
+  }
+}

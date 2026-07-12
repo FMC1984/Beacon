@@ -1,0 +1,75 @@
+{
+  "version": "2026-07-04",
+  "notes": "Single source of truth for Tier 1 AI referral detection. No domain lists in Python code. Matching is undercount-safe by design: when a domain would also match non-AI traffic, it is left out and the miss is absorbed by the undercount disclosure.",
+  "platforms": [
+    {
+      "key": "chatgpt",
+      "label": "ChatGPT",
+      "referrer_domains": ["chatgpt.com", "chat.openai.com"],
+      "utm_sources": ["chatgpt", "chatgpt.com", "openai"]
+    },
+    {
+      "key": "perplexity",
+      "label": "Perplexity",
+      "referrer_domains": ["perplexity.ai"],
+      "utm_sources": ["perplexity", "perplexity.ai"]
+    },
+    {
+      "key": "copilot",
+      "label": "Microsoft Copilot",
+      "referrer_domains": ["copilot.microsoft.com", "copilot.cloud.microsoft"],
+      "utm_sources": ["copilot", "microsoft-copilot"]
+    },
+    {
+      "key": "gemini",
+      "label": "Google Gemini",
+      "referrer_domains": ["gemini.google.com", "bard.google.com"],
+      "utm_sources": ["gemini", "bard"],
+      "notes": "Deliberately scoped to the gemini/bard subdomains. Bare google.com must never match."
+    },
+    {
+      "key": "claude",
+      "label": "Claude",
+      "referrer_domains": ["claude.ai", "claude.com"],
+      "utm_sources": ["claude"]
+    },
+    {
+      "key": "meta_ai",
+      "label": "Meta AI",
+      "referrer_domains": ["meta.ai"],
+      "utm_sources": ["meta-ai", "meta_ai"]
+    },
+    {
+      "key": "you",
+      "label": "You.com",
+      "referrer_domains": ["you.com"],
+      "utm_sources": ["you.com"]
+    },
+    {
+      "key": "poe",
+      "label": "Poe",
+      "referrer_domains": ["poe.com"],
+      "utm_sources": ["poe"]
+    },
+    {
+      "key": "phind",
+      "label": "Phind",
+      "referrer_domains": ["phind.com"],
+      "utm_sources": ["phind"]
+    },
+    {
+      "key": "duckduckgo_ai",
+      "label": "DuckDuckGo AI",
+      "referrer_domains": ["duck.ai"],
+      "utm_sources": ["duck.ai"],
+      "notes": "duckduckgo.com is deliberately excluded: its referrer is indistinguishable from regular DuckDuckGo search and would overcount. Only the duck.ai chat host matches."
+    },
+    {
+      "key": "grok",
+      "label": "Grok",
+      "referrer_domains": ["grok.com", "grok.x.ai"],
+      "utm_sources": ["grok"],
+      "notes": "x.com/twitter.com deliberately excluded: social referrals are not AI assistant referrals."
+    }
+  ]
+}

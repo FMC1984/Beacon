@@ -1,0 +1,26 @@
+# Secrets - never commit. The OpenAI key lives in backend/.env locally and in
+# Render env vars when hosted.
+.env
+backend/.env
+*.env.local
+
+# Local data (lives on the Render disk when hosted)
+backend/beacon.db
+backend/*.db
+backend/.chroma/
+backend/data/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/out/
+frontend/next-env.d.ts
+
+# OS / editor
+.DS_Store

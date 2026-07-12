@@ -1,0 +1,51 @@
+{
+  "version": "2026-07-06",
+  "notes": "Content-intent topics for a housing_authority property. Same canonical page KEYS as content_intent.json (for storage compatibility) but the expected TOPICS are reinterpreted for an agency site: amenities->programs, floor_plans->eligibility/application, neighborhood->service area/resources. The frontend relabels the page names per property type.",
+  "intent_threshold": 0.6,
+  "pages": {
+    "homepage": {
+      "required_topics": [
+        {"label": "Programs offered", "terms": ["program", "programs", "voucher", "section 8", "public housing", "rental assistance", "assistance"]},
+        {"label": "How to apply", "terms": ["apply", "application", "how to apply", "pre-application", "waitlist"]},
+        {"label": "Eligibility", "terms": ["eligible", "eligibility", "income limit", "qualify"]},
+        {"label": "Service area", "terms": ["county", "counties", "serve", "service area", "region"]},
+        {"label": "Contact", "terms": ["contact", "phone", "office", "address", "hours"]}
+      ]
+    },
+    "amenities": {
+      "required_topics": [
+        {"label": "Housing Choice Voucher / Section 8", "terms": ["section 8", "housing choice voucher", "hcv", "voucher"]},
+        {"label": "Public housing", "terms": ["public housing", "development", "developments"]},
+        {"label": "Rental assistance", "terms": ["rental assistance", "rent assistance", "subsidized"]},
+        {"label": "Homeownership assistance", "terms": ["homeownership", "homebuyer", "down payment"]},
+        {"label": "Special-population programs", "terms": ["senior", "elderly", "disabled", "disability", "supportive housing", "veteran"]}
+      ]
+    },
+    "floor_plans": {
+      "required_topics": [
+        {"label": "Income limits", "terms": ["income limit", "income limits", "area median income", "ami"]},
+        {"label": "Application process", "terms": ["apply", "application", "pre-application", "submit"]},
+        {"label": "Waitlist status", "terms": ["waitlist", "waiting list", "open", "closed", "lottery"]},
+        {"label": "Required documents", "terms": ["document", "documents", "verification", "proof of", "identification"]},
+        {"label": "Recertification", "terms": ["recertify", "recertification", "annual review", "reexamination"]}
+      ]
+    },
+    "neighborhood": {
+      "required_topics": [
+        {"label": "Counties / areas served", "terms": ["county", "counties", "city", "region", "service area", "serve"]},
+        {"label": "Partner resources", "terms": ["partner", "partners", "referral", "community resources", "resources"]},
+        {"label": "Transportation", "terms": ["transportation", "transit", "bus", "commute"]},
+        {"label": "Local support services", "terms": ["support", "services", "assistance", "counseling", "food", "utility assistance"]}
+      ]
+    },
+    "faq": {
+      "required_topics": [
+        {"label": "Report repairs / maintenance", "terms": ["repair", "maintenance", "work order"]},
+        {"label": "Recertification / report changes", "terms": ["recertify", "recertification", "report changes", "interim"]},
+        {"label": "Fair housing / accommodations", "terms": ["fair housing", "reasonable accommodation", "accessibility", "ada", "disability"]},
+        {"label": "Landlord participation", "terms": ["landlord", "owner", "participate", "inspection", "hap"]},
+        {"label": "Office hours / contact", "terms": ["hours", "office", "contact", "phone", "appointment"]}
+      ]
+    }
+  }
+}

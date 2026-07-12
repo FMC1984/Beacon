@@ -1,0 +1,16 @@
+{
+  "version": "2026-07-05",
+  "notes": "Neighborhood topic coverage for Content Intelligence. A category is 'covered' when any of its terms appears in the property's content. Rating is by count of covered categories against the thresholds below. Add categories or terms without code changes.",
+  "rating_thresholds": {"poor_max": 1, "basic_max": 4, "good_max": 6},
+  "categories": [
+    {"key": "schools", "label": "Schools", "terms": ["school", "schools", "elementary", "high school", "district", "university", "college", "education"]},
+    {"key": "employers", "label": "Employers", "terms": ["employer", "employers", "business district", "downtown", "headquarters", "office park", "tech corridor", "hospital", "campus"]},
+    {"key": "shopping", "label": "Shopping", "terms": ["shopping", "mall", "grocery", "supermarket", "retail", "market", "shops", "boutique"]},
+    {"key": "dining", "label": "Dining", "terms": ["restaurant", "restaurants", "dining", "cafe", "coffee", "bar", "eatery", "brewery"]},
+    {"key": "parks", "label": "Parks", "terms": ["park", "parks", "greenbelt", "trailhead", "playground"]},
+    {"key": "recreation", "label": "Recreation", "terms": ["trail", "hiking", "biking", "lake", "golf", "recreation", "kayak", "sports"]},
+    {"key": "transportation", "label": "Transportation", "terms": ["transit", "light rail", "bus", "highway", "freeway", "commute", "airport", "station", "i-10", "loop 101"]},
+    {"key": "medical", "label": "Medical facilities", "terms": ["hospital", "medical", "clinic", "urgent care", "health", "pharmacy", "physician"]},
+    {"key": "entertainment", "label": "Entertainment", "terms": ["entertainment", "theater", "cinema", "museum", "nightlife", "concert", "stadium", "arena", "venue"]}
+  ]
+}

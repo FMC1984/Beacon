@@ -1,0 +1,34 @@
+{
+  "version": "2026-07-05",
+  "notes": "Review-backed marketing themes. Each draws evidence from one or more operational themes (source_themes). 'context_theme' links to a property-context gating theme (property_context.json) so the marketing insight is gated: e.g. 'Quiet atmosphere' maps to 'quiet_community', which is caution-only for student housing. Confidence labels use the deterministic thresholds below. suggested_use is passed through the property-context gating utility before it is emitted.",
+  "confidence_thresholds": {
+    "notes": "Confidence is based on positive mention count and the positive share of mentions for the source themes. Three labels only.",
+    "supported": {"min_positive_mentions": 3, "min_positive_share": 0.6},
+    "mixed": {"min_positive_mentions": 1, "min_positive_share": 0.0},
+    "not_recommended": {"description": "Negative mentions outnumber positive, or no positive evidence."}
+  },
+  "themes": [
+    {"key": "friendly_staff", "label": "Friendly staff", "source_themes": ["staff_service"], "context_theme": null,
+     "suggested_use": "Feature resident praise for the on-site team in social proof and website content."},
+    {"key": "responsive_maintenance", "label": "Responsive maintenance", "source_themes": ["maintenance"], "context_theme": null,
+     "suggested_use": "Highlight responsive maintenance in website content and tour talking points."},
+    {"key": "clean_community", "label": "Clean community", "source_themes": ["cleanliness", "grounds"], "context_theme": null,
+     "suggested_use": "Use clean, well-kept community feedback in photos and captions."},
+    {"key": "convenient_location", "label": "Convenient location", "source_themes": ["amenities"], "context_theme": null,
+     "suggested_use": "Reinforce location convenience in neighborhood content."},
+    {"key": "quiet_atmosphere", "label": "Quiet atmosphere", "source_themes": ["noise"], "context_theme": "quiet_community",
+     "suggested_use": "Feature the quiet, peaceful atmosphere in listings."},
+    {"key": "strong_amenities", "label": "Strong amenities", "source_themes": ["amenities"], "context_theme": null,
+     "suggested_use": "Showcase amenity satisfaction in the amenities page and photo gallery."},
+    {"key": "spacious_homes", "label": "Spacious homes", "source_themes": ["amenities"], "context_theme": null,
+     "suggested_use": "Emphasize spacious floor plans where residents mention space."},
+    {"key": "pet_friendliness", "label": "Pet friendliness", "source_themes": ["amenities"], "context_theme": null,
+     "suggested_use": "Highlight pet-friendly features and resident pet feedback."},
+    {"key": "safety", "label": "Safety", "source_themes": ["safety"], "context_theme": null,
+     "suggested_use": "Reference resident sense of safety carefully and only when consistently positive."},
+    {"key": "community_atmosphere", "label": "Community atmosphere", "source_themes": ["neighbor_behavior", "staff_service"], "context_theme": null,
+     "suggested_use": "Feature community and neighbor feedback in lifestyle content."},
+    {"key": "movein_experience", "label": "Move-in experience", "source_themes": ["leasing_movein"], "context_theme": null,
+     "suggested_use": "Use smooth move-in stories in the leasing journey content."}
+  ]
+}

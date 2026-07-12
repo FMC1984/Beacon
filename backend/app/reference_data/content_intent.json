@@ -1,0 +1,36 @@
+{
+  "version": "2026-07-05",
+  "notes": "Search-intent model for Content Intelligence. Intent is judged by whether a page covers the supporting TOPICS a complete page for its mapped keyword should address, NOT by keyword frequency. A topic is covered when any of its terms appears. A page 'satisfies intent' when it covers at least intent_threshold of its required topics and is 'complete' when it covers all of them.",
+  "intent_threshold": 0.6,
+  "pages": {
+    "homepage": {"label": "Homepage", "required_topics": [
+      {"key": "location", "label": "Location", "terms": ["located", "neighborhood", "near", "minutes from", "address", "in the heart of", "district"]},
+      {"key": "amenities", "label": "Amenities", "terms": ["amenities", "pool", "fitness", "clubhouse", "package", "resort"]},
+      {"key": "floor_plans", "label": "Floor plans", "terms": ["floor plan", "bedroom", "studio", "one bedroom", "two bedroom", "square feet", "sq ft"]},
+      {"key": "pricing", "label": "Pricing/availability", "terms": ["rent", "pricing", "starting at", "availability", "lease", "apply now"]},
+      {"key": "contact", "label": "Contact/tour", "terms": ["contact", "schedule a tour", "tour", "call", "email", "leasing office"]}
+    ]},
+    "amenities": {"label": "Amenities", "required_topics": [
+      {"key": "community", "label": "Community amenities", "terms": ["pool", "fitness", "clubhouse", "business center", "dog park", "grill", "courtyard", "lounge"]},
+      {"key": "apartment", "label": "In-unit features", "terms": ["stainless", "granite", "quartz", "washer", "dryer", "walk-in closet", "balcony", "hardwood", "vinyl plank"]},
+      {"key": "convenience", "label": "Convenience", "terms": ["parking", "garage", "package", "ev charging", "storage", "elevator", "smart home"]}
+    ]},
+    "floor_plans": {"label": "Floor Plans", "required_topics": [
+      {"key": "types", "label": "Plan types", "terms": ["studio", "one bedroom", "two bedroom", "three bedroom", "1 bed", "2 bed", "1x1", "2x2"]},
+      {"key": "size", "label": "Sizes", "terms": ["square feet", "sq ft", "sqft", "square foot"]},
+      {"key": "pricing", "label": "Pricing", "terms": ["rent", "starting at", "price", "priced", "per month"]},
+      {"key": "availability", "label": "Availability", "terms": ["available", "availability", "move-in", "apply", "waitlist", "now leasing"]}
+    ]},
+    "neighborhood": {"label": "Neighborhood", "required_topics": [
+      {"key": "dining", "label": "Dining", "terms": ["restaurant", "dining", "cafe", "coffee", "bar", "eatery", "brewery"]},
+      {"key": "shopping", "label": "Shopping", "terms": ["shopping", "mall", "grocery", "store", "retail", "market"]},
+      {"key": "transit", "label": "Transportation", "terms": ["transit", "light rail", "bus", "highway", "freeway", "commute", "airport", "minutes to"]},
+      {"key": "recreation", "label": "Parks/recreation", "terms": ["park", "trail", "recreation", "hiking", "lake", "golf"]},
+      {"key": "employers", "label": "Employers", "terms": ["employer", "business district", "downtown", "tech", "hospital", "university", "campus"]}
+    ]},
+    "faq": {"label": "FAQ", "required_topics": [
+      {"key": "policies", "label": "Policies", "terms": ["pet", "parking", "lease", "deposit", "application", "smoking"]},
+      {"key": "logistics", "label": "Logistics", "terms": ["move-in", "utilities", "office hours", "maintenance", "internet", "renters insurance"]}
+    ]}
+  }
+}

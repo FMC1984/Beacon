@@ -1,0 +1,30 @@
+{
+  "version": "2026-07-08",
+  "notes": "Deterministic negation rules for the shared semantic layer (Phase 15a). Conservative by design: a rule that cannot be applied safely is omitted rather than guessed, so some negations are missed but none are invented. Cues inside a matched term never negate it (KB terms like 'not fixed' are already-negated phrases). All matching happens on normalized per-sentence text.",
+  "cues": [
+    "not", "never", "no", "none", "cannot",
+    "can t", "don t", "doesn t", "didn t",
+    "isn t", "wasn t", "aren t", "weren t",
+    "won t", "wouldn t", "couldn t", "shouldn t",
+    "hasn t", "haven t", "hadn t",
+    "hardly", "barely", "rarely"
+  ],
+  "cue_exceptions_following": ["only", "just"],
+  "flip_window_tokens": 2,
+  "flip_notes": "A cue within flip_window_tokens intervening tokens before a POSITIVE term flips it to negative evidence ('not very clean' counts as a cleanliness complaint). Applies to positive terms only; flipping negated negative terms would misread complaints like 'never fixed my broken heater' as praise.",
+  "absence_phrases": [
+    "never had", "never any", "never experienced",
+    "didn t have", "did not have",
+    "haven t had", "have not had",
+    "hasn t had", "has not had",
+    "without any", "free of",
+    "not a single", "no sign of"
+  ],
+  "absence_window_tokens": 2,
+  "absence_notes": "An absence phrase within absence_window_tokens intervening tokens before a topic/negative/detail term EXCLUDES the mention ('I did not have a maintenance issue' is not a maintenance complaint). Bare 'never'/'no' are deliberately NOT absence phrases: 'never fixed' and 'no parking' are complaints.",
+  "problem_nouns": ["issue", "issues", "problem", "problems", "complaint", "complaints", "trouble", "concerns"],
+  "problem_span_notes": "Bare 'no'/'zero'/'without' negates only in a problem-noun span: when a problem noun follows the cue within 3 tokens, topic/negative terms inside that span are excluded ('no maintenance issues'), while 'no parking' or 'no hot water' stay complaints.",
+  "problem_span_cues": ["no", "zero", "without"],
+  "problem_span_window_tokens": 3,
+  "clause_breakers": ["but", "however", "although", "though", "except", "yet", "while"]
+}

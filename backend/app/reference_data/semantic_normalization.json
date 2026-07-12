@@ -1,0 +1,21 @@
+{
+  "version": "2026-07-08",
+  "notes": "Phrase normalization for the shared semantic layer (Phase 15a). Each canonical key lists the surface variants that normalize to it (whole-word/phrase, on normalized text). Used to tag chunks with normalized_terms so retrieval and analysis treat 'HVAC' and 'air conditioning' as the same concept. Add variants here with no code change.",
+  "terms": {
+    "air_conditioning": ["air conditioning", "air conditioner", "hvac", "a c", "ac", "ac unit", "central air", "cooling"],
+    "move_in": ["move in", "moving in", "moved in", "movein", "move ins"],
+    "move_out": ["move out", "moving out", "moved out", "moveout"],
+    "floor_plan": ["floor plan", "floor plans", "floorplan", "floorplans", "layout", "layouts"],
+    "washer_dryer": ["washer and dryer", "washer dryer", "in unit laundry", "laundry in unit", "w d"],
+    "pet_policy": ["pet policy", "pets allowed", "pet friendly", "dog friendly", "cat friendly"],
+    "parking": ["parking", "parking lot", "parking spot", "garage", "carport", "guest parking"],
+    "maintenance_request": ["work order", "maintenance request", "service request", "repair request"],
+    "application": ["apply", "application", "applications", "applied", "applying"],
+    "eligibility": ["eligibility", "eligible", "qualify", "qualification", "income limit", "income limits"],
+    "voucher": ["voucher", "vouchers", "housing choice voucher", "hcv", "section 8"],
+    "waitlist": ["waitlist", "wait list", "waiting list"],
+    "front_office": ["front office", "leasing office", "main office", "office staff"],
+    "square_footage": ["square feet", "square footage", "sq ft", "sqft"],
+    "rent_price": ["rent", "rent price", "monthly rent", "rental rate", "pricing", "price"]
+  }
+}

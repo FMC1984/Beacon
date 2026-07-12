@@ -1,0 +1,54 @@
+# Render Blueprint for Beacon: FastAPI backend (with persistent disk for
+# SQLite + ChromaDB + uploaded files) and the Next.js frontend.
+#
+# The two secrets (sync: false) are entered once in the Render dashboard:
+#   BEACON_OPENAI_API_KEY - the OpenAI key (same value as backend/.env locally)
+#   BEACON_ACCESS_KEY     - any long random string; the app asks for it on
+#                           first visit and the API rejects requests without it
+#
+# The service names below determine the URLs. If Render reports a name is
+# taken, change BOTH the name and the matching URL env vars.
+
+services:
+  - type: web
+    name: beacon-backend
+    runtime: python
+    rootDir: backend
+    plan: starter # disks require a paid instance; this is where the data lives
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    disk:
+      name: beacon-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: BEACON_DATABASE_URL
+        value: sqlite:////var/data/beacon.db
+      - key: BEACON_CHROMA_DIR
+        value: /var/data/chroma
+      - key: BEACON_DATA_DIR
+        value: /var/data/uploads
+      - key: BEACON_RAG_AUTOSYNC
+        value: "1"
+      - key: BEACON_CORS_ORIGINS
+        value: https://beacon-frontend-app.onrender.com
+      - key: BEACON_OPENAI_API_KEY
+        sync: false
+      - key: BEACON_ACCESS_KEY
+        sync: false
+
+  - type: web
+    name: beacon-frontend-app
+    runtime: node
+    rootDir: frontend
+    plan: free # no disk needed; upgrade to starter if cold starts annoy you
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_PUBLIC_API_BASE
+        value: https://beacon-backend.onrender.com/api

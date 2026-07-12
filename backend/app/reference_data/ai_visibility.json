@@ -1,0 +1,28 @@
+{
+  "version": "2026-07-05",
+  "notes": "Vocabulary + methodology for AI Visibility (Phase 11.5 foundation). Platforms are a controlled vocabulary validated on assignment (same pattern as property_context property_types). property_type_synonyms drives the deterministic hallucination-check for property type.",
+  "query_methodology": {
+    "approach": "api",
+    "statement": "Beacon executes AI Visibility queries by calling AI-platform APIs directly (not by simulating a person using the consumer chat product). API results can differ from what a real user sees in the consumer app, which may use a different model version, system prompt, retrieval, or personalization. Treat all results as directional, from a stated sample size and date, never as an exact visibility percentage.",
+    "known_limitations": [
+      "API responses may differ from the consumer product for the same prompt.",
+      "LLM outputs vary by phrasing, session, and model version, so a single query does not generalize.",
+      "Only the platforms with an implemented connector can be queried live; others are recognized but not yet executable."
+    ]
+  },
+  "platforms": [
+    {"key": "chatgpt", "label": "ChatGPT", "connector": "openai", "live": true},
+    {"key": "gemini", "label": "Google Gemini", "connector": null, "live": false},
+    {"key": "perplexity", "label": "Perplexity", "connector": null, "live": false},
+    {"key": "copilot", "label": "Microsoft Copilot", "connector": null, "live": false},
+    {"key": "claude", "label": "Claude", "connector": null, "live": false}
+  ],
+  "property_type_synonyms": {
+    "affordable": ["affordable housing", "income-restricted", "income restricted", "section 8", "lihtc", "subsidized", "low-income", "low income"],
+    "conventional": ["market-rate", "market rate", "conventional"],
+    "luxury": ["luxury", "high-end", "upscale"],
+    "senior": ["senior living", "senior apartments", "55+", "active adult", "retirement community"],
+    "student": ["student housing", "student apartments", "off-campus"],
+    "military": ["military housing"]
+  }
+}
