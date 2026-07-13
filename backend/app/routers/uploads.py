@@ -13,6 +13,7 @@ from app.extensions.hooks import trigger_rag_sync
 from app.services.ingestion.common import UploadValidationError
 from app.services.ingestion.crm import ingest_crm
 from app.services.ingestion.ga4 import ingest_ga4
+from app.services.ingestion.ga4_events import ingest_ga4_events
 from app.services.ingestion.gbp import ingest_gbp
 from app.services.ingestion.gsc import ingest_gsc
 from app.services.ingestion.paid import ingest_paid
@@ -124,6 +125,19 @@ async def upload_ga4(
 ):
     return await run_upload(
         SourceType.GA4, ingest_ga4, property_id, file, db, source_account, background
+    )
+
+
+@router.post("/ga4_events", response_model=UploadResult, status_code=201)
+async def upload_ga4_events(
+    background: BackgroundTasks,
+    file: UploadFile,
+    property_id: int = Form(...),
+    source_account: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    return await run_upload(
+        SourceType.GA4, ingest_ga4_events, property_id, file, db, source_account, background
     )
 
 

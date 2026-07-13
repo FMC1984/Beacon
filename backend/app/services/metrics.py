@@ -302,6 +302,10 @@ def build_dashboard(
     anchor = _anchor_date(db, property_ids) or today
     start = anchor - timedelta(days=days - 1)
 
+    # Local import: reporting_events imports helpers from this module, so a
+    # top-level import here would be circular.
+    from app.services.reporting_events import build_events_section
+
     return {
         "window": {
             "days": days,
@@ -310,6 +314,7 @@ def build_dashboard(
             "anchored_to_latest_data": anchor != today,
         },
         "ga4": _ga4_section(db, property_ids, start, anchor, today),
+        "events": build_events_section(db, property_ids, start, anchor, today),
         "gsc": _gsc_section(db, property_ids, start, anchor, today),
         "gbp": _gbp_section(db, property_ids, start, anchor, today),
         "paid": _paid_section(db, property_ids, start, anchor, today),

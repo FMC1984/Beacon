@@ -12,6 +12,7 @@ import {
   type SeoQuadrantPoint,
   type SeoReport as SeoReportData,
 } from "@/lib/reports";
+import { EventsPanel } from "@/components/EventsPanel";
 import { EmptyState, ErrorState, StateBadge } from "./DataStates";
 import { ReportMetricCard } from "./ReportMetricCard";
 import { SeoQuadrantChart, SeoTrendChart } from "./SeoCharts";
@@ -431,6 +432,8 @@ export function SeoReport() {
           </div>
         )}
       </Section>
+
+      {data.events && <EventsPanel section={data.events} title="Events" />}
     </div>
   );
 }

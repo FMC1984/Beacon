@@ -80,6 +80,32 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16I — GA4 city/region in the live sync + events breakdown (2026-07-13, 524 tests)
+- **City/region now flow from the live GA4 sync**: `gapi.ga4_run_report` now
+  requests `city` + `region` dimensions (normalized via `_geo_value`, "(not
+  set)" -> NULL) and `_write_ga4` writes them. The Audience report was already
+  built (Phase 16G) but only the CSV path carried geography; the auto-sync never
+  requested it, which is why DCHP showed "no location data." After deploy + one
+  re-sync, cities populate. NB: adding city multiplies row cardinality
+  (city x source x medium x landing x date); the single-request 100k row cap is
+  unchanged, fine at Beacon's single-property scale but a known ceiling.
+- **GA4 events are a new data type**: `ga4_events_daily` (migration
+  e2f3a4b5c6d7) stores event-name counts. Two ingest paths: the live GA4 sync
+  runs a second report (`gapi.ga4_events_report`, dims date+eventName) written
+  by `_write_ga4_events` under the same sync job; and a CSV import
+  (`POST /api/uploads/ga4_events`, `ingestion/ga4_events.py`). The events export
+  is usually range-aggregated with no Date column, so the parser falls back to
+  the `# Start/End date` preamble and stamps all rows at the range end date
+  (disclosed in a warning); a Date column is used when present.
+- **Surfaced on Dashboard + SEO report**: `reporting_events.build_events_section`
+  (shared) aggregates by event name over the window. Event count is exact and
+  additive; user counts sum active-users-per-day and can exceed uniques, stated
+  in `note`. `build_dashboard` gets an `events` section (local import to dodge a
+  cycle) and `build_seo_report` gets `events`. Frontend `EventsPanel.tsx` renders
+  on both; Uploads page gains a "GA4 events" source.
+- Frontend unverified in-browser (Node 18 < Next 20.9); types pass, backend
+  verified live via curl.
+
 ### Phase 16H — Google Business Profile reviews (2026-07-13, 516 tests)
 - **Manual review import (works today, no external dependency)**: tolerant CSV
   parser `ingestion/reviews.py` + `POST /api/reviews/{property_id}/import`

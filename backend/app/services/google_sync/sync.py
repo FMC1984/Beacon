@@ -14,6 +14,7 @@ from app.config import settings
 from app.extensions.hooks import trigger_rag_sync
 from app.models import (
     DataConnection,
+    GA4EventsDaily,
     GA4SessionsDaily,
     GSCPerformanceDaily,
     OAuthStatus,
@@ -64,6 +65,8 @@ def _write_ga4(db: Session, conn: DataConnection, job: SyncJob, rows: list[dict]
                 session_source=r["session_source"],
                 session_medium=r["session_medium"],
                 landing_page=r.get("landing_page"),
+                city=r.get("city"),
+                region=r.get("region"),
                 sessions=r["sessions"],
                 engaged_sessions=r["engaged_sessions"],
                 total_users=r["total_users"],
@@ -73,6 +76,27 @@ def _write_ga4(db: Session, conn: DataConnection, job: SyncJob, rows: list[dict]
             )
         )
     job.rows_updated = replaced
+    return len(rows)
+
+
+def _write_ga4_events(db: Session, conn: DataConnection, job: SyncJob, rows: list[dict], lo: date, hi: date) -> int:
+    """Replace-by-date like the sessions writer, into the events table."""
+    db.query(GA4EventsDaily).filter(
+        GA4EventsDaily.property_id == conn.property_id,
+        GA4EventsDaily.date >= lo,
+        GA4EventsDaily.date <= hi,
+    ).delete(synchronize_session=False)
+    for r in rows:
+        db.add(
+            GA4EventsDaily(
+                property_id=conn.property_id,
+                sync_job_id=job.id,
+                date=r["date"],
+                event_name=r["event_name"],
+                event_count=r["event_count"],
+                total_users=r["total_users"],
+            )
+        )
     return len(rows)
 
 
@@ -150,6 +174,9 @@ def run_google_sync(db: Session, connection_id: int, today: date | None = None) 
         if conn.source_type == SourceType.GA4:
             rows = gapi.ga4_run_report(token, conn.resource_id, lo, hi)
             job.rows_imported = _write_ga4(db, conn, job, rows, lo, hi)
+            # Same GA4 connection also refreshes the event-name breakdown.
+            event_rows = gapi.ga4_events_report(token, conn.resource_id, lo, hi)
+            _write_ga4_events(db, conn, job, event_rows, lo, hi)
         elif conn.source_type == SourceType.GSC:
             rows = gapi.gsc_query(token, conn.resource_id, lo, hi)
             job.rows_imported = _write_gsc(db, conn, job, rows, lo, hi)

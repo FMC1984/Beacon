@@ -32,6 +32,8 @@ APP_PHASE = (
     "AI-referral split, located-share honesty, executive top-cities panel), and "
     "16H (Google Business Profile reviews: manual CSV import now, plus a "
     "flag-gated live GBP OAuth + reviews sync connector ready for when Google "
-    "approves API access) complete"
+    "approves API access), and 16I (GA4 city/region now pulled by the live sync "
+    "into the Audience report, and a new GA4 events breakdown from sync + CSV "
+    "shown on the Dashboard and SEO report) complete"
 )
-TEST_COUNT = 516
+TEST_COUNT = 524

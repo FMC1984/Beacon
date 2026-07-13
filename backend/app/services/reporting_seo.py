@@ -29,6 +29,7 @@ from app.services.metrics import (
     _resolve_scope,
     _scoped,
 )
+from app.services.reporting_events import build_events_section
 from app.services.reporting import (
     DataState,
     comparable,
@@ -653,6 +654,7 @@ def build_seo_report(
             want_compare and gsc_verdict["comparable"],
         ),
         "landing_pages": _landing_pages_section(db, property_ids, window),
+        "events": build_events_section(db, property_ids, window[0], window[1], today),
     }
 
 

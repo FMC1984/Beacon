@@ -4,6 +4,7 @@ from app.models.company import Company
 from app.models.property import Property
 from app.models.uploads import Upload, SourceType, UploadStatus
 from app.models.traffic import (
+    GA4EventsDaily,
     GA4SessionsDaily,
     GSCPerformanceDaily,
     GBPMetricsDaily,
@@ -39,6 +40,7 @@ __all__ = [
     "Upload",
     "SourceType",
     "UploadStatus",
+    "GA4EventsDaily",
     "GA4SessionsDaily",
     "GSCPerformanceDaily",
     "GBPMetricsDaily",

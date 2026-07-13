@@ -33,6 +33,18 @@ _GBP_STAR_TO_NUMBER = {
 }
 
 
+_GEO_UNSET = {"(not set)", "(not provided)", "(other)"}
+
+
+def _geo_value(raw: str | None) -> str | None:
+    """GA4 city/region: treat its unresolved placeholders as NULL (Unknown),
+    matching the CSV parser so synced and uploaded rows aggregate the same."""
+    value = (raw or "").strip()
+    if not value or value.lower() in _GEO_UNSET:
+        return None
+    return value
+
+
 def _request(method: str, url: str, access_token: str, json: dict | None = None) -> dict:
     resp = httpx.request(
         method,
@@ -94,6 +106,10 @@ def ga4_run_report(
                 {"name": "sessionSource"},
                 {"name": "sessionMedium"},
                 {"name": "landingPagePlusQueryString"},
+                # City + region feed the Audience report. GA4 returns only
+                # non-empty combinations, so this adds rows but not empty noise.
+                {"name": "city"},
+                {"name": "region"},
             ],
             "metrics": [
                 {"name": "sessions"},
@@ -115,10 +131,45 @@ def ga4_run_report(
                 "session_source": dims[1] or "(not set)",
                 "session_medium": dims[2] or "(not set)",
                 "landing_page": landing if landing and landing != "(not set)" else None,
+                "city": _geo_value(dims[4]),
+                "region": _geo_value(dims[5]),
                 "sessions": int(float(mets[0] or 0)),
                 "engaged_sessions": int(float(mets[1] or 0)),
                 "total_users": int(float(mets[2] or 0)),
                 "key_events": int(float(mets[3] or 0)),
+            }
+        )
+    return rows
+
+
+def ga4_events_report(
+    access_token: str, property_resource: str, start: date, end: date
+) -> list[dict]:
+    """Daily event counts by event name (page_view, scroll, click, ...), the
+    same breakdown as GA4's Events report but per day so it windows cleanly."""
+    body = _request(
+        "POST",
+        f"{DATA_API}/{property_resource}:runReport",
+        access_token,
+        json={
+            "dateRanges": [{"startDate": start.isoformat(), "endDate": end.isoformat()}],
+            "dimensions": [{"name": "date"}, {"name": "eventName"}],
+            "metrics": [{"name": "eventCount"}, {"name": "totalUsers"}],
+            "limit": 100000,
+        },
+    )
+    rows = []
+    for r in body.get("rows", []):
+        dims = [d["value"] for d in r["dimensionValues"]]
+        mets = [m["value"] for m in r["metricValues"]]
+        if not dims[1]:
+            continue
+        rows.append(
+            {
+                "date": date(int(dims[0][:4]), int(dims[0][4:6]), int(dims[0][6:8])),
+                "event_name": dims[1],
+                "event_count": int(float(mets[0] or 0)),
+                "total_users": int(float(mets[1] or 0)),
             }
         )
     return rows

@@ -20,6 +20,7 @@ import { ProvenanceFooter } from "@/components/Provenance";
 import { TrendChart } from "@/components/TrendChart";
 import { PlatformDonut } from "@/components/PlatformDonut";
 import { Funnel } from "@/components/Funnel";
+import { EventsPanel } from "@/components/EventsPanel";
 
 const RANGES = [7, 30, 90];
 
@@ -358,6 +359,8 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
           </div>
         </>
       )}
+
+      {data?.events && <EventsPanel section={data.events} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {data?.gsc && (

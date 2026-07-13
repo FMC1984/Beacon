@@ -138,6 +138,7 @@ def test_ga4_sync_writes_rows_with_provenance(client, db, monkeypatch):
              "total_users": 38, "key_events": 3},
         ],
     )
+    monkeypatch.setattr(gapi, "ga4_events_report", lambda t, res, lo, hi: [])
     r = client.post(f"/api/google/connections/{conn.id}/sync")
     assert r.status_code == 200
     body = r.json()
@@ -160,6 +161,7 @@ def test_sync_replaces_overlapping_dates(client, db, monkeypatch):
     payload = [{"date": date.today(), "session_source": "google", "session_medium": "organic",
                 "sessions": 10, "engaged_sessions": 8, "total_users": 9, "key_events": 1}]
     monkeypatch.setattr(gapi, "ga4_run_report", lambda t, res, lo, hi: payload)
+    monkeypatch.setattr(gapi, "ga4_events_report", lambda t, res, lo, hi: [])
     client.post(f"/api/google/connections/{conn.id}/sync")
     second = client.post(f"/api/google/connections/{conn.id}/sync").json()
     assert second["rows_replaced"] == 1  # first sync's row was replaced

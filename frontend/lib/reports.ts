@@ -1,4 +1,4 @@
-import { API_BASE } from "@/lib/api";
+import { API_BASE, type EventsSection } from "@/lib/api";
 
 // Data states a report surface can be in. Mirrors DataState in
 // backend/app/services/reporting.py; missing data is a named state here,
@@ -176,6 +176,7 @@ export type SeoReport = {
     match_counts: { matched: number; ga4_only: number; gsc_only: number } | null;
     normalization: string;
   };
+  events: EventsSection | null;
 };
 
 export const fetchSeoReport = (scope: ReportScope, days: number, compare: boolean) => {

@@ -13,6 +13,7 @@ EXPECTED_TABLES = {
     "properties",
     "uploads",
     "ga4_sessions_daily",
+    "ga4_events_daily",
     "gsc_performance_daily",
     "gbp_metrics_daily",
     "paid_media_daily",

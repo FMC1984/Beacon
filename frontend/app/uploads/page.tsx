@@ -17,7 +17,8 @@ import { GoogleConnections } from "@/components/GoogleConnections";
 // `connector` is the key each source maps to in a property type's
 // allowed_connectors list (note paid_media -> "paid").
 const SOURCES = [
-  { key: "ga4", connector: "ga4", label: "GA4 traffic", hint: "Export with Date + Session source/medium dimensions" },
+  { key: "ga4", connector: "ga4", label: "GA4 traffic", hint: "Export with Date + Session source/medium dimensions (add City + Region for the Audience report)" },
+  { key: "ga4_events", connector: "ga4", label: "GA4 events", hint: "Events report export (event name + count); keep the date range or add a Date column" },
   { key: "gsc", connector: "gsc", label: "Search Console", hint: "Dates tab of the Performance export" },
   { key: "gbp", connector: "gbp", label: "Business Profile", hint: "Single-location daily performance export" },
   { key: "paid_media", connector: "paid", label: "Paid media", hint: "Daily campaign report (Google Ads or Meta)" },

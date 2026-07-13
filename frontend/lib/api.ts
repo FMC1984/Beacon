@@ -63,6 +63,24 @@ export type CRMSection = {
   provenance: Provenance;
 };
 
+export type EventRow = {
+  event_name: string;
+  event_count: number;
+  total_users: number;
+  count_share: number | null;
+  per_user: number | null;
+};
+
+export type EventsSection = {
+  total_event_count: number;
+  distinct_events: number;
+  events: EventRow[];
+  events_shown: number;
+  events_total: number;
+  note: string;
+  provenance: Provenance;
+};
+
 export type Dashboard = {
   window: {
     days: number;
@@ -71,6 +89,7 @@ export type Dashboard = {
     anchored_to_latest_data: boolean;
   };
   ga4: GA4Section | null;
+  events: EventsSection | null;
   gsc: GSCSection | null;
   gbp: GBPSection | null;
   paid: PaidSection | null;

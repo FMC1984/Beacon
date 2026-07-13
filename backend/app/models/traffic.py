@@ -57,6 +57,29 @@ class GA4SessionsDaily(Base):
     ai_platform: Mapped[str | None] = mapped_column(String(50))
 
 
+class GA4EventsDaily(Base):
+    """GA4 event counts by event name and day (page_view, scroll, click, ...).
+    Distinct from GA4SessionsDaily, which is session-grained by source/medium;
+    this is the event-name breakdown Beacon previously collapsed away."""
+
+    __tablename__ = "ga4_events_daily"
+    __table_args__ = (
+        Index("ix_ga4_events_property_date", "property_id", "date"),
+        Index("ix_ga4_events_name", "property_id", "event_name"),
+        CheckConstraint(PROVENANCE_SQL, name="ck_ga4_events_daily_provenance"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"))
+    upload_id: Mapped[int | None] = mapped_column(ForeignKey("uploads.id"))
+    sync_job_id: Mapped[int | None] = mapped_column(ForeignKey("sync_jobs.id"))
+    source_line: Mapped[int | None] = mapped_column(Integer)
+    date: Mapped[date] = mapped_column(Date)
+    event_name: Mapped[str] = mapped_column(String(200))
+    event_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_users: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class GSCPerformanceDaily(Base):
     __tablename__ = "gsc_performance_daily"
     __table_args__ = (
