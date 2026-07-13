@@ -46,6 +46,11 @@ APP_PHASE = (
     "(co-occurrence with evidence, never causation: 2+ distinct modules moving "
     "together, or Opportunity Engine actions corroborated by 2+ modules) and "
     "Strategic Questions (precondition-gated, evidence-backed, launch Nora "
-    "with context) complete"
+    "with context) complete. Phase 17D If I Were Your Strategist (grounded "
+    "LLM synthesis: numbered facts only, ungrounded recommendations dropped "
+    "in code, insufficient-data gate never calls the model, demo mode "
+    "deterministic, manual button) and tokenized briefing Share (public "
+    "key-exempt route, rotating revocable tokens, frozen client-safe "
+    "payload) complete"
 )
-TEST_COUNT = 560
+TEST_COUNT = 571

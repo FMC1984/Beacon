@@ -169,6 +169,58 @@ export const fetchBriefingHistory = (propertyId: number) =>
 export const fetchBriefingSnapshot = (id: number) =>
   getJSON<BriefingResponse>(`/briefing/${id}`);
 
+// --- Strategist (17D) ---
+
+export type StrategistFact = { n: number; kind: string; text: string; href: string };
+
+export type StrategistRec = {
+  title: string;
+  why: string;
+  impact: string | null;
+  effort: string | null;
+  grounding: { n: number; text: string; href: string }[];
+};
+
+export type Strategist = {
+  state: "ok" | "insufficient_data" | "unavailable" | "no_grounded_output";
+  provider?: string;
+  message?: string | null;
+  facts: StrategistFact[];
+  recommendations: StrategistRec[];
+  disclosure: string;
+};
+
+export async function fetchStrategist(
+  propertyId: number,
+  year?: number,
+  month?: number
+): Promise<Strategist> {
+  const params = new URLSearchParams({ property_id: String(propertyId) });
+  if (year && month) {
+    params.set("year", String(year));
+    params.set("month", String(month));
+  }
+  const res = await fetch(`${API_BASE}/briefing/strategist?${params}`, { method: "POST" });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+// --- Share (17D) ---
+
+export async function shareBriefing(id: number): Promise<{ token: string; path: string }> {
+  const res = await fetch(`${API_BASE}/briefing/${id}/share`, { method: "POST" });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export async function revokeBriefingShare(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/briefing/${id}/share`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+}
+
+export const fetchSharedBriefing = (token: string) =>
+  getJSON<BriefingResponse>(`/briefing/shared/${encodeURIComponent(token)}`);
+
 export async function generateBriefing(
   propertyId: number,
   year?: number,

@@ -46,6 +46,13 @@ async def require_access_key(request: Request, call_next):
         # /api/google/callback: Google's browser redirect cannot carry the
         # key header; the endpoint verifies its own HMAC-signed state instead.
         and request.url.path not in ("/api/health", "/api/google/callback")
+        # /api/briefing/shared/<token>: the public share route (Phase 17D).
+        # The unguessable token IS the authorization; the payload is a frozen,
+        # client-safe snapshot. GET only - share/revoke stay key-protected.
+        and not (
+            request.method == "GET"
+            and request.url.path.startswith("/api/briefing/shared/")
+        )
         and request.method != "OPTIONS"
         and not secrets.compare_digest(
             request.headers.get("x-beacon-key", ""), settings.access_key

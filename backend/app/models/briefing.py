@@ -29,4 +29,7 @@ class MonthlyBriefing(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     # Optional label of who/what generated it (no user model yet).
     generated_by: Mapped[str | None] = mapped_column(String(200))
+    # Unguessable token for the public share route (Phase 17D). Null = not
+    # shared. Revoking sharing nulls it; a new share mints a new token.
+    share_token: Mapped[str | None] = mapped_column(String(64), unique=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

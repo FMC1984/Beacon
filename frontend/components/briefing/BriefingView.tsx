@@ -6,7 +6,7 @@
  * briefing is insight-first; every status and metric links into the module it
  * came from. */
 
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ScopeSelect } from "@/components/ScopeSelect";
 import {
@@ -20,7 +20,11 @@ import { fmtDate, fmtNum, fmtPct } from "@/lib/format";
 import {
   fetchBriefing,
   fetchBriefingHistory,
+  fetchStrategist,
   generateBriefing,
+  revokeBriefingShare,
+  shareBriefing,
+  type Strategist,
   type Briefing,
   type BriefingKpi,
   type BriefingResponse,
@@ -33,6 +37,11 @@ import {
   type StrategicQuestion,
 } from "@/lib/briefing";
 
+/** Shared (public, read-only) rendering mode: Ask Nora launches are hidden
+ * because a shared viewer has no access to the gated app. Module links stay
+ * visible; clicking one lands on the access gate, which is honest. */
+export const SharedModeContext = createContext(false);
+
 /** Ask-Nora handoff: a link into /nora with the property and a section-aware
  * question preloaded. Nora receives the context in the question itself. */
 function askNoraHref(propertyId: number, period: string, question: string): string {
@@ -41,6 +50,8 @@ function askNoraHref(propertyId: number, period: string, question: string): stri
 }
 
 function AskNora({ href }: { href: string }) {
+  const shared = useContext(SharedModeContext);
+  if (shared) return null;
   return (
     <Link
       href={href}
@@ -271,6 +282,87 @@ function QuestionsSection({
   );
 }
 
+function StrategistSection({ propertyId, period }: { propertyId: number; period: { label: string; year: number; month: number } }) {
+  const shared = useContext(SharedModeContext);
+  const [result, setResult] = useState<Strategist | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  if (shared) return null;
+
+  async function generate() {
+    setBusy(true);
+    setErr(null);
+    try {
+      setResult(await fetchStrategist(propertyId, period.year, period.month));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-violet-a/30 bg-violet-a/5 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-medium">If I were your marketing strategist</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            With four hours this month, what would I do? Drafted from the briefing&apos;s
+            numbered facts; ungrounded advice is dropped.
+          </p>
+        </div>
+        <button
+          onClick={generate}
+          disabled={busy}
+          title="Uses the configured AI provider; run manually to control cost."
+          className="rounded-xl border border-violet-a/50 bg-violet-a/15 px-3 py-2 text-sm disabled:opacity-60"
+        >
+          {busy ? "Thinking..." : result ? "Regenerate" : "Generate"}
+        </button>
+      </div>
+
+      {err && <p className="mt-3 text-sm text-pink-a">{err}</p>}
+
+      {result && (
+        <div className="mt-4 space-y-3">
+          {result.state !== "ok" ? (
+            <p className="text-sm text-muted">{result.message}</p>
+          ) : (
+            <>
+              <ol className="space-y-3">
+                {result.recommendations.map((r, i) => (
+                  <li key={i} className="rounded-xl border border-line bg-surface p-4">
+                    <p className="text-sm font-medium">
+                      {i + 1}. {r.title}
+                    </p>
+                    {r.why && <p className="mt-1 text-sm text-muted">{r.why}</p>}
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted">
+                      {r.impact && <span className="rounded-full border border-line px-2 py-0.5">Impact: {r.impact}</span>}
+                      {r.effort && <span className="rounded-full border border-line px-2 py-0.5">Effort: {r.effort}</span>}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {r.grounding.map((g) => (
+                        <p key={g.n} className="text-xs text-muted">
+                          Fact {g.n}: {g.text}{" "}
+                          <Link href={g.href} className="text-violet-a hover:underline">
+                            source
+                          </Link>
+                        </p>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[11px] text-muted">{result.disclosure}</p>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function BriefingBody({ data }: { data: Briefing }) {
   return (
     <div className="space-y-6">
@@ -397,6 +489,12 @@ export function BriefingBody({ data }: { data: Briefing }) {
         )}
       </section>
 
+      {/* Strategist synthesis (manual, grounded) */}
+      <StrategistSection
+        propertyId={data.property_id}
+        period={{ label: data.period.label, year: data.period.year, month: data.period.month }}
+      />
+
       {/* Strategic questions: the briefing ends with questions, not conclusions */}
       {data.strategic_questions && (
         <QuestionsSection
@@ -420,6 +518,74 @@ export function BriefingBody({ data }: { data: Briefing }) {
         </div>
       </section>
     </div>
+  );
+}
+
+function HistoryRow({ snapshot }: { snapshot: BriefingSnapshot }) {
+  const [sharePath, setSharePath] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function onShare() {
+    setBusy(true);
+    try {
+      const res = await shareBriefing(snapshot.id);
+      setSharePath(res.path);
+    } catch {
+      setSharePath(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRevoke() {
+    setBusy(true);
+    try {
+      await revokeBriefingShare(snapshot.id);
+      setSharePath(null);
+      setCopied(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy() {
+    if (!sharePath) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${sharePath}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }
+
+  return (
+    <li className="py-2 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span>{snapshot.period_label ?? `${snapshot.period_start} to ${snapshot.period_end}`}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-xs text-muted">Saved {fmtDate(snapshot.generated_at)}</span>
+          {sharePath ? (
+            <>
+              <button onClick={copy} className="rounded-lg border border-line px-2 py-0.5 text-xs text-violet-a hover:bg-surface-raised">
+                {copied ? "Copied" : "Copy link"}
+              </button>
+              <button onClick={onRevoke} disabled={busy} className="rounded-lg border border-line px-2 py-0.5 text-xs text-muted hover:text-pink-a">
+                Revoke
+              </button>
+            </>
+          ) : (
+            <button onClick={onShare} disabled={busy} className="rounded-lg border border-line px-2 py-0.5 text-xs text-muted hover:text-foreground">
+              {busy ? "..." : "Share"}
+            </button>
+          )}
+        </span>
+      </div>
+      {sharePath && (
+        <p className="mt-1 text-xs text-muted">
+          Public link (anyone with it can view this frozen snapshot): {sharePath}
+        </p>
+      )}
+    </li>
   );
 }
 
@@ -547,10 +713,7 @@ export function BriefingView() {
               <h2 className="text-sm font-medium">Reports history</h2>
               <ul className="mt-3 divide-y divide-line/60">
                 {history.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between py-2 text-sm">
-                    <span>{s.period_label ?? `${s.period_start} to ${s.period_end}`}</span>
-                    <span className="text-xs text-muted">Saved {fmtDate(s.generated_at)}</span>
-                  </li>
+                  <HistoryRow key={s.id} snapshot={s} />
                 ))}
               </ul>
             </section>

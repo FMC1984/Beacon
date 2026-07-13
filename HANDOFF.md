@@ -80,6 +80,35 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 17D — Strategist synthesis + tokenized Share (2026-07-13, 571 tests)
+- **If I Were Your Strategist** (`app/services/strategist.py`): the briefing's
+  one sanctioned LLM step, held to Nora's discipline. The model sees ONLY
+  numbered deterministic facts from the composed briefing; grounding is
+  enforced IN CODE (a rec citing no valid fact is dropped; citations are
+  assembled from OUR fact list, never trusted from output); below
+  MIN_FACTS_FOR_SYNTHESIS a fixed template returns and the LLM is NEVER
+  called; demo mode is deterministic (templates the top priorities); no key
+  -> honest unavailable. MANUAL button only (spends OpenAI budget). Endpoint:
+  POST /api/briefing/strategist. Verified end-to-end with a real OpenAI call:
+  grounded recs each citing Fact N with source links.
+- **Share** (migration `b2d3f4a5c6e7`: share_token on monthly_briefings):
+  POST /api/briefing/{id}/share mints/rotates an unguessable token (rotation
+  kills old links), DELETE revokes. GET /api/briefing/shared/{token} is the
+  ONE new key-exempt route (GET only; share/revoke stay keyed) - declared
+  BEFORE /{briefing_id} (path ordering). Public page
+  /shared/briefing/[token]: bare layout (AccessGate + AppShell bypass
+  /shared/*), "Shared read-only report" badge, Ask Nora hidden via
+  SharedModeContext. Payload = frozen snapshot verbatim (client-safe,
+  test-proven keyless-while-rest-stays-keyed).
+- Browser-verified end to end this time (ports were free): populated
+  briefing, live strategist generation, snapshot save, share mint, public
+  page render. NB: only Node 18 is installed; newer Next hard-blocks it for
+  NEW dev servers (a stale dev process can outlive this - kill with
+  pattern "next dev --port", the cmdline normalizes -p to --port).
+- Phase 17 (Monthly Strategic Briefing) is COMPLETE per the agreed scope.
+  Still deferred: forecast (needs real history), semantic clustering (15c).
+
+
 ### Phase 17C — Cross-System Insights + Strategic Questions (2026-07-13, 560 tests)
 - `_cross_system()`: the signature feature built the careful way. An insight
   is either (a) co-movement: story wins/risks from 2+ DISTINCT modules in the

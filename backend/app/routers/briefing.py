@@ -9,6 +9,7 @@
 - GET /api/briefing/{id}       fetch one frozen snapshot verbatim.
 """
 
+import secrets
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -118,6 +119,80 @@ def briefing_history(
             for r in rows
         ],
     }
+
+
+@router.post("/strategist")
+def strategist(
+    property_id: int = Query(...),
+    year: int | None = Query(default=None),
+    month: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Manual (button-triggered - it can spend OpenAI budget): the grounded
+    'If I Were Your Strategist' synthesis for the property's briefing month.
+    Below the minimum grounded signal, a fixed template returns and the LLM is
+    never called."""
+    from app.services.strategist import build_strategist
+
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    today = date.today()
+    y, m = _resolve_month(db, property_id, year, month, today)
+    briefing = compose_briefing(db, property_id, y, m, today=today)
+    return build_strategist(briefing)
+
+
+# NB: declared BEFORE /{briefing_id} - path ordering matters (see the
+# ai_visibility router note in HANDOFF.md).
+@router.get("/shared/{token}")
+def get_shared_snapshot(token: str, db: Session = Depends(get_db)):
+    """PUBLIC route (exempt from the access-key middleware): the frozen
+    snapshot behind an unguessable share token. Snapshots are client-safe by
+    construction (composed report data only, no internal RAG metadata); the
+    token is the entire authorization, and revoking the share nulls it."""
+    if not token or len(token) < 16:
+        raise HTTPException(status_code=404, detail="Not found.")
+    row = (
+        db.query(MonthlyBriefing)
+        .filter(MonthlyBriefing.share_token == token)
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Not found.")
+    return {
+        "scope_required": False,
+        "frozen": True,
+        "shared": True,
+        "generated_at": row.generated_at.isoformat(),
+        **row.payload,
+    }
+
+
+@router.post("/{briefing_id}/share")
+def share_snapshot(briefing_id: int, db: Session = Depends(get_db)):
+    """Mint (or re-mint) the share token for a frozen snapshot. Re-sharing
+    rotates the token, which invalidates any previously shared link."""
+    row = db.get(MonthlyBriefing, briefing_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
+    row.share_token = secrets.token_urlsafe(24)
+    db.commit()
+    return {
+        "status": "shared",
+        "id": row.id,
+        "token": row.share_token,
+        "path": f"/shared/briefing/{row.share_token}",
+    }
+
+
+@router.delete("/{briefing_id}/share")
+def revoke_share(briefing_id: int, db: Session = Depends(get_db)):
+    row = db.get(MonthlyBriefing, briefing_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
+    row.share_token = None
+    db.commit()
+    return {"status": "revoked", "id": row.id}
 
 
 @router.get("/{briefing_id}")

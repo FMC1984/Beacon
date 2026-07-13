@@ -57,6 +57,13 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     probe();
   }, [probe]);
 
+  // Public share routes (Phase 17D) bypass the gate: their data comes only
+  // from the key-exempt tokenized endpoint, so there is nothing for the key
+  // to protect on this page. Checked after hooks to keep hook order stable.
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/shared/")) {
+    return <>{children}</>;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);

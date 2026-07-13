@@ -34,6 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [open]);
 
+  // Public share routes (Phase 17D) render bare: no sidebar, no app chrome.
+  if (pathname.startsWith("/shared/")) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="flex min-h-screen">
       <div className="hidden md:flex">
