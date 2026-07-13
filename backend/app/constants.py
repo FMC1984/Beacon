@@ -18,7 +18,9 @@ APP_PHASE = (
     "retrieval (deterministic rerank + debug) complete; 15c clustering pending. "
     "Google GA4/GSC auto-sync, admin self-check, and scheduled AI Visibility "
     "standing prompts live. Phase 16A Reports foundation (tabs, shared "
-    "controls, data states, source status) and 16B SEO Performance report "
-    "(summary, trends, distribution, quadrant, movers, landing pages) complete"
+    "controls, data states, source status), 16B SEO Performance report "
+    "(summary, trends, distribution, quadrant, movers, landing pages), and 16C "
+    "Executive report (composed metrics, deterministic cited narrative, top "
+    "actions, CSV export, print layout) complete"
 )
-TEST_COUNT = 435
+TEST_COUNT = 455

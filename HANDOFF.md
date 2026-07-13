@@ -80,6 +80,42 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16C — Executive report + CSV + print (2026-07-12, 455 tests)
+- `GET /api/reports/executive` (`app/services/reporting_executive.py`):
+  per-property synthesis that COMPOSES other modules, never recomputes.
+  Cards: organic clicks/impressions/sessions/key-events (from the SEO
+  report's own summary cards), AI referral sessions + AI share (direct GA4
+  query over the SEO report's exact window, so every metric shares one
+  period), AI mention rate (AI Visibility, sample-gated), Content IQ score,
+  actionable-opportunity count. AEO/semantic cards render an honest
+  "arrives with a later phase" not_configured state, never zero.
+- Deterministic cited narrative (`_narrative`): sentences for largest
+  NONZERO movement, strongest SEO signal, GEO (sample-gated), and the top
+  opportunity. Each carries evidence + a link to the source page. No LLM, no
+  causal verbs (test-enforced list), no em dashes, and it omits any sentence
+  it cannot support. Portfolio/company scope returns scope_required instead
+  of blending properties.
+- CSV export (`reporting_csv.py`): `GET /api/reports/{seo,executive}/export.csv`
+  — self-describing (metric definitions, source, freshness, sample,
+  data-status note), missing values written as the state name not 0, and
+  client-safe by construction (test asserts no chunk/vector/similarity/
+  latency strings). Separate from the existing raw-data ZIP export
+  (`/api/export`).
+- Print layout: `/reports/executive/print` is a standalone route (the
+  reports layout bypasses its chrome when the path ends in `/print`) that
+  fetches by URL params and auto-calls window.print(); `@media print` in
+  globals.css hides the sidebar and renders a black-on-white document with
+  branding, cited summary, metrics table, top actions, methodology +
+  no-causation note, and footer. This is the PDF path for now; server-side
+  PDF deferred (documented, not faked). Export menu (`ExportMenu.tsx`)
+  replaces the old disabled button: CSV download + Print, section derived
+  from the route.
+- Executive + SEO tabs both `status: "available"` in the meta. Bug caught
+  during live verification and fixed: the AI-referral previous period was a
+  doubled-window total compared against itself, producing a bogus
+  "decreased 0.0 percent from 28 to 28" sentence; now uses the adjacent
+  previous window and flat movements are suppressed from the narrative.
+
 ### Phase 16B — SEO Performance report (2026-07-12, 435 tests)
 - `GET /api/reports/seo` (`app/services/reporting_seo.py`): summary cards
   (GSC clicks/impressions/CTR/position + GA4-organic sessions/engaged/key

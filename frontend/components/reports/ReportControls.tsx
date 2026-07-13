@@ -5,11 +5,20 @@
  * toggle, export menu placeholder, and a live data-freshness indicator. */
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ScopeSelect } from "@/components/ScopeSelect";
 import { fetchReportStatus, type ReportStatus } from "@/lib/reports";
 import { fmtDate } from "@/lib/format";
 import { STATE_META, StateBadge } from "./DataStates";
+import { ExportMenu } from "./ExportMenu";
 import { useReportContext, type RangeDays } from "./ReportContext";
+
+// Which report section the Export menu should target, from the route.
+function sectionFromPath(pathname: string): "seo" | "executive" | null {
+  if (pathname.startsWith("/reports/seo")) return "seo";
+  if (pathname.startsWith("/reports/executive")) return "executive";
+  return null;
+}
 
 const RANGES: RangeDays[] = [7, 30, 90];
 
@@ -30,6 +39,17 @@ export function ReportControls() {
   const [statusError, setStatusError] = useState(false);
   const [open, setOpen] = useState(false);
   const popRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const section = sectionFromPath(pathname);
+
+  function openPrint() {
+    if (section !== "executive") return;
+    const params = new URLSearchParams();
+    if (scope.propertyId !== null) params.set("property_id", String(scope.propertyId));
+    params.set("days", String(days));
+    params.set("compare", String(compare));
+    window.open(`/reports/executive/print?${params}`, "_blank");
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -143,13 +163,13 @@ export function ReportControls() {
           )}
         </div>
 
-        <button
-          disabled
-          title="Exports arrive in a later phase"
-          className="cursor-not-allowed rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted/60"
-        >
-          Export
-        </button>
+        <ExportMenu
+          section={section}
+          scope={scope}
+          days={days}
+          compare={compare}
+          onPrint={section === "executive" ? openPrint : undefined}
+        />
       </div>
     </div>
   );

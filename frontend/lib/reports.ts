@@ -184,3 +184,78 @@ export const fetchSeoReport = (scope: ReportScope, days: number, compare: boolea
   params.set("compare", String(compare));
   return getJSON<SeoReport>(`/reports/seo?${params}`);
 };
+
+// --- Executive report (Phase 16C) ---
+
+export type ExecCard = {
+  key: string;
+  label: string;
+  source: string;
+  state: DataStateKey;
+  value: number | null;
+  unit: "pct" | null;
+  comparison: Comparison | null;
+  higher_is_better: boolean;
+  detail: string | null;
+  sample: { numerator: number; denominator: number } | null;
+  last_data_date: string | null;
+};
+
+export type ExecNarrativeItem = {
+  text: string;
+  evidence: string[];
+  link: { label: string; href: string };
+};
+
+export type ExecAction = {
+  title: string;
+  source_modules: string[];
+  impact: string | null;
+  effort: string | null;
+  supporting_signal_count: number;
+  explanation: string | null;
+  citations: unknown[];
+  state: string | null;
+  priority: number | null;
+};
+
+export type ExecutiveReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      window: { days: number; start: string; end: string; anchored_to_latest_data: boolean };
+      previous_window: { start: string; end: string };
+      compare_requested: boolean;
+      cards: ExecCard[];
+      narrative: ExecNarrativeItem[];
+      top_actions: ExecAction[];
+      generated_on: string;
+    };
+
+export const fetchExecutiveReport = (
+  propertyId: number | null,
+  days: number,
+  compare: boolean
+) => {
+  const params = new URLSearchParams();
+  if (propertyId !== null) params.set("property_id", String(propertyId));
+  params.set("days", String(days));
+  params.set("compare", String(compare));
+  return getJSON<ExecutiveReport>(`/reports/executive?${params}`);
+};
+
+// Download URL for a report section's CSV export (client-safe: no internal
+// RAG metadata). Scope precedence matches the report endpoints.
+export function reportCsvUrl(
+  section: "seo" | "executive",
+  scope: ReportScope,
+  days: number,
+  compare: boolean
+): string {
+  const params = scopeParams(scope);
+  params.set("days", String(days));
+  params.set("compare", String(compare));
+  return `${API_BASE}/reports/${section}/export.csv?${params}`;
+}

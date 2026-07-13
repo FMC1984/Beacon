@@ -36,3 +36,96 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Print-friendly report layout (Phase 16C). The screen app is dark; the
+   printed document is a clean black-on-white sheet. */
+@media print {
+  /* Hide the app chrome so a printed report is only the document. */
+  aside,
+  nav[aria-label="Report tabs"] {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #111;
+  }
+}
+
+.print-doc {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #111;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.print-doc h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.print-doc h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 1.4rem 0 0.5rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.25rem;
+}
+.print-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #111;
+  padding-bottom: 0.75rem;
+}
+.print-brand {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+.print-meta {
+  text-align: right;
+  color: #444;
+}
+.print-narrative,
+.print-actions {
+  padding-left: 1.1rem;
+}
+.print-narrative li,
+.print-actions li {
+  margin-bottom: 0.5rem;
+}
+.print-evidence {
+  color: #666;
+}
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.print-table th,
+.print-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #e5e5e5;
+}
+.print-table th {
+  color: #444;
+  font-weight: 600;
+}
+.print-methodology p {
+  color: #444;
+  margin-bottom: 0.5rem;
+}
+.print-footer {
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #ddd;
+  color: #666;
+  font-size: 11px;
+}
+@media print {
+  section {
+    break-inside: avoid;
+  }
+}

@@ -6,12 +6,14 @@ router serves the Reports navigation section: tab metadata and per-source
 data status. Report content endpoints arrive with each report's own phase.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Company, Property
 from app.services.reporting import source_status
+from app.services.reporting_csv import build_executive_csv, build_seo_csv
+from app.services.reporting_executive import build_executive_report
 from app.services.reporting_seo import build_seo_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -22,7 +24,7 @@ REPORT_TABS = [
     {
         "key": "executive",
         "label": "Executive",
-        "status": "planned",
+        "status": "available",
         "planned_phase": "16C",
         "summary": "Cross-source summary with a deterministic, cited narrative and top actions.",
     },
@@ -90,6 +92,60 @@ def seo_report(
         company_id=company_id,
         unassigned=unassigned,
     )
+
+
+@router.get("/executive")
+def executive_report(
+    property_id: int | None = Query(default=None),
+    days: int = Query(default=30, ge=1, le=365),
+    compare: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return build_executive_report(db, property_id, days, want_compare=compare)
+
+
+def _csv_response(content: str, filename: str) -> Response:
+    return Response(
+        content=content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/seo/export.csv")
+def seo_report_csv(
+    property_id: int | None = Query(default=None),
+    company_id: int | None = Query(default=None),
+    unassigned: bool = Query(default=False),
+    days: int = Query(default=30, ge=1, le=365),
+    compare: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    content, filename = build_seo_csv(
+        db, property_id, days, compare,
+        company_id=company_id, unassigned=unassigned,
+    )
+    return _csv_response(content, filename)
+
+
+@router.get("/executive/export.csv")
+def executive_report_csv(
+    property_id: int | None = Query(default=None),
+    days: int = Query(default=30, ge=1, le=365),
+    compare: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        content, filename = build_executive_csv(db, property_id, days, compare)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _csv_response(content, filename)
 
 
 @router.get("/status")

@@ -13,6 +13,10 @@ function ReportsShell({ children }: { children: React.ReactNode }) {
   const { tabs, loaded, loadError, reload } = useReportContext();
   const pathname = usePathname();
 
+  // The print route is a standalone, self-contained layout: no control bar,
+  // no tabs. It reads its own scope from the URL.
+  if (pathname.endsWith("/print")) return <>{children}</>;
+
   return (
     <div className="space-y-6">
       <div>
