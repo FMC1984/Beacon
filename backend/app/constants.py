@@ -39,6 +39,9 @@ APP_PHASE = (
     "calendar-month window threaded through the reused engines, per-module "
     "explainable health with a modules-healthy count instead of an opaque "
     "score, executive summary, KPI snapshot, top priorities, adaptive "
-    "connect-me cards, and frozen snapshot history) complete"
+    "connect-me cards, and frozen snapshot history) complete. Phase 17B This "
+    "Month's Story (deterministic wins/risks/trends with evidence links, no "
+    "causal language, honest empties), per-module Intelligence Cards, and the "
+    "Ask Nora per-section handoff complete"
 )
-TEST_COUNT = 541
+TEST_COUNT = 550

@@ -80,6 +80,27 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 17B — This Month's Story + Intelligence Cards + Ask Nora (2026-07-13, 550 tests)
+- `_story()` in reporting_briefing: deterministic wins/risks/trends from
+  exec-card movements, SEO movers (NB: the movers key is `losses`, not
+  `declines` - a real bug the tests caught), review trend metrics/complaint
+  themes, and AI visibility score history. Every item carries evidence + a
+  module link; groups cap at 5; no causal verbs (note disclaims causation);
+  a month without comparable coverage yields honestly EMPTY groups (the 16A
+  comparability gate refuses sparse months - test fixtures must cover day 1
+  through within the 14-day manual tolerance of month end to compare).
+- `_intel_cards()`: per-module what-happened + biggest-opportunity cards
+  (seo/ai_visibility/content/reviews) with honest ok/no_data/not_connected
+  states; content card carries Content IQ's top recommendation.
+- Ask Nora handoff: briefing sections link to `/nora?property_id=&q=` with a
+  section-aware question; the Nora page prefills question + property from
+  window.location.search on mount (no Suspense needed, no backend change).
+- Snapshots freeze story + cards along with everything else (test-proven).
+- DCHP live: story groups empty (honest - no comparable prior month locally),
+  cards populated. Same browser-verify caveat as 17A (other session's dev
+  servers hold the default ports).
+
+
 ### Phase 17A — Monthly Strategic Briefing foundation (2026-07-13, 541 tests)
 - Phase 17 = Tina's approved "Monthly Strategic Briefing" flagship, with the
   agreed cuts: NO opaque composite health score (per-module explainable

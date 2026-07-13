@@ -167,11 +167,7 @@ def _content_health(cards: dict) -> dict:
                    "/content-intelligence", evidence=["Content Intelligence score"])
 
 
-def _reviews_health(db, property_id) -> dict:
-    try:
-        rv = analyze_property_reviews(db, property_id)
-    except Exception:
-        rv = {"has_reviews": False}
+def _reviews_health(rv: dict) -> dict:
     if not rv.get("has_reviews"):
         return _module("reviews", "Reviews", NOT_CONNECTED,
                        "No reviews connected. Import reviews to track sentiment.",
@@ -214,6 +210,206 @@ def _website_health(db, property_id, window) -> dict:
     return _module("website", "Website", status,
                    f"{round(rate * 100)}% of {sessions} sessions were engaged.",
                    "/", evidence=["GA4: engaged sessions"])
+
+
+# --- This Month's Story (17B) --------------------------------------------------
+# Deterministic wins / risks / trends derived from what the modules already
+# computed. Every item names its evidence and links to its module. Items exist
+# only when the underlying signal does; empty groups are reported honestly.
+
+MAX_STORY_ITEMS = 5
+
+
+def _item(text, evidence, label, href, module):
+    return {
+        "text": text,
+        "evidence": evidence,
+        "link": {"label": label, "href": href},
+        "source_module": module,
+    }
+
+
+def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
+    wins: list = []
+    risks: list = []
+    trends: list = []
+
+    # Metric movements from the executive cards (observed change, no causation).
+    metric_names = {
+        "organic_clicks": "Organic clicks",
+        "organic_sessions": "Organic sessions",
+        "ai_referral_sessions": "AI referral sessions",
+    }
+    for key, name in metric_names.items():
+        c = cards.get(key)
+        cmp = (c or {}).get("comparison")
+        if not cmp or cmp.get("change") in (None, 0):
+            continue
+        text = (
+            f"{name} moved from {cmp['previous']} to {cmp['current']} versus the "
+            "prior month."
+        )
+        target = wins if (cmp["direction"] == "up") else risks
+        target.append(_item(text, [f"{c['source']}: {cmp['previous']} to {cmp['current']}"],
+                            "SEO Performance", "/reports/seo", "seo"))
+
+    # Search movers: top gaining and declining imported queries.
+    movers = seo.get("movers", {})
+    for g in (movers.get("gains") or [])[:2]:
+        pos = (
+            f", position {g['previous_position']} to {g['current_position']}"
+            if g.get("current_position") is not None and g.get("previous_position") is not None
+            else ""
+        )
+        wins.append(_item(
+            f"\"{g['query']}\" gained {g['click_change']} clicks{pos}.",
+            [f"Search Console: {g['previous_clicks']} to {g['current_clicks']} clicks"],
+            "SEO Performance", "/reports/seo", "seo",
+        ))
+    for d in (movers.get("losses") or [])[:2]:
+        risks.append(_item(
+            f"\"{d['query']}\" lost {abs(d['click_change'])} clicks versus the prior month.",
+            [f"Search Console: {d['previous_clicks']} to {d['current_clicks']} clicks"],
+            "SEO Performance", "/reports/seo", "seo",
+        ))
+
+    # Review trends (only when the analyzer deemed them determinable).
+    rmetrics = (review.get("trends") or {}).get("metrics", {})
+    ar = rmetrics.get("average_rating")
+    if ar and ar.get("recent") is not None and ar.get("prior") is not None:
+        if ar["recent"] > ar["prior"]:
+            wins.append(_item(
+                f"Recent review rating rose to {ar['recent']}/5 from {ar['prior']}/5.",
+                ["Review Intelligence: recent vs prior window"],
+                "Review IQ", "/review-intelligence", "reviews",
+            ))
+        elif ar["recent"] < ar["prior"]:
+            risks.append(_item(
+                f"Recent review rating slipped to {ar['recent']}/5 from {ar['prior']}/5.",
+                ["Review Intelligence: recent vs prior window"],
+                "Review IQ", "/review-intelligence", "reviews",
+            ))
+    neg = rmetrics.get("negative_reviews")
+    if neg and neg.get("recent") is not None and neg.get("prior") is not None \
+            and neg["recent"] > neg["prior"]:
+        trends.append(_item(
+            f"Negative reviews rising: {neg['recent']} recent vs {neg['prior']} prior.",
+            ["Review Intelligence: negative review counts"],
+            "Review IQ", "/review-intelligence", "reviews",
+        ))
+
+    # Complaint themes with severity are emerging patterns worth watching.
+    for opp in (review.get("opportunities") or [])[:2]:
+        label = opp.get("theme_label") or opp.get("theme") or opp.get("title")
+        if label:
+            trends.append(_item(
+                f"Residents keep raising {str(label).lower()} in reviews.",
+                [f"Review Intelligence: complaint severity {opp.get('severity', 'n/a')}"],
+                "Review IQ", "/review-intelligence", "reviews",
+            ))
+
+    # AI visibility trajectory across sufficient-scored captures.
+    scored = [p for p in av_trend_points if p.get("score") is not None]
+    if len(scored) >= 2:
+        first, last = scored[0], scored[-1]
+        if last["score"] > first["score"]:
+            wins.append(_item(
+                f"AI visibility score rose from {first['score']} to {last['score']} across runs.",
+                [f"AI Visibility score history ({len(scored)} scored runs)"],
+                "AI Visibility", "/ai-visibility", "ai_visibility",
+            ))
+        elif last["score"] < first["score"]:
+            risks.append(_item(
+                f"AI visibility score fell from {first['score']} to {last['score']} across runs.",
+                [f"AI Visibility score history ({len(scored)} scored runs)"],
+                "AI Visibility", "/ai-visibility", "ai_visibility",
+            ))
+
+    return {
+        "wins": wins[:MAX_STORY_ITEMS],
+        "risks": risks[:MAX_STORY_ITEMS],
+        "trends": trends[:MAX_STORY_ITEMS],
+        "note": (
+            "Observed movements from Beacon's stored data. Movements are not "
+            "causal claims; each item links to its source module."
+        ),
+    }
+
+
+# --- Intelligence cards (17B) --------------------------------------------------
+
+
+def _intel_cards(cards: dict, seo: dict, review: dict, content_analysis: dict) -> list[dict]:
+    """One compact card per module: what happened, the biggest opportunity, and
+    where to look. States are honest; nothing renders as a fake zero."""
+    out = []
+
+    clicks = cards.get("organic_clicks") or {}
+    movers = seo.get("movers", {})
+    gains = len(movers.get("gains") or [])
+    declines = len(movers.get("declines") or [])
+    if clicks.get("state") == DataState.COMPLETE.value:
+        what = f"{clicks['value']} organic clicks this month."
+        if gains or declines:
+            what += f" {gains} quer{'y' if gains == 1 else 'ies'} gained, {declines} declined."
+        quad = seo.get("quadrant", {})
+        strike = (quad.get("highlights") or {}).get("striking_distance") or 0
+        opp = (
+            f"{strike} queries rank in positions 8 to 20, within reach of page one."
+            if strike else "No striking-distance queries flagged this month."
+        )
+        out.append({"key": "seo", "label": "SEO", "state": "ok",
+                    "what_happened": what, "biggest_opportunity": opp,
+                    "href": "/reports/seo"})
+    else:
+        out.append({"key": "seo", "label": "SEO", "state": "no_data",
+                    "what_happened": "No Search Console data for this month.",
+                    "biggest_opportunity": None, "href": "/reports/seo"})
+
+    geo = cards.get("ai_mention_rate") or {}
+    if geo.get("state") == DataState.COMPLETE.value:
+        s = geo.get("sample") or {}
+        out.append({"key": "ai_visibility", "label": "AI Visibility", "state": "ok",
+                    "what_happened": f"Mentioned in {s.get('numerator')} of {s.get('denominator')} tested AI answers.",
+                    "biggest_opportunity": "Review which tested queries omit the property.",
+                    "href": "/reports/geo"})
+    else:
+        out.append({"key": "ai_visibility", "label": "AI Visibility", "state": "no_data",
+                    "what_happened": geo.get("detail") or "Not enough tested queries for a rate.",
+                    "biggest_opportunity": "Run the standing prompt set to clear the sample gate.",
+                    "href": "/ai-visibility"})
+
+    ci_score = cards.get("content_score") or {}
+    if ci_score.get("value") is not None:
+        top_ci = (content_analysis.get("opportunities") or [{}])[0]
+        out.append({"key": "content", "label": "Content", "state": "ok",
+                    "what_happened": f"Content Intelligence score {ci_score['value']}.",
+                    "biggest_opportunity": top_ci.get("title"),
+                    "href": "/content-intelligence"})
+    else:
+        out.append({"key": "content", "label": "Content", "state": "no_data",
+                    "what_happened": "No website content ingested.",
+                    "biggest_opportunity": "Add website content to enable analysis.",
+                    "href": "/content-intelligence"})
+
+    if review.get("has_reviews"):
+        ov = review.get("overview", {})
+        top_rv = (review.get("opportunities") or [{}])[0]
+        rating = ov.get("average_rating")
+        out.append({"key": "reviews", "label": "Reviews", "state": "ok",
+                    "what_happened": (
+                        f"{ov.get('total_reviews')} reviews"
+                        + (f", average {rating}/5." if rating is not None else ".")
+                    ),
+                    "biggest_opportunity": top_rv.get("title") or top_rv.get("theme_label"),
+                    "href": "/review-intelligence"})
+    else:
+        out.append({"key": "reviews", "label": "Reviews", "state": "not_connected",
+                    "what_happened": "No reviews connected.",
+                    "biggest_opportunity": "Import reviews to track sentiment and themes.",
+                    "href": "/review-intelligence"})
+
+    return out
 
 
 # --- adaptive (unconnected) sections -----------------------------------------
@@ -271,14 +467,38 @@ def compose_briefing(
     )
     cards_by_key = {c["key"]: c for c in exec_report.get("cards", [])}
 
+    from app.models import AIVisibilityScoreHistory
+    from app.services.content_intelligence import analyze_property
     from app.services.reporting import source_status
+    from app.services.reporting_seo import build_seo_report
+
     sources = source_status(db, property_id, today=today)
+    # Month-scoped SEO report for movers/quadrant story items and the SEO card.
+    seo = build_seo_report(
+        db, property_id, days, want_compare=True, today=today,
+        window=window, prev_window=prev_window,
+    )
+    try:
+        review = analyze_property_reviews(db, property_id, today=today)
+    except Exception:
+        review = {"has_reviews": False}
+    try:
+        content_analysis = analyze_property(db, property_id, today=today)
+    except Exception:
+        content_analysis = {"has_content": False}
+    av_points = [
+        {"score": h.score, "captured_at": h.captured_at.date().isoformat()}
+        for h in db.query(AIVisibilityScoreHistory)
+        .filter(AIVisibilityScoreHistory.property_id == property_id)
+        .order_by(AIVisibilityScoreHistory.captured_at)
+        .all()
+    ]
 
     modules = [
         _seo_health(cards_by_key),
         _ai_visibility_health(cards_by_key),
         _content_health(cards_by_key),
-        _reviews_health(db, property_id),
+        _reviews_health(review),
         _website_health(db, property_id, window),
     ]
     healthy = sum(1 for m in modules if m["healthy"])
@@ -323,6 +543,8 @@ def compose_briefing(
         },
         "executive_summary": exec_report.get("narrative", []),
         "kpis": kpis,
+        "story": _story(cards_by_key, seo, review, av_points),
+        "intelligence_cards": _intel_cards(cards_by_key, seo, review, content_analysis),
         "top_priorities": exec_report.get("top_actions", [])[:5],
         "adaptive_sections": _adaptive_sections(sources),
         "data_sources": sources,

@@ -49,6 +49,29 @@ export type BriefingAction = {
   priority: number | null;
 };
 
+export type StoryItem = {
+  text: string;
+  evidence: string[];
+  link: { label: string; href: string };
+  source_module: string;
+};
+
+export type BriefingStory = {
+  wins: StoryItem[];
+  risks: StoryItem[];
+  trends: StoryItem[];
+  note: string;
+};
+
+export type IntelCard = {
+  key: string;
+  label: string;
+  state: "ok" | "no_data" | "not_connected";
+  what_happened: string;
+  biggest_opportunity: string | null;
+  href: string;
+};
+
 export type AdaptiveSection = {
   key: string;
   label: string;
@@ -70,6 +93,8 @@ export type Briefing = {
   };
   executive_summary: BriefingNarrativeItem[];
   kpis: BriefingKpi[];
+  story?: BriefingStory;
+  intelligence_cards?: IntelCard[];
   top_priorities: BriefingAction[];
   adaptive_sections: AdaptiveSection[];
   generated_on: string;

@@ -25,8 +25,29 @@ import {
   type BriefingKpi,
   type BriefingResponse,
   type BriefingSnapshot,
+  type BriefingStory,
+  type IntelCard,
   type ModuleHealth,
+  type StoryItem,
 } from "@/lib/briefing";
+
+/** Ask-Nora handoff: a link into /nora with the property and a section-aware
+ * question preloaded. Nora receives the context in the question itself. */
+function askNoraHref(propertyId: number, period: string, question: string): string {
+  const q = `${question} (Context: Monthly Strategic Briefing, ${period}.)`;
+  return `/nora?property_id=${propertyId}&q=${encodeURIComponent(q)}`;
+}
+
+function AskNora({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 rounded-lg border border-violet-a/40 bg-violet-a/10 px-2.5 py-1 text-xs text-violet-a transition-colors hover:bg-violet-a/20"
+    >
+      Ask Nora
+    </Link>
+  );
+}
 
 const STATUS_STYLE: Record<string, string> = {
   excellent: "border-emerald-a/40 bg-emerald-a/10 text-emerald-a",
@@ -98,6 +119,83 @@ function KpiCard({ k }: { k: BriefingKpi }) {
   );
 }
 
+const STORY_GROUPS: { key: keyof Pick<BriefingStory, "wins" | "risks" | "trends">; title: string; empty: string; accent: string }[] = [
+  { key: "wins", title: "Wins", empty: "No measured improvements versus the prior month.", accent: "text-emerald-a" },
+  { key: "risks", title: "Risks", empty: "No measured declines versus the prior month.", accent: "text-pink-a" },
+  { key: "trends", title: "Worth watching", empty: "No emerging patterns detected yet.", accent: "text-amber-a" },
+];
+
+function StorySection({ story, propertyId, period }: { story: BriefingStory; propertyId: number; period: string }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-medium text-muted">This month&apos;s story</h2>
+        <AskNora href={askNoraHref(propertyId, period, "Walk me through this month's wins, risks, and emerging trends.")} />
+      </div>
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {STORY_GROUPS.map((g) => (
+          <div key={g.key} className="rounded-2xl border border-line bg-surface p-4">
+            <h3 className={`text-sm font-medium ${g.accent}`}>{g.title}</h3>
+            {story[g.key].length === 0 ? (
+              <p className="mt-2 text-sm text-muted">{g.empty}</p>
+            ) : (
+              <ul className="mt-2 space-y-3">
+                {story[g.key].map((item: StoryItem, i: number) => (
+                  <li key={i} className="text-sm leading-relaxed">
+                    <p>{item.text}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {item.evidence.join("; ")}.{" "}
+                      <Link href={item.link.href} className="text-violet-a hover:underline">
+                        {item.link.label}
+                      </Link>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-muted">{story.note}</p>
+    </section>
+  );
+}
+
+const INTEL_STATE: Record<IntelCard["state"], string> = {
+  ok: "border-line",
+  no_data: "border-dashed border-line",
+  not_connected: "border-dashed border-line",
+};
+
+function IntelCards({ cards, propertyId, period }: { cards: IntelCard[]; propertyId: number; period: string }) {
+  return (
+    <section>
+      <h2 className="mb-3 text-sm font-medium text-muted">Module intelligence</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {cards.map((c) => (
+          <div key={c.key} className={`rounded-2xl border bg-surface p-4 ${INTEL_STATE[c.state]}`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">{c.label}</p>
+              <AskNora
+                href={askNoraHref(propertyId, period, `Explain what happened in ${c.label} this month and why.`)}
+              />
+            </div>
+            <p className="mt-2 text-sm">{c.what_happened}</p>
+            {c.biggest_opportunity && (
+              <p className="mt-1 text-sm text-muted">
+                <span className="text-foreground/70">Opportunity:</span> {c.biggest_opportunity}
+              </p>
+            )}
+            <Link href={c.href} className="mt-2 inline-block text-xs text-violet-a hover:underline">
+              Open {c.label}
+            </Link>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function BriefingBody({ data }: { data: Briefing }) {
   return (
     <div className="space-y-6">
@@ -139,7 +237,16 @@ export function BriefingBody({ data }: { data: Briefing }) {
 
       {/* Executive Summary */}
       <section className="rounded-2xl border border-line bg-surface p-5">
-        <h2 className="text-sm font-medium">Executive summary</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-medium">Executive summary</h2>
+          <AskNora
+            href={askNoraHref(
+              data.property_id,
+              data.period.label,
+              "Explain this month's executive summary and what I should focus on."
+            )}
+          />
+        </div>
         {data.executive_summary.length === 0 ? (
           <p className="mt-2 text-sm text-muted">
             Not enough connected data to summarize this month yet.
@@ -161,6 +268,11 @@ export function BriefingBody({ data }: { data: Briefing }) {
         )}
       </section>
 
+      {/* This Month's Story */}
+      {data.story && (
+        <StorySection story={data.story} propertyId={data.property_id} period={data.period.label} />
+      )}
+
       {/* KPI Snapshot */}
       <section>
         <h2 className="mb-3 text-sm font-medium text-muted">Key metrics</h2>
@@ -170,6 +282,11 @@ export function BriefingBody({ data }: { data: Briefing }) {
           ))}
         </div>
       </section>
+
+      {/* Intelligence cards */}
+      {data.intelligence_cards && data.intelligence_cards.length > 0 && (
+        <IntelCards cards={data.intelligence_cards} propertyId={data.property_id} period={data.period.label} />
+      )}
 
       {/* Top Priorities */}
       <section className="rounded-2xl border border-line bg-surface p-5">

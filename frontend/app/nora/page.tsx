@@ -92,6 +92,16 @@ export default function NoraPage() {
       .then((r) => r.json())
       .then((s) => setDemoMode(Boolean(s.demo_mode)))
       .catch(() => {});
+    // Ask-Nora handoff (Phase 17B): the Monthly Briefing links here with a
+    // property and section-aware question preloaded. window.location avoids
+    // the Suspense boundary useSearchParams would require; one-shot on mount.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get("q");
+      const pid = params.get("property_id");
+      if (pid && /^\d+$/.test(pid)) setPropertyId(pid);
+      if (q) setQuestion(q);
+    } catch {}
   }, []);
 
   useEffect(loadConversations, [loadConversations]);
