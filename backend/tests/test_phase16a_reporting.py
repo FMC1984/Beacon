@@ -168,10 +168,11 @@ def test_every_data_state_has_a_severity():
 # --- /api/reports endpoints ------------------------------------------------
 
 
-def test_reports_meta_lists_all_six_tabs(client):
+def test_reports_meta_lists_all_tabs(client):
     tabs = client.get("/api/reports/meta").json()["tabs"]
     assert [t["key"] for t in tabs] == [
         "executive",
+        "audience",
         "seo",
         "geo",
         "aeo",

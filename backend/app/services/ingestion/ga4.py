@@ -47,6 +47,9 @@ COLUMN_ALIASES = {
     "session campaign name": "campaign",
     "landing page": "landing_page",
     "landing page + query string": "landing_page",
+    "city": "city",
+    "town/city": "city",
+    "region": "region",
     "event name": "event_name",
     "sessions": "sessions",
     "engaged sessions": "engaged_sessions",
@@ -76,6 +79,18 @@ def _get(row: list[str], idx: int | None) -> str:
 def _split_source_medium(combined: str) -> tuple[str, str]:
     source, _, medium = combined.partition("/")
     return source.strip(), (medium.strip() or "(none)")
+
+
+# GA4 marks an unresolved dimension with these literals. Treat them as "no
+# location" (NULL) rather than storing the placeholder as if it were a place.
+_GEO_UNSET = {"(not set)", "(not provided)", "(other)"}
+
+
+def _geo(raw: str) -> str | None:
+    value = (raw or "").strip()
+    if not value or value.lower() in _GEO_UNSET:
+        return None
+    return value
 
 
 def parse_ga4_csv(data: bytes) -> ParseResult:
@@ -111,6 +126,8 @@ def parse_ga4_csv(data: bytes) -> ParseResult:
     medium_i = first("medium")
     campaign_i = first("campaign")
     landing_i = first("landing_page")
+    city_i = first("city")
+    region_i = first("region")
     event_i = first("event_name")
     sessions_i = first("sessions")
     engaged_i = first("engaged_sessions")
@@ -153,6 +170,8 @@ def parse_ga4_csv(data: bytes) -> ParseResult:
                 "session_medium": medium,
                 "session_campaign": _get(row, campaign_i) or None,
                 "landing_page": _get(row, landing_i) or None,
+                "city": _geo(_get(row, city_i)),
+                "region": _geo(_get(row, region_i)),
                 "event_name": _get(row, event_i).lower() if event_i is not None else None,
                 "sessions": parse_int(_get(row, sessions_i)),
                 "engaged_sessions": parse_int(_get(row, engaged_i)),
@@ -191,6 +210,8 @@ def _collapse_event_level(records: list[dict]) -> list[dict]:
             rec["session_medium"],
             rec["date"],
             rec["landing_page"],
+            rec["city"],
+            rec["region"],
         )
         g = groups.get(key)
         if g is None:
@@ -201,6 +222,8 @@ def _collapse_event_level(records: list[dict]) -> list[dict]:
                 "session_medium": rec["session_medium"],
                 "session_campaign": rec["session_campaign"],
                 "landing_page": rec["landing_page"],
+                "city": rec["city"],
+                "region": rec["region"],
                 "sessions": 0,
                 "engaged_sessions": 0,
                 "total_users": 0,

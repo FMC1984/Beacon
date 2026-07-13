@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.constants import APP_VERSION
 from app.models import Property
 from app.services.reporting_aeo import build_aeo_report
+from app.services.reporting_audience import build_audience_report
 from app.services.reporting_content_impact import build_content_impact_report
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report
@@ -314,3 +315,73 @@ def build_content_impact_csv(
                 m["state"],
             ])
     return buf.getvalue(), "beacon-content-impact.csv"
+
+
+def _pct_cell(share: float | None) -> str:
+    """A 0-1 share as a percentage, or empty when not applicable (never 0%)."""
+    return "" if share is None else f"{round(share * 100, 1)}%"
+
+
+def build_audience_csv(
+    db: Session,
+    property_id: int | None = None,
+    days: int = 30,
+    company_id: int | None = None,
+    unassigned: bool = False,
+    today: date | None = None,
+) -> tuple[str, str]:
+    today = today or date.today()
+    report = build_audience_report(
+        db, property_id, days, company_id=company_id, unassigned=unassigned,
+        today=today, city_limit=100000,  # export carries the full city list
+    )
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    _preamble(w, "Audience geography export", report["scope_label"], None, today)
+
+    if not report.get("has_data"):
+        w.writerow([report["message"]])
+        return buf.getvalue(), "beacon-audience.csv"
+
+    win = report["window"]
+    s = report["summary"]
+    w.writerow(["Window", f"{win['start']} to {win['end']}"])
+    w.writerow(["Note", report["geography_note"]])
+    w.writerow(["AI traffic disclosure", report["disclosure"]])
+    if not report["geography_available"]:
+        w.writerow(["Geography", report["geography_message"]])
+    w.writerow([])
+
+    w.writerow(["Summary metric", "value", "note"])
+    w.writerow(["Total sessions", s["total_sessions"], ""])
+    w.writerow(["Located share", _pct_cell(s["located_share"]),
+                f"{s['located_sessions']} of {s['total_sessions']} sessions have a city"])
+    w.writerow(["Cities represented", s["distinct_cities"], ""])
+    w.writerow(["Regions represented", s["distinct_regions"], ""])
+    w.writerow(["AI referral sessions", s["ai_sessions"], report["disclosure"]])
+    w.writerow(["AI share of sessions", _pct_cell(s["ai_share"]), ""])
+    w.writerow([])
+
+    w.writerow([
+        "City", "Region", "sessions", "share_of_sessions", "users",
+        "engaged_sessions", "engagement_rate", "key_events",
+        "ai_sessions", "ai_share",
+    ])
+    for c in report["cities"]:
+        w.writerow([
+            c["city"], c["region"] or "", c["sessions"],
+            _pct_cell(c["sessions_share"]), c["users"], c["engaged_sessions"],
+            _pct_cell(c["engagement_rate"]), c["key_events"],
+            c["ai_sessions"], _pct_cell(c["ai_share"]),
+        ])
+
+    w.writerow([])
+    w.writerow(["Region", "sessions", "share_of_sessions", "users"])
+    for rg in report["regions"]:
+        w.writerow([
+            rg["region"], rg["sessions"], _pct_cell(rg["sessions_share"]),
+            rg["users"],
+        ])
+
+    return buf.getvalue(), "beacon-audience.csv"

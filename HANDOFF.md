@@ -80,6 +80,37 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16G — Audience geography report (2026-07-13, 509 tests)
+- **Schema**: `c1a2d3e4f5b6_ga4_city_region.py` adds nullable `city` / `region`
+  to `ga4_sessions_daily` (+ `ix_ga4_property_city`). Both nullable because
+  historical uploads never carried the dimension and GA4 emits "(not set)" when
+  it cannot resolve a location. NB: the local `beacon-backend` launch command
+  runs uvicorn directly and does NOT `alembic upgrade` first (only the Render
+  start command does) - run `alembic upgrade head` by hand after pulling.
+- **Parser** (`ingestion/ga4.py`): recognizes GA4 City / Region dimensions,
+  normalizes "(not set)"/"(not provided)"/"(other)" to NULL (`_geo`), and adds
+  city+region to the event-collapse grouping key so distinct locations are not
+  merged. Fully tolerant of exports without geography (all existing fixtures
+  still parse).
+- **Report** (`app/services/reporting_audience.py`, `GET /api/reports/audience`):
+  sessions/users by city and region over a scoped, latest-data-anchored window,
+  with the AI-referral split reusing the stored `is_ai_referral` fact. Valid at
+  every scope (property/company/unassigned/portfolio). Sessions GA4 could not
+  place collapse into a single "Unknown" bucket and the report always states the
+  located share. When GA4 rows exist but none carry a city, `geography_available`
+  is false with a "re-export with the City dimension" message rather than an
+  empty map. Every AI figure carries `AI_TRAFFIC_DISCLOSURE`. `aggregate_geography`
+  is shared with the Executive report's `top_cities` panel (per-property, its own
+  window). CSV export `GET /api/reports/audience/export.csv` (self-describing,
+  full city list). Audience tab -> available, inserted after Executive.
+- **Frontend**: `components/reports/AudienceReport.tsx` (summary tiles, city
+  table with share bars + engagement + AI, region rollup, geography/undercount
+  notes), `app/reports/audience/page.tsx`, and a `TopCitiesPanel` on the
+  Executive report. ExportMenu/ReportControls know the `audience` section.
+  NOTE: unverified in-browser - local Node is 18 and Next needs >=20.9, so the
+  frontend dev server would not start; types pass `tsc --noEmit` and the API was
+  verified live via curl (property + upload + all endpoints).
+
 ### Phase 16F — Content Impact + RAG Index Health (2026-07-12, 500 tests)
 - **First Phase-16 migration**: `f3b1c2d4e5a6_content_changes.py` creates the
   `content_changes` table (plain create_table; batch mode is only for ALTER).

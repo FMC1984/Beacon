@@ -219,6 +219,23 @@ export type ExecAction = {
   priority: number | null;
 };
 
+export type ExecTopCities =
+  | { available: false; reason: "no_ga4" | "no_geography" }
+  | {
+      available: true;
+      reason: null;
+      located_share: number | null;
+      located_sessions: number;
+      total_sessions: number;
+      cities: {
+        city: string;
+        region: string | null;
+        sessions: number;
+        sessions_share: number | null;
+      }[];
+      disclosure: string;
+    };
+
 export type ExecutiveReport =
   | { scope_required: true; message: string }
   | {
@@ -231,6 +248,7 @@ export type ExecutiveReport =
       cards: ExecCard[];
       narrative: ExecNarrativeItem[];
       top_actions: ExecAction[];
+      top_cities: ExecTopCities;
       generated_on: string;
     };
 
@@ -249,7 +267,7 @@ export const fetchExecutiveReport = (
 // Download URL for a report section's CSV export (client-safe: no internal
 // RAG metadata). Scope precedence matches the report endpoints.
 export function reportCsvUrl(
-  section: "seo" | "executive" | "geo" | "aeo" | "content-impact",
+  section: "seo" | "executive" | "geo" | "aeo" | "content-impact" | "audience",
   scope: ReportScope,
   days: number,
   compare: boolean
@@ -258,6 +276,8 @@ export function reportCsvUrl(
   if (section === "seo" || section === "executive") {
     params.set("days", String(days));
     params.set("compare", String(compare));
+  } else if (section === "audience") {
+    params.set("days", String(days));
   }
   return `${API_BASE}/reports/${section}/export.csv?${params}`;
 }
@@ -607,3 +627,73 @@ export async function deleteContentChange(propertyId: number, changeId: number):
   });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
 }
+
+// --- Audience geography report (Phase 16G) ---
+
+export type AudienceCity = {
+  city: string;
+  region: string | null;
+  sessions: number;
+  users: number;
+  engaged_sessions: number;
+  key_events: number;
+  ai_sessions: number;
+  engagement_rate: number | null;
+  sessions_share: number | null;
+  ai_share: number | null;
+};
+
+export type AudienceRegion = {
+  region: string;
+  sessions: number;
+  users: number;
+  sessions_share: number | null;
+};
+
+export type AudienceTopCity = {
+  city: string;
+  region: string | null;
+  sessions: number;
+  sessions_share: number | null;
+};
+
+export type AudienceReport =
+  | {
+      scope_label: string;
+      has_data: false;
+      geography_available: false;
+      message: string;
+      generated_on: string;
+    }
+  | {
+      scope_label: string;
+      has_data: true;
+      geography_available: boolean;
+      geography_note: string;
+      geography_message: string | null;
+      disclosure: string;
+      window: { days: number; start: string; end: string; anchored_to_latest_data: boolean };
+      last_data_date: string;
+      summary: {
+        total_sessions: number;
+        total_users: number;
+        ai_sessions: number;
+        ai_share: number | null;
+        located_sessions: number;
+        located_share: number | null;
+        distinct_cities: number;
+        distinct_regions: number;
+        top_city: AudienceTopCity | null;
+      };
+      cities: AudienceCity[];
+      cities_shown: number;
+      cities_total: number;
+      regions: AudienceRegion[];
+      generated_on: string;
+    };
+
+export const fetchAudienceReport = (scope: ReportScope, days: number) => {
+  const params = scopeParams(scope);
+  params.set("days", String(days));
+  return getJSON<AudienceReport>(`/reports/audience?${params}`);
+};

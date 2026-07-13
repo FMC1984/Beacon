@@ -13,9 +13,11 @@ from app.db import get_db
 from app.models import Company, Property
 from app.services.reporting import source_status
 from app.services.reporting_aeo import build_aeo_report
+from app.services.reporting_audience import build_audience_report
 from app.services.reporting_content_impact import build_content_impact_report
 from app.services.reporting_csv import (
     build_aeo_csv,
+    build_audience_csv,
     build_content_impact_csv,
     build_executive_csv,
     build_geo_csv,
@@ -36,6 +38,13 @@ REPORT_TABS = [
         "status": "available",
         "planned_phase": "16C",
         "summary": "Cross-source summary with a deterministic, cited narrative and top actions.",
+    },
+    {
+        "key": "audience",
+        "label": "Audience",
+        "status": "available",
+        "planned_phase": "16G",
+        "summary": "Where visitors come from: sessions and users by city and region from GA4, with the AI-referral split.",
     },
     {
         "key": "seo",
@@ -146,6 +155,23 @@ def content_impact_report(
     return build_content_impact_report(db, property_id, window=window)
 
 
+@router.get("/audience")
+def audience_report(
+    property_id: int | None = Query(default=None),
+    company_id: int | None = Query(default=None),
+    unassigned: bool = Query(default=False),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    if company_id is not None and db.get(Company, company_id) is None:
+        raise HTTPException(status_code=404, detail="Company not found.")
+    return build_audience_report(
+        db, property_id, days, company_id=company_id, unassigned=unassigned
+    )
+
+
 @router.get("/geo/evidence")
 def geo_matrix_evidence(
     property_id: int = Query(...),
@@ -166,6 +192,24 @@ def _csv_response(content: str, filename: str) -> Response:
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/audience/export.csv")
+def audience_report_csv(
+    property_id: int | None = Query(default=None),
+    company_id: int | None = Query(default=None),
+    unassigned: bool = Query(default=False),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    if company_id is not None and db.get(Company, company_id) is None:
+        raise HTTPException(status_code=404, detail="Company not found.")
+    content, filename = build_audience_csv(
+        db, property_id, days, company_id=company_id, unassigned=unassigned
+    )
+    return _csv_response(content, filename)
 
 
 @router.get("/seo/export.csv")

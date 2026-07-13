@@ -12,6 +12,7 @@ import {
   type ExecAction,
   type ExecCard,
   type ExecNarrativeItem,
+  type ExecTopCities,
   type ExecutiveReport as ExecReportData,
 } from "@/lib/reports";
 import { EmptyState, ErrorState } from "./DataStates";
@@ -110,6 +111,63 @@ export function TopActions({ actions }: { actions: ExecAction[] }) {
   );
 }
 
+export function TopCitiesPanel({ data }: { data: ExecTopCities }) {
+  return (
+    <div className="rounded-2xl border border-line bg-surface p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-medium">Where visitors are</h3>
+          <p className="mt-0.5 text-xs text-muted">Top cities by GA4 sessions.</p>
+        </div>
+        <Link href="/reports/audience" className="shrink-0 text-xs text-violet-a hover:underline">
+          Full audience
+        </Link>
+      </div>
+
+      {!data.available ? (
+        <p className="mt-3 text-sm text-muted">
+          {data.reason === "no_geography"
+            ? "GA4 traffic is present but carries no city. Re-export your GA4 report with the City dimension added to see where visitors come from."
+            : "No GA4 traffic data for this property yet."}
+        </p>
+      ) : data.cities.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">No located sessions in this window.</p>
+      ) : (
+        <>
+          <ul className="mt-3 space-y-2">
+            {data.cities.map((c) => (
+              <li key={`${c.city}-${c.region ?? ""}`} className="flex items-center gap-3 text-sm">
+                <span className="w-44 shrink-0 truncate" title={c.region ? `${c.city}, ${c.region}` : c.city}>
+                  {c.city}
+                  {c.region && <span className="text-muted">, {c.region}</span>}
+                </span>
+                <div className="h-4 flex-1 rounded bg-surface-raised">
+                  <div
+                    className="h-4 rounded bg-violet-a/70"
+                    style={{ width: `${c.sessions_share !== null ? Math.round(c.sessions_share * 100) : 0}%` }}
+                    role="img"
+                    aria-label={`${c.city}: ${c.sessions} sessions`}
+                  />
+                </div>
+                <span className="w-14 text-right tabular-nums">{fmtNum(c.sessions)}</span>
+                <span className="w-12 text-right text-xs text-muted tabular-nums">
+                  {c.sessions_share !== null ? fmtPct(c.sessions_share) : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {data.located_share !== null && (
+            <p className="mt-3 text-xs text-muted">
+              {fmtPct(data.located_share)} of sessions ({fmtNum(data.located_sessions)} of{" "}
+              {fmtNum(data.total_sessions)}) carry a city. {data.disclosure}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function ExecutiveReport() {
   const { scope, days, compare } = useReportContext();
   const [data, setData] = useState<ExecReportData | null>(null);
@@ -182,6 +240,7 @@ export function ExecutiveReport() {
       </div>
 
       <ExecutiveNarrative items={data.narrative} />
+      <TopCitiesPanel data={data.top_cities} />
       <TopActions actions={data.top_actions} />
     </div>
   );

@@ -41,6 +41,12 @@ class GA4SessionsDaily(Base):
     session_medium: Mapped[str] = mapped_column(String(100))
     session_campaign: Mapped[str | None] = mapped_column(String(300))
     landing_page: Mapped[str | None] = mapped_column(String(1000))
+    # Visitor geography from GA4's City / Region dimensions when the export
+    # carries them. Approximate and often "(not set)"; stored NULL when the
+    # export omits geography or GA4 could not resolve it, so the audience
+    # report reads NULL as "Unknown" rather than a fabricated location.
+    city: Mapped[str | None] = mapped_column(String(200))
+    region: Mapped[str | None] = mapped_column(String(200))
     sessions: Mapped[int] = mapped_column(Integer)
     engaged_sessions: Mapped[int] = mapped_column(Integer, default=0)
     total_users: Mapped[int] = mapped_column(Integer, default=0)

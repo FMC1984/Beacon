@@ -341,6 +341,7 @@ def build_executive_report(
 
     from app.services.ai_visibility import analyze_ai_visibility
     from app.services.content_intelligence import analyze_property
+    from app.services.reporting_audience import top_cities_for_window
 
     try:
         av = analyze_ai_visibility(db, property_id, today=today)
@@ -383,5 +384,6 @@ def build_executive_report(
         "cards": card_list,
         "narrative": _narrative(cards, seo, opps, want_compare),
         "top_actions": _top_actions(opps),
+        "top_cities": top_cities_for_window(db, property_id, window[0], window[1]),
         "generated_on": today.isoformat(),
     }

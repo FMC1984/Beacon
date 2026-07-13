@@ -27,6 +27,9 @@ APP_PHASE = (
     "16E AEO Readiness report (explainable weighted score, question coverage "
     "heatmap, citation readiness, structured-data empty state), and 16F "
     "(Content Impact report with before/after windows and no-causation caveat, "
-    "content change log, RAG Index Health + retrieval transparency) complete"
+    "content change log, RAG Index Health + retrieval transparency), and 16G "
+    "(Audience geography report: sessions and users by city and region from GA4, "
+    "AI-referral split, located-share honesty, executive top-cities panel) "
+    "complete"
 )
-TEST_COUNT = 500
+TEST_COUNT = 509
