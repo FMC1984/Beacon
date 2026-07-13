@@ -23,6 +23,7 @@ function Icon({ children }: { children: ReactNode }) {
 }
 
 const ICONS: Record<string, ReactNode> = {
+  briefing: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M9 13l2 2 4-4" /></>,
   dashboard: <><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></>,
   opportunities: <><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></>,
   reports: <><path d="M3 3v18h18" /><path d="M7 15v3M11 11v7M15 13v5M19 7v11" /></>,
@@ -45,6 +46,7 @@ const GROUPS: Group[] = [
   {
     label: "Overview",
     items: [
+      { href: "/briefing", label: "Monthly Briefing", icon: "briefing" },
       { href: "/", label: "Dashboard", icon: "dashboard" },
       { href: "/opportunities", label: "Opportunities", icon: "opportunities" },
       { href: "/reports", label: "Reports", icon: "reports" },

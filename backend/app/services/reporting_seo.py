@@ -619,12 +619,23 @@ def build_seo_report(
     today: date | None = None,
     company_id: int | None = None,
     unassigned: bool = False,
+    window: tuple[date, date] | None = None,
+    prev_window: tuple[date, date] | None = None,
 ) -> dict:
+    """window/prev_window override the default data-anchored window when the
+    caller needs a specific period (e.g. a calendar month for the Monthly
+    Briefing). `days` is then derived from the window for reporting."""
     today = today or date.today()
     property_ids = _resolve_scope(db, property_id, company_id, unassigned)
-    anchor = _anchor(db, property_ids) or today
-    window = (anchor - timedelta(days=days - 1), anchor)
-    prev_win = previous_window(*window)
+    if window is not None:
+        days = (window[1] - window[0]).days + 1
+        prev_win = prev_window or previous_window(*window)
+        anchored = False  # caller-chosen window, not data-anchored
+    else:
+        anchor = _anchor(db, property_ids) or today
+        window = (anchor - timedelta(days=days - 1), anchor)
+        prev_win = previous_window(*window)
+        anchored = anchor != today
 
     _, _, gsc_verdict, _ = _coverage_pair(
         db, GSCPerformanceDaily, property_ids, window, prev_win
@@ -636,7 +647,7 @@ def build_seo_report(
             "days": days,
             "start": window[0].isoformat(),
             "end": window[1].isoformat(),
-            "anchored_to_latest_data": anchor != today,
+            "anchored_to_latest_data": anchored,
         },
         "previous_window": {
             "start": prev_win[0].isoformat(),

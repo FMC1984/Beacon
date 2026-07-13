@@ -34,6 +34,11 @@ APP_PHASE = (
     "flag-gated live GBP OAuth + reviews sync connector ready for when Google "
     "approves API access), and 16I (GA4 city/region now pulled by the live sync "
     "into the Audience report, and a new GA4 events breakdown from sync + CSV "
-    "shown on the Dashboard and SEO report) complete"
+    "shown on the Dashboard and SEO report) complete. Phase 17A Monthly "
+    "Strategic Briefing foundation (flagship synthesis over existing modules: "
+    "calendar-month window threaded through the reused engines, per-module "
+    "explainable health with a modules-healthy count instead of an opaque "
+    "score, executive summary, KPI snapshot, top priorities, adaptive "
+    "connect-me cards, and frozen snapshot history) complete"
 )
-TEST_COUNT = 526
+TEST_COUNT = 541

@@ -14,6 +14,7 @@ from app.routers import (
     competitor_intelligence,
     competitors,
     content,
+    briefing,
     content_changes,
     content_intelligence,
     dashboard,
@@ -91,6 +92,7 @@ app.include_router(export.router, prefix="/api")
 app.include_router(google.router, prefix="/api")
 app.include_router(reports_v2.router, prefix="/api")
 app.include_router(content_changes.router, prefix="/api")
+app.include_router(briefing.router, prefix="/api")
 
 
 @app.on_event("startup")

@@ -33,6 +33,7 @@ from app.models.ai_visibility_schedule import (
 )
 from app.models.competitor import Competitor
 from app.models.content_change import ChangeType, ContentChange
+from app.models.briefing import MonthlyBriefing
 
 __all__ = [
     "Company",
@@ -71,4 +72,5 @@ __all__ = [
     "Competitor",
     "ContentChange",
     "ChangeType",
+    "MonthlyBriefing",
 ]

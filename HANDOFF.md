@@ -80,6 +80,35 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 17A — Monthly Strategic Briefing foundation (2026-07-13, 541 tests)
+- Phase 17 = Tina's approved "Monthly Strategic Briefing" flagship, with the
+  agreed cuts: NO opaque composite health score (per-module explainable
+  statuses + a modules-healthy COUNT), forecast DEFERRED until real history,
+  cross-system causal chains and strategist synthesis pushed to 17C/17D built
+  carefully. Remaining: 17B (This Month's Story wins/risks/trends +
+  Intelligence Cards + per-section Ask Nora), 17C (cross-system insights as
+  co-occurrence-with-evidence, never causation), 17D (grounded "If I Were
+  Your Strategist" via Nora + Share security design).
+- **/briefing** nav flagship (top of Overview). Frozen snapshots: migration
+  `a1c2e3f4b5d6` adds `monthly_briefings`; POST /api/briefing/generate
+  upserts one snapshot per property+month (test proves later data does NOT
+  change a frozen snapshot); GET /api/briefing/history + /api/briefing/{id}.
+- Calendar-month windows threaded through the REUSED engines:
+  `build_seo_report`/`build_executive_report` accept optional
+  window/prev_window overrides (internals already took tuples). Default
+  briefing month anchors to the newest GSC month (the laggard source), not a
+  partial current month.
+- `app/services/reporting_briefing.py` composes exec report + Review IQ +
+  source_status into: hero, per-module health (seo/ai_visibility/content/
+  reviews/website; each with band rule + one-sentence reason + details link;
+  not_connected / not_enough_data are EXCLUDED from the assessable count,
+  never banded as 0), executive summary (existing cited narrative), KPI
+  snapshot, top-5 priorities, adaptive connect-me cards (CRM/competitors).
+- Verify caveat: backend verified over live HTTP + nav/page shell rendered;
+  populated-body screenshot blocked by another session's dev servers sharing
+  .next on the default ports (infra collision, not a code issue).
+
+
 ### Phase 16I — GA4 city/region in the live sync + events breakdown (2026-07-13, 524 tests)
 - **City/region now flow from the live GA4 sync**: `gapi.ga4_run_report` now
   requests `city` + `region` dimensions (normalized via `_geo_value`, "(not

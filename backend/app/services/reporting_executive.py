@@ -314,9 +314,15 @@ def build_executive_report(
     days: int,
     want_compare: bool = False,
     today: date | None = None,
+    window: tuple[date, date] | None = None,
+    prev_window: tuple[date, date] | None = None,
 ) -> dict:
     """Executive report is per-property. Portfolio/company scope returns a
-    scope_required state rather than blending incomparable properties."""
+    scope_required state rather than blending incomparable properties.
+
+    window/prev_window override the data-anchored window so a caller (the
+    Monthly Briefing) can request a specific calendar month; every metric in
+    the report then shares that one period definition."""
     today = today or date.today()
     if property_id is None:
         return {
@@ -327,7 +333,10 @@ def build_executive_report(
     if prop is None:
         raise ValueError("Property not found.")
 
-    seo = build_seo_report(db, property_id, days, want_compare=want_compare, today=today)
+    seo = build_seo_report(
+        db, property_id, days, want_compare=want_compare, today=today,
+        window=window, prev_window=prev_window,
+    )
     # Anchor the AI-referral comparison to the SEO report's exact windows so
     # every metric on the executive report shares one period definition.
     window = (
