@@ -16,6 +16,7 @@ import {
   type ExecutiveReport as ExecReportData,
 } from "@/lib/reports";
 import { EmptyState, ErrorState } from "./DataStates";
+import { ExecutiveVisuals } from "./ExecutiveVisuals";
 import { ReportMetricCard } from "./ReportMetricCard";
 import { useReportContext } from "./ReportContext";
 
@@ -239,6 +240,7 @@ export function ExecutiveReport() {
         ))}
       </div>
 
+      <ExecutiveVisuals cards={data.cards} />
       <ExecutiveNarrative items={data.narrative} />
       <TopCitiesPanel data={data.top_cities} />
       <TopActions actions={data.top_actions} />
