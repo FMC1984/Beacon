@@ -26,9 +26,11 @@ import {
   type BriefingResponse,
   type BriefingSnapshot,
   type BriefingStory,
+  type CrossSystem,
   type IntelCard,
   type ModuleHealth,
   type StoryItem,
+  type StrategicQuestion,
 } from "@/lib/briefing";
 
 /** Ask-Nora handoff: a link into /nora with the property and a section-aware
@@ -196,6 +198,79 @@ function IntelCards({ cards, propertyId, period }: { cards: IntelCard[]; propert
   );
 }
 
+function CrossSystemSection({ cs }: { cs: CrossSystem }) {
+  return (
+    <section>
+      <h2 className="mb-3 text-sm font-medium text-muted">Cross-system insights</h2>
+      {cs.insights.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-4">
+          <p className="text-sm text-muted">{cs.empty_reason}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {cs.insights.map((ins, i) => (
+            <div key={i} className="rounded-2xl border border-line bg-surface p-4">
+              <p className="text-sm font-medium">{ins.title}</p>
+              <ul className="mt-2 space-y-2">
+                {ins.observations.map((o, j) => (
+                  <li key={j} className="text-sm leading-relaxed">
+                    <p>{o.text}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {o.module}
+                      {o.evidence.length > 0 && <> · {o.evidence.join("; ")}</>}
+                      {" · "}
+                      <Link href={o.link.href} className="text-violet-a hover:underline">
+                        {o.link.label}
+                      </Link>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 border-t border-line/60 pt-2 text-[11px] text-muted">{ins.framing}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function QuestionsSection({
+  questions,
+  propertyId,
+  period,
+}: {
+  questions: StrategicQuestion[];
+  propertyId: number;
+  period: string;
+}) {
+  if (questions.length === 0) return null;
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-5">
+      <h2 className="text-sm font-medium">Questions worth investigating</h2>
+      <p className="mt-0.5 text-xs text-muted">
+        The briefing ends with questions, not conclusions. Each launches Nora with its context.
+      </p>
+      <ul className="mt-3 space-y-3">
+        {questions.map((q, i) => (
+          <li key={i} className="rounded-xl border border-line bg-surface-raised p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium">{q.text}</p>
+              <AskNora href={askNoraHref(propertyId, period, q.nora_question)} />
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              {q.why} Evidence: {q.evidence.join("; ")}.{" "}
+              <Link href={q.link.href} className="text-violet-a hover:underline">
+                {q.link.label}
+              </Link>
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function BriefingBody({ data }: { data: Briefing }) {
   return (
     <div className="space-y-6">
@@ -288,6 +363,9 @@ export function BriefingBody({ data }: { data: Briefing }) {
         <IntelCards cards={data.intelligence_cards} propertyId={data.property_id} period={data.period.label} />
       )}
 
+      {/* Cross-system insights */}
+      {data.cross_system && <CrossSystemSection cs={data.cross_system} />}
+
       {/* Top Priorities */}
       <section className="rounded-2xl border border-line bg-surface p-5">
         <h2 className="text-sm font-medium">Top priorities</h2>
@@ -318,6 +396,15 @@ export function BriefingBody({ data }: { data: Briefing }) {
           </ol>
         )}
       </section>
+
+      {/* Strategic questions: the briefing ends with questions, not conclusions */}
+      {data.strategic_questions && (
+        <QuestionsSection
+          questions={data.strategic_questions}
+          propertyId={data.property_id}
+          period={data.period.label}
+        />
+      )}
 
       {/* Adaptive (unconnected) sections */}
       <section>

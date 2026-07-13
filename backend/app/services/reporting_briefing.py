@@ -336,6 +336,166 @@ def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
     }
 
 
+# --- Cross-system insights (17C) -----------------------------------------------
+# Beacon's signature synthesis, built the careful way: an insight is a set of
+# observations from DIFFERENT modules that moved in the same month, or an
+# Opportunity Engine action that 2+ modules independently corroborate. The
+# framing is fixed: co-occurrence, never causation. Beacon's hard-coded
+# correlation gate exists precisely so we never draw arrows we cannot support;
+# this section draws no arrows at all.
+
+CO_OCCURRENCE_NOTE = (
+    "These signals moved in the same period. Co-occurrence is not causation; "
+    "each observation links to the module that measured it."
+)
+
+
+def _cross_system(story: dict, top_actions: list[dict]) -> dict:
+    insights: list[dict] = []
+
+    # 1) Same-direction movement across 2+ distinct modules in the same month.
+    for direction, items in (("improved", story["wins"]), ("declined", story["risks"])):
+        modules = {i["source_module"] for i in items}
+        if len(modules) >= 2:
+            # One observation per module (its strongest item, list order).
+            picked, seen = [], set()
+            for i in items:
+                if i["source_module"] not in seen:
+                    picked.append(i)
+                    seen.add(i["source_module"])
+            insights.append({
+                "kind": "co_movement",
+                "title": f"{len(modules)} systems {direction} together this month",
+                "observations": [
+                    {
+                        "text": i["text"],
+                        "module": i["source_module"],
+                        "evidence": i["evidence"],
+                        "link": i["link"],
+                    }
+                    for i in picked
+                ],
+                "framing": CO_OCCURRENCE_NOTE,
+            })
+
+    # 2) Actions that multiple modules independently point at. The Opportunity
+    # Engine already counts corroborating sources deterministically; an action
+    # backed by 2+ signals is itself a cross-system observation.
+    for a in top_actions:
+        if a.get("supporting_signal_count", 0) >= 2 and len(a.get("source_modules", [])) >= 2:
+            insights.append({
+                "kind": "corroborated_action",
+                "title": f"{len(a['source_modules'])} systems point at the same action",
+                "observations": [{
+                    "text": a["title"],
+                    "module": ", ".join(a["source_modules"]),
+                    "evidence": [a["explanation"]] if a.get("explanation") else [],
+                    "link": {"label": "Opportunities", "href": "/opportunities"},
+                }],
+                "framing": (
+                    "Independent modules corroborate this recommendation; see the "
+                    "Opportunity Engine for its full evidence."
+                ),
+            })
+
+    return {
+        "insights": insights[:4],
+        "note": CO_OCCURRENCE_NOTE,
+        "empty_reason": (
+            None if insights else
+            "No cross-system pattern this month: signals from different "
+            "modules did not move together, and no action is corroborated by "
+            "multiple modules yet."
+        ),
+    }
+
+
+# --- Strategic questions (17C) ---------------------------------------------------
+# The briefing ends with questions worth investigating, not conclusions. A
+# question is generated ONLY when its detectable precondition holds, names the
+# evidence that makes it worth asking, and launches Nora with that context.
+
+MAX_QUESTIONS = 5
+
+
+def _question(text, why, evidence, module_link):
+    return {
+        "text": text,
+        "why": why,
+        "evidence": evidence,
+        "link": module_link,
+        # The Nora question carries its own context so the handoff is portable.
+        "nora_question": f"{text} {why}",
+    }
+
+
+def _strategic_questions(cards: dict, seo: dict, review: dict, story: dict) -> list[dict]:
+    qs: list[dict] = []
+
+    # Tension: organic clicks rose while key events stayed flat.
+    clicks = cards.get("organic_clicks") or {}
+    events = cards.get("organic_key_events") or {}
+    clicks_up = (clicks.get("comparison") or {}).get("direction") == "up"
+    events_cmp = events.get("comparison") or {}
+    events_flat = (
+        events.get("state") == DataState.COMPLETE.value
+        and (events_cmp.get("direction") in ("flat", "down") or events.get("value") == 0)
+    )
+    if clicks_up and events_flat:
+        qs.append(_question(
+            "Why did organic clicks rise while key events stayed flat?",
+            f"Clicks moved {clicks['comparison']['previous']} to "
+            f"{clicks['comparison']['current']} but key events did not follow.",
+            ["GA4 + Search Console, this month vs prior"],
+            {"label": "SEO Performance", "href": "/reports/seo"},
+        ))
+
+    # Opportunity: striking-distance queries exist.
+    strike = ((seo.get("quadrant") or {}).get("highlights") or {}).get("striking_distance") or 0
+    if strike:
+        qs.append(_question(
+            f"Which of the {strike} striking-distance queries deserve content investment first?",
+            f"{strike} imported queries rank in positions 8 to 20, within reach of page one.",
+            ["Search Console quadrant"],
+            {"label": "SEO Performance", "href": "/reports/seo"},
+        ))
+
+    # Declining query worth investigating.
+    losses = (seo.get("movers") or {}).get("losses") or []
+    if losses:
+        top = losses[0]
+        qs.append(_question(
+            f"What changed for \"{top['query']}\", which lost {abs(top['click_change'])} clicks?",
+            f"Clicks fell {top['previous_clicks']} to {top['current_clicks']} versus the prior month.",
+            ["Search Console movers"],
+            {"label": "SEO Performance", "href": "/reports/seo"},
+        ))
+
+    # Gap: AI visibility unmeasured while organic demand exists.
+    geo = cards.get("ai_mention_rate") or {}
+    if geo.get("state") == DataState.INSUFFICIENT_SAMPLE.value and \
+            clicks.get("state") == DataState.COMPLETE.value:
+        qs.append(_question(
+            "Should we run the standing AI Visibility prompts monthly to measure AI mentions?",
+            "Search demand is measurable but too few AI queries have been tested for a mention rate.",
+            ["AI Visibility sample gate"],
+            {"label": "AI Visibility", "href": "/ai-visibility"},
+        ))
+
+    # Cross-source: residents raise a theme in reviews; is the site covering it?
+    for opp in (review.get("opportunities") or [])[:1]:
+        label = opp.get("theme_label") or opp.get("theme") or opp.get("title")
+        if label:
+            qs.append(_question(
+                f"Does the website address {str(label).lower()}, which residents keep raising in reviews?",
+                "A recurring review complaint theme may need owned content that answers it.",
+                [f"Review Intelligence: {label}"],
+                {"label": "Review IQ", "href": "/review-intelligence"},
+            ))
+
+    return qs[:MAX_QUESTIONS]
+
+
 # --- Intelligence cards (17B) --------------------------------------------------
 
 
@@ -515,6 +675,9 @@ def compose_briefing(
     month_name = f"{calendar.month_name[month]} {year}"
     prev_name = f"{calendar.month_name[pm]} {py}"
 
+    story = _story(cards_by_key, seo, review, av_points)
+    top_actions = exec_report.get("top_actions", [])[:5]
+
     return {
         "property_id": property_id,
         "property_name": prop.name,
@@ -543,9 +706,11 @@ def compose_briefing(
         },
         "executive_summary": exec_report.get("narrative", []),
         "kpis": kpis,
-        "story": _story(cards_by_key, seo, review, av_points),
+        "story": story,
         "intelligence_cards": _intel_cards(cards_by_key, seo, review, content_analysis),
-        "top_priorities": exec_report.get("top_actions", [])[:5],
+        "cross_system": _cross_system(story, top_actions),
+        "strategic_questions": _strategic_questions(cards_by_key, seo, review, story),
+        "top_priorities": top_actions,
         "adaptive_sections": _adaptive_sections(sources),
         "data_sources": sources,
         "generated_on": today.isoformat(),

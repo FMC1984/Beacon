@@ -72,6 +72,34 @@ export type IntelCard = {
   href: string;
 };
 
+export type CrossSystemObservation = {
+  text: string;
+  module: string;
+  evidence: string[];
+  link: { label: string; href: string };
+};
+
+export type CrossSystemInsight = {
+  kind: "co_movement" | "corroborated_action";
+  title: string;
+  observations: CrossSystemObservation[];
+  framing: string;
+};
+
+export type CrossSystem = {
+  insights: CrossSystemInsight[];
+  note: string;
+  empty_reason: string | null;
+};
+
+export type StrategicQuestion = {
+  text: string;
+  why: string;
+  evidence: string[];
+  link: { label: string; href: string };
+  nora_question: string;
+};
+
 export type AdaptiveSection = {
   key: string;
   label: string;
@@ -95,6 +123,8 @@ export type Briefing = {
   kpis: BriefingKpi[];
   story?: BriefingStory;
   intelligence_cards?: IntelCard[];
+  cross_system?: CrossSystem;
+  strategic_questions?: StrategicQuestion[];
   top_priorities: BriefingAction[];
   adaptive_sections: AdaptiveSection[];
   generated_on: string;

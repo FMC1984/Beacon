@@ -80,6 +80,29 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 17C — Cross-System Insights + Strategic Questions (2026-07-13, 560 tests)
+- `_cross_system()`: the signature feature built the careful way. An insight
+  is either (a) co-movement: story wins/risks from 2+ DISTINCT modules in the
+  same month (one observation per module), or (b) a corroborated action: an
+  Opportunity Engine top action with supporting_signal_count >= 2 AND 2+
+  source modules. Fixed framing: "Co-occurrence is not causation" - no
+  arrows, no causal chains, ever. Capped at 4; honest empty_reason.
+- `_strategic_questions()`: the briefing ends with questions, not
+  conclusions. Each question is generated ONLY when its detectable
+  precondition holds: clicks-up-while-key-events-flat tension,
+  striking-distance count, top declining query, AI-sample-gate-with-
+  measurable-demand, top review complaint theme vs website coverage. Each
+  carries why + evidence + module link + a nora_question for the Ask Nora
+  handoff. Capped at 5.
+- DCHP live: 3 corroborated-action insights (Content IQ + SEO Performance
+  agreeing on maintenance/recertification content + striking-distance) and
+  2 real precondition-generated questions.
+- Frontend: CrossSystemSection + QuestionsSection (each question launches
+  Nora with its context). Snapshots freeze both (test-proven).
+- Remaining: 17D (grounded "If I Were Your Strategist" via Nora + Share
+  security design). Forecast still deferred until real history exists.
+
+
 ### Phase 17B — This Month's Story + Intelligence Cards + Ask Nora (2026-07-13, 550 tests)
 - `_story()` in reporting_briefing: deterministic wins/risks/trends from
   exec-card movements, SEO movers (NB: the movers key is `losses`, not

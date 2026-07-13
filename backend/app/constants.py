@@ -42,6 +42,10 @@ APP_PHASE = (
     "connect-me cards, and frozen snapshot history) complete. Phase 17B This "
     "Month's Story (deterministic wins/risks/trends with evidence links, no "
     "causal language, honest empties), per-module Intelligence Cards, and the "
-    "Ask Nora per-section handoff complete"
+    "Ask Nora per-section handoff complete. Phase 17C Cross-System Insights "
+    "(co-occurrence with evidence, never causation: 2+ distinct modules moving "
+    "together, or Opportunity Engine actions corroborated by 2+ modules) and "
+    "Strategic Questions (precondition-gated, evidence-backed, launch Nora "
+    "with context) complete"
 )
-TEST_COUNT = 550
+TEST_COUNT = 560
