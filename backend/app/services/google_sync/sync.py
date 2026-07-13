@@ -174,9 +174,18 @@ def run_google_sync(db: Session, connection_id: int, today: date | None = None) 
         if conn.source_type == SourceType.GA4:
             rows = gapi.ga4_run_report(token, conn.resource_id, lo, hi)
             job.rows_imported = _write_ga4(db, conn, job, rows, lo, hi)
-            # Same GA4 connection also refreshes the event-name breakdown.
-            event_rows = gapi.ga4_events_report(token, conn.resource_id, lo, hi)
-            _write_ga4_events(db, conn, job, event_rows, lo, hi)
+            # Same GA4 connection also refreshes the event-name breakdown. This
+            # is a SECONDARY pull: a failure here must not fail the whole sync
+            # (sessions + cities have already been written). Record the count
+            # and any error so "Sync now" can report what actually happened
+            # instead of silently pulling zero events.
+            job.events_imported = 0
+            job.events_error = None
+            try:
+                event_rows = gapi.ga4_events_report(token, conn.resource_id, lo, hi)
+                job.events_imported = _write_ga4_events(db, conn, job, event_rows, lo, hi)
+            except Exception as exc:  # noqa: BLE001 - secondary pull, never fatal
+                job.events_error = str(exc)[:500]
         elif conn.source_type == SourceType.GSC:
             rows = gapi.gsc_query(token, conn.resource_id, lo, hi)
             job.rows_imported = _write_gsc(db, conn, job, rows, lo, hi)

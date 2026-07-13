@@ -178,8 +178,12 @@ def sync_now(
         "status": job.status.value,
         "rows_imported": job.rows_imported,
         "rows_replaced": job.rows_updated,
-        "date_start": job.date_start.isoformat(),
-        "date_end": job.date_end.isoformat(),
+        # GA4 syncs also pull the event-name breakdown; report it so an empty
+        # events pull is visible instead of silent. None for non-GA4 sources.
+        "events_imported": getattr(job, "events_imported", None),
+        "events_error": getattr(job, "events_error", None),
+        "date_start": job.date_start.isoformat() if job.date_start else None,
+        "date_end": job.date_end.isoformat() if job.date_end else None,
     }
 
 

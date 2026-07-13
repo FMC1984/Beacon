@@ -109,11 +109,21 @@ export function GoogleConnections({ propertyId }: { propertyId: string }) {
           body.date_start && body.date_end
             ? ` (${body.date_start} to ${body.date_end})`
             : "";
+        // GA4 also reports how many events it pulled, so an empty events pull
+        // is visible rather than silent.
+        let events = "";
+        if (conn.source_type === "ga4") {
+          if (body.events_error) {
+            events = `; events pull failed: ${body.events_error}`;
+          } else if (typeof body.events_imported === "number") {
+            events = `, ${body.events_imported} events`;
+          }
+        }
         setNotice({
           ok: true,
           text: `${label}: synced ${body.rows_imported} ${
             conn.source_type === "gbp" ? "reviews" : "rows"
-          }${range}.`,
+          }${events}${range}.`,
         });
       } else {
         setNotice({ ok: false, text: body.detail ?? "Sync failed." });

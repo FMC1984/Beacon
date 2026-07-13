@@ -119,6 +119,51 @@ def test_ga4_sync_writes_city_region_and_events(client, db, monkeypatch):
 # --- events CSV import --------------------------------------------------------
 
 
+def test_events_count_reported_in_sync_response(client, db, monkeypatch):
+    prop = _prop(db)
+    conn = _ga4_conn(db, prop)
+    monkeypatch.setattr(sync_mod, "refresh_access_token", lambda rt: "at")
+    monkeypatch.setattr(gapi, "ga4_run_report", lambda t, res, lo, hi: [])
+    monkeypatch.setattr(
+        gapi, "ga4_events_report",
+        lambda t, res, lo, hi: [
+            {"date": hi, "event_name": "page_view", "event_count": 100, "total_users": 40},
+        ],
+    )
+    body = client.post(f"/api/google/connections/{conn.id}/sync").json()
+    assert body["status"] == "completed"
+    assert body["events_imported"] == 1
+    assert body["events_error"] is None
+
+
+def test_events_pull_failure_is_non_fatal(client, db, monkeypatch):
+    """A failing events pull must not fail the whole sync: sessions/cities still
+    commit, and the error is surfaced rather than swallowed."""
+    prop = _prop(db)
+    conn = _ga4_conn(db, prop)
+    monkeypatch.setattr(sync_mod, "refresh_access_token", lambda rt: "at")
+    monkeypatch.setattr(
+        gapi, "ga4_run_report",
+        lambda t, res, lo, hi: [
+            {"date": hi, "session_source": "google", "session_medium": "organic",
+             "landing_page": "/", "city": "Denver", "region": "Colorado",
+             "sessions": 5, "engaged_sessions": 3, "total_users": 5, "key_events": 0},
+        ],
+    )
+
+    def boom(*a, **k):
+        raise RuntimeError("GA4 events dimension rejected")
+
+    monkeypatch.setattr(gapi, "ga4_events_report", boom)
+    body = client.post(f"/api/google/connections/{conn.id}/sync").json()
+    assert body["status"] == "completed"  # sync still succeeds
+    assert body["rows_imported"] == 1  # sessions committed
+    assert body["events_imported"] == 0
+    assert "rejected" in body["events_error"]
+    # City still landed despite the events failure.
+    assert db.query(GA4SessionsDaily).filter_by(property_id=prop.id).one().city == "Denver"
+
+
 def test_events_csv_with_date_column():
     csv = (
         "Date,Event name,Event count,Total users\n"

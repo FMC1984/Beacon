@@ -36,4 +36,4 @@ APP_PHASE = (
     "into the Audience report, and a new GA4 events breakdown from sync + CSV "
     "shown on the Dashboard and SEO report) complete"
 )
-TEST_COUNT = 524
+TEST_COUNT = 526
