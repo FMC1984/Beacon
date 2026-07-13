@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Company, Property
 from app.services.reporting import source_status
-from app.services.reporting_csv import build_executive_csv, build_geo_csv, build_seo_csv
+from app.services.reporting_aeo import build_aeo_report
+from app.services.reporting_csv import (
+    build_aeo_csv,
+    build_executive_csv,
+    build_geo_csv,
+    build_seo_csv,
+)
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report, matrix_cell_evidence
 from app.services.reporting_seo import build_seo_report
@@ -46,7 +52,7 @@ REPORT_TABS = [
     {
         "key": "aeo",
         "label": "AEO Readiness",
-        "status": "planned",
+        "status": "available",
         "planned_phase": "16E",
         "summary": "Explainable answer-engine readiness with question coverage and citation readiness.",
     },
@@ -117,6 +123,16 @@ def geo_report(
     return build_geo_report(db, property_id)
 
 
+@router.get("/aeo")
+def aeo_report(
+    property_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return build_aeo_report(db, property_id)
+
+
 @router.get("/geo/evidence")
 def geo_matrix_evidence(
     property_id: int = Query(...),
@@ -182,6 +198,20 @@ def geo_report_csv(
         raise HTTPException(status_code=404, detail="Property not found.")
     try:
         content, filename = build_geo_csv(db, property_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _csv_response(content, filename)
+
+
+@router.get("/aeo/export.csv")
+def aeo_report_csv(
+    property_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        content, filename = build_aeo_csv(db, property_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return _csv_response(content, filename)

@@ -80,6 +80,40 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16E — AEO Readiness report (2026-07-12, 487 tests)
+- `GET /api/reports/aeo` (`app/services/reporting_aeo.py`), per-property,
+  reuses Content IQ's `_question_coverage` and `_freshness` (no recompute):
+  - Explainable weighted score. Seven deterministic components
+    (question_coverage .30, answer_completeness .20, specificity .15,
+    local_relevance .10, discoverability .10, freshness .05,
+    citation_readiness .10). Each publishes weight, rule, raw 0-100 value,
+    evidence, source pages, explanation. A component with NO signal
+    (freshness with no dates, etc.) is EXCLUDED and its weight renormalized
+    away, never scored as 0. No opaque model number.
+  - Question coverage heatmap: rows = renter questions (property-type aware),
+    cols = ingested pages. Cell state by deterministic term match only
+    (fully_answered = concept+detail on the page, partially = concept only,
+    mentioned_only = stray detail, missing = neither); stale-page overlay
+    from freshness. Every cell carries its matched_terms (inspectable). NOT
+    vector-driven.
+  - Citation readiness: per-page signals (clear heading, specific answer,
+    named property, updated date, crawlable text >=200 chars), averaged, with
+    the FIXED disclaimer "Citation readiness does not guarantee that an AI
+    platform will cite the page." (also at report root).
+  - Structured data: NOT ingested. Contract + UI empty state built behind
+    `STRUCTURED_DATA_ENABLED=False`; reports not_configured, never fabricates.
+- CSV `GET /api/reports/aeo/export.csv` (client-safe: score, components,
+  heatmap-per-page, citation readiness + disclaimer). AEO tab -> available.
+- Frontend `components/reports/AeoReport.tsx`: score dial + expandable
+  component rows (rule/evidence/pages on click), heatmap with glyph+color+
+  legend + stale dot + click-to-inspect matched terms, citation-readiness
+  signal table, structured-data empty state.
+- Verified live on DCHP: 85/A, all 7 components scored, 16-question x 2-page
+  heatmap (13 answered / 1 partial / 2 missing), citation readiness 100,
+  structured data not_configured, cell evidence showing matched terms.
+- Scope: per-property (portfolio -> scope_required). The spec's broader
+  Semantic Intelligence / cross-source-gap pieces remain deferred with 15c.
+
 ### Phase 16D — GEO Visibility report (2026-07-12, 472 tests)
 - `GET /api/reports/geo` (`app/services/reporting_geo.py`), per-property,
   reads ONLY stored AIVisibilityQuery rows (never calls a platform):

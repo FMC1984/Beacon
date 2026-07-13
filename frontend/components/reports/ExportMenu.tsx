@@ -15,7 +15,7 @@ export function ExportMenu({
   compare,
   onPrint,
 }: {
-  section: "seo" | "executive" | "geo" | null;
+  section: "seo" | "executive" | "geo" | "aeo" | null;
   scope: ReportScope;
   days: RangeDays;
   compare: boolean;

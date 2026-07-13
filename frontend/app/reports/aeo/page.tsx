@@ -1,5 +1,5 @@
-import { ReportTabPage } from "@/components/reports/ReportTabPage";
+import { AeoReport } from "@/components/reports/AeoReport";
 
 export default function AEOReadinessReport() {
-  return <ReportTabPage tabKey="aeo" />;
+  return <AeoReport />;
 }

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.constants import APP_VERSION
 from app.models import Property
+from app.services.reporting_aeo import build_aeo_report
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report
 from app.services.reporting_seo import build_seo_report
@@ -227,3 +228,49 @@ def build_geo_csv(
     else:
         w.writerow(["No competitors configured, or sample below minimum."])
     return buf.getvalue(), "beacon-geo-visibility.csv"
+
+
+def build_aeo_csv(
+    db: Session, property_id: int | None, today: date | None = None,
+) -> tuple[str, str]:
+    today = today or date.today()
+    report = build_aeo_report(db, property_id, today=today)
+    if report.get("scope_required"):
+        raise ValueError(report["message"])
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    _preamble(w, "AEO Readiness export", report["property_name"], None, today)
+
+    if not report.get("has_content"):
+        w.writerow(["No website content ingested for this property."])
+        return buf.getvalue(), "beacon-aeo-readiness.csv"
+
+    score = report["score"]
+    w.writerow(["AEO Readiness score", score["value"], f"grade {score['grade']}"])
+    w.writerow([])
+    w.writerow(["Score components"])
+    w.writerow(["component", "weight", "raw_value", "excluded", "rule", "explanation"])
+    for c in score["components"]:
+        w.writerow([
+            c["label"], c["weight"],
+            "excluded" if c["excluded"] else c["raw_value"],
+            "yes" if c["excluded"] else "no",
+            c["rule"], c["explanation"],
+        ])
+
+    w.writerow([])
+    w.writerow(["Question coverage heatmap (state per page)"])
+    hm = report["heatmap"]
+    w.writerow(["question", "importance"] + hm["pages"])
+    for row in hm["rows"]:
+        by_page = {c["page"]: c for c in row["cells"]}
+        w.writerow(
+            [row["question"], row["importance"]]
+            + [by_page[p]["state"] + (" (stale)" if by_page[p]["stale"] else "") for p in hm["pages"]]
+        )
+
+    w.writerow([])
+    w.writerow(["Citation readiness", report["citation_readiness"]["value"]])
+    w.writerow([report["citation_readiness"]["disclaimer"]])
+    return buf.getvalue(), "beacon-aeo-readiness.csv"

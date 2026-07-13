@@ -249,13 +249,13 @@ export const fetchExecutiveReport = (
 // Download URL for a report section's CSV export (client-safe: no internal
 // RAG metadata). Scope precedence matches the report endpoints.
 export function reportCsvUrl(
-  section: "seo" | "executive" | "geo",
+  section: "seo" | "executive" | "geo" | "aeo",
   scope: ReportScope,
   days: number,
   compare: boolean
 ): string {
   const params = scopeParams(scope);
-  if (section !== "geo") {
+  if (section !== "geo" && section !== "aeo") {
     params.set("days", String(days));
     params.set("compare", String(compare));
   }
@@ -403,3 +403,92 @@ export const fetchGeoEvidence = (propertyId: number, queryId: number) =>
   getJSON<GeoEvidence>(
     `/reports/geo/evidence?property_id=${propertyId}&query_id=${queryId}`
   );
+
+// --- AEO Readiness report (Phase 16E) ---
+
+export type AeoComponent = {
+  key: string;
+  label: string;
+  weight: number;
+  raw_value: number | null;
+  rule: string;
+  explanation: string;
+  evidence: string[];
+  source_pages: string[];
+  excluded: boolean;
+  excluded_reason: string | null;
+};
+
+export type AeoHeatmapCell = {
+  page: string;
+  state: "fully_answered" | "partially_answered" | "mentioned_only" | "missing";
+  stale: boolean;
+  matched_terms: string[];
+};
+
+export type AeoHeatmapRow = {
+  id: string;
+  question: string;
+  category: string;
+  importance: string;
+  cells: AeoHeatmapCell[];
+};
+
+export type AeoCitationPage = {
+  page: string;
+  signals: Record<string, boolean>;
+};
+
+export type AeoReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      property_type_label: string;
+      generated_on: string;
+      citation_disclaimer: string;
+      has_content: false;
+      message: string;
+      structured_data: { state: DataStateKey; enabled: boolean; message: string };
+    }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      property_type_label: string;
+      generated_on: string;
+      citation_disclaimer: string;
+      has_content: true;
+      score: {
+        value: number | null;
+        grade: string | null;
+        components: AeoComponent[];
+        excluded_components: string[];
+        note: string;
+      };
+      question_coverage_summary: {
+        answered: number;
+        partial: number;
+        missing: number;
+        total: number;
+      };
+      heatmap: { pages: string[]; rows: AeoHeatmapRow[] };
+      citation_readiness: {
+        value: number | null;
+        disclaimer: string;
+        pages: AeoCitationPage[];
+      };
+      structured_data: {
+        state: DataStateKey;
+        enabled: boolean;
+        message: string;
+        schema_types: string[];
+      };
+    };
+
+export const fetchAeoReport = (propertyId: number | null) => {
+  const params = new URLSearchParams();
+  if (propertyId !== null) params.set("property_id", String(propertyId));
+  return getJSON<AeoReport>(`/reports/aeo?${params}`);
+};

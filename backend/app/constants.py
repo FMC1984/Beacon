@@ -23,6 +23,8 @@ APP_PHASE = (
     "Executive report (composed metrics, deterministic cited narrative, top "
     "actions, CSV export, print layout), and 16D GEO Visibility report "
     "(distinct metrics, sample-gated rates, prompt matrix + evidence drawers, "
-    "deterministic source landscape, competitor share of tested answers) complete"
+    "deterministic source landscape, competitor share of tested answers), and "
+    "16E AEO Readiness report (explainable weighted score, question coverage "
+    "heatmap, citation readiness, structured-data empty state) complete"
 )
-TEST_COUNT = 472
+TEST_COUNT = 487

@@ -14,10 +14,11 @@ import { ExportMenu } from "./ExportMenu";
 import { useReportContext, type RangeDays } from "./ReportContext";
 
 // Which report section the Export menu should target, from the route.
-function sectionFromPath(pathname: string): "seo" | "executive" | "geo" | null {
+function sectionFromPath(pathname: string): "seo" | "executive" | "geo" | "aeo" | null {
   if (pathname.startsWith("/reports/seo")) return "seo";
   if (pathname.startsWith("/reports/executive")) return "executive";
   if (pathname.startsWith("/reports/geo")) return "geo";
+  if (pathname.startsWith("/reports/aeo")) return "aeo";
   return null;
 }
 
