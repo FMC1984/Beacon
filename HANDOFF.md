@@ -80,6 +80,46 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16D — GEO Visibility report (2026-07-12, 472 tests)
+- `GET /api/reports/geo` (`app/services/reporting_geo.py`), per-property,
+  reads ONLY stored AIVisibilityQuery rows (never calls a platform):
+  - Summary: queries completed, platforms tested, mention count, citation
+    count, mention/citation rate (each carries numerator+denominator, withheld
+    below the 3-query `MIN_QUERIES_FOR_VISIBILITY` gate as insufficient, never
+    0), owned-domain citations, competitor appearances, AI referral sessions
+    (GA4). These are DISTINCT metrics, never fused.
+  - Sufficiency panel: completed vs minimum, failed=0/not-run=0 stated
+    explicitly (Beacon stores only completed runs), date span, platforms.
+  - Prompt visibility matrix: rows = distinct prompts, cols = platforms, most
+    recent run per (prompt, platform). Cell states property_cited /
+    property_mentioned / property_and_competitor / competitor_mentioned /
+    not_present / not_tested. Click a cell -> `GET /api/reports/geo/evidence`
+    (`matrix_cell_evidence`) returns the stored response excerpt, cited
+    domains, owned-domains-cited, detected competitors. Cross-property query
+    ids are rejected.
+  - Source landscape: each cited domain classified by the new deterministic
+    `app/services/source_classifier.py` (+ `reference_data/source_categories.json`):
+    owned (property website) and competitor (configured competitor domains)
+    take precedence, then government (.gov/.mil + list), directory, review
+    platform, media; anything else stays UNKNOWN (never guessed). Host match
+    is exact-or-subdomain so lookalikes don't match.
+  - Competitor share: reuses `analyze_share_of_voice`, labeled
+    "Share of tested AI answers" (NEVER market share; test-enforced in CSV
+    too). Alias-aware, operator-configured only.
+  - Trends: from `ai_visibility_score_history`; null score points below the
+    sample gate shown as gaps.
+- CSV: `GET /api/reports/geo/export.csv` (client-safe, rates as
+  value+num/denom, "Share of tested AI answers" label). GEO tab -> available.
+- Frontend `components/reports/GeoReport.tsx`: matrix with glyph+color+legend
+  (color never the only signal), slide-in evidence drawer, source-landscape
+  bars colored by category, competitor share bars. Export menu handles "geo".
+- Semantic explanation layer (RAG-per-query readiness) from the 16D spec was
+  NOT built: it needs live OpenAI embeddings (untestable offline) and is
+  lower-value than the deterministic core. Deferred, documented here.
+- Local DCHP has 1 AI Visibility query, so the report correctly shows the
+  sufficiency gate + insufficient rates; verified live including the evidence
+  drawer (real ChatGPT Section 8 response) and .gov -> Government classification.
+
 ### Phase 16C — Executive report + CSV + print (2026-07-12, 455 tests)
 - `GET /api/reports/executive` (`app/services/reporting_executive.py`):
   per-property synthesis that COMPOSES other modules, never recomputes.

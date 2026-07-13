@@ -1,0 +1,29 @@
+{
+  "_comment": "Deterministic source-category patterns for GEO source-landscape classification (Phase 16D). Owned and competitor categories are resolved at runtime from the property website and configured competitor domains; these lists cover the remaining public categories. Matching is by exact host or registrable-suffix (host equals the entry or ends with '.'+entry). A domain that matches nothing stays 'unknown' until an operator configures it. Never guess.",
+  "government": {
+    "suffixes": ["gov", "mil"],
+    "domains": ["hud.gov", "usa.gov", "benefits.gov", "consumerfinance.gov"]
+  },
+  "directory": {
+    "domains": [
+      "apartments.com", "apartmentlist.com", "apartmentguide.com",
+      "zillow.com", "trulia.com", "rent.com", "rentcafe.com", "hotpads.com",
+      "padmapper.com", "zumper.com", "realtor.com", "affordablehousing.com",
+      "affordablehousingonline.com", "gosection8.com", "rentledger.com",
+      "forrent.com", "move.com"
+    ]
+  },
+  "review_platform": {
+    "domains": [
+      "yelp.com", "apartmentratings.com", "google.com", "trustpilot.com",
+      "bbb.org", "niche.com", "reddit.com"
+    ]
+  },
+  "media": {
+    "domains": [
+      "nytimes.com", "washingtonpost.com", "usatoday.com", "cnn.com",
+      "denverpost.com", "9news.com", "cbsnews.com", "nbcnews.com",
+      "coloradosun.com", "denverite.com", "westword.com", "axios.com"
+    ]
+  }
+}

@@ -249,13 +249,157 @@ export const fetchExecutiveReport = (
 // Download URL for a report section's CSV export (client-safe: no internal
 // RAG metadata). Scope precedence matches the report endpoints.
 export function reportCsvUrl(
-  section: "seo" | "executive",
+  section: "seo" | "executive" | "geo",
   scope: ReportScope,
   days: number,
   compare: boolean
 ): string {
   const params = scopeParams(scope);
-  params.set("days", String(days));
-  params.set("compare", String(compare));
+  if (section !== "geo") {
+    params.set("days", String(days));
+    params.set("compare", String(compare));
+  }
   return `${API_BASE}/reports/${section}/export.csv?${params}`;
 }
+
+// --- GEO Visibility report (Phase 16D) ---
+
+export type RateBlock = {
+  value: number | null;
+  numerator: number;
+  denominator: number;
+  minimum_sample: number;
+  state: DataStateKey;
+};
+
+export type GeoSummary = {
+  queries_completed: number;
+  platforms_tested: { key: string; label: string }[];
+  mention_count: number;
+  citation_count: number;
+  mention_rate: RateBlock;
+  citation_rate: RateBlock;
+  owned_domain_citations: number;
+  competitor_appearances: number;
+  ai_referral_sessions: { sessions: number; last_data_date: string } | null;
+  last_run: string | null;
+  sufficient: boolean;
+};
+
+export type GeoSufficiency = {
+  completed_queries: number;
+  minimum_required: number;
+  sufficient: boolean;
+  failed_queries: number;
+  not_run_queries: number;
+  date_span: { start: string; end: string } | null;
+  platforms_represented: string[];
+};
+
+export type MatrixCell = {
+  platform: string;
+  state: string;
+  query_id?: number;
+  run_date?: string;
+};
+
+export type GeoMatrix = {
+  platforms: { key: string; label: string }[];
+  rows: { prompt: string; cells: MatrixCell[] }[];
+};
+
+export type SourceLandscapeDomain = {
+  domain: string;
+  cited_in_responses: number;
+  pct_of_completed: number | null;
+  platforms: string[];
+  category: string;
+  category_label: string;
+};
+
+export type CompetitorShare = {
+  label: string;
+  has_competitors: boolean;
+  share_of_voice:
+    | {
+        queries: number;
+        sufficient: boolean;
+        total_mentions: number;
+        status: string;
+        entities: {
+          name: string;
+          is_property: boolean;
+          mentions: number;
+          share: number | null;
+        }[];
+        explanation: string;
+      }
+    | [];
+  limitations: string[];
+};
+
+export type GeoTrends = {
+  state: DataStateKey;
+  points: {
+    date: string;
+    score: number | null;
+    mention_rate: number | null;
+    sample_size: number;
+    sufficient: boolean;
+  }[];
+  note: string;
+};
+
+export type GeoReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      has_queries: false;
+      methodology: string;
+      sufficiency: GeoSufficiency;
+      message: string;
+    }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      has_queries: true;
+      methodology: string;
+      generated_on: string;
+      summary: GeoSummary;
+      sufficiency: GeoSufficiency;
+      prompt_matrix: GeoMatrix;
+      source_landscape: {
+        completed_responses: number;
+        domains: SourceLandscapeDomain[];
+        categories: Record<string, string>;
+      };
+      competitor_share: CompetitorShare;
+      trends: GeoTrends;
+    };
+
+export type GeoEvidence = {
+  query_id: number;
+  prompt: string;
+  platform: string;
+  platform_label: string;
+  run_date: string;
+  response_excerpt: string;
+  brand_mentioned: boolean;
+  cited_domains: string[];
+  owned_domains_cited: string[];
+  detected_competitors: string[];
+};
+
+export const fetchGeoReport = (propertyId: number | null) => {
+  const params = new URLSearchParams();
+  if (propertyId !== null) params.set("property_id", String(propertyId));
+  return getJSON<GeoReport>(`/reports/geo?${params}`);
+};
+
+export const fetchGeoEvidence = (propertyId: number, queryId: number) =>
+  getJSON<GeoEvidence>(
+    `/reports/geo/evidence?property_id=${propertyId}&query_id=${queryId}`
+  );

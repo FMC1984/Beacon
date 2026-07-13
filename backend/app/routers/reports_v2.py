@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Company, Property
 from app.services.reporting import source_status
-from app.services.reporting_csv import build_executive_csv, build_seo_csv
+from app.services.reporting_csv import build_executive_csv, build_geo_csv, build_seo_csv
 from app.services.reporting_executive import build_executive_report
+from app.services.reporting_geo import build_geo_report, matrix_cell_evidence
 from app.services.reporting_seo import build_seo_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -38,7 +39,7 @@ REPORT_TABS = [
     {
         "key": "geo",
         "label": "GEO Visibility",
-        "status": "planned",
+        "status": "available",
         "planned_phase": "16D",
         "summary": "Tested AI answer visibility, prompt matrix, source landscape, competitor share of tested answers.",
     },
@@ -106,6 +107,30 @@ def executive_report(
     return build_executive_report(db, property_id, days, want_compare=compare)
 
 
+@router.get("/geo")
+def geo_report(
+    property_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return build_geo_report(db, property_id)
+
+
+@router.get("/geo/evidence")
+def geo_matrix_evidence(
+    property_id: int = Query(...),
+    query_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return matrix_cell_evidence(db, property_id, query_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
 def _csv_response(content: str, filename: str) -> Response:
     return Response(
         content=content,
@@ -143,6 +168,20 @@ def executive_report_csv(
         raise HTTPException(status_code=404, detail="Property not found.")
     try:
         content, filename = build_executive_csv(db, property_id, days, compare)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _csv_response(content, filename)
+
+
+@router.get("/geo/export.csv")
+def geo_report_csv(
+    property_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        content, filename = build_geo_csv(db, property_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return _csv_response(content, filename)

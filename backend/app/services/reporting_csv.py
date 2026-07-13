@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.constants import APP_VERSION
 from app.models import Property
 from app.services.reporting_executive import build_executive_report
+from app.services.reporting_geo import build_geo_report
 from app.services.reporting_seo import build_seo_report
 
 # Human definitions for every exported metric key. Kept here so the CSV can
@@ -164,3 +165,65 @@ def build_executive_csv(
             "; ".join(a.get("source_modules", [])), a.get("explanation") or "",
         ])
     return buf.getvalue(), "beacon-executive-report.csv"
+
+
+def _rate_cell(r: dict) -> str:
+    """A sampled rate as 'value (num/denom)', or the state when withheld."""
+    if r["value"] is None:
+        return f"{r['state']} ({r['numerator']}/{r['denominator']})"
+    return f"{round(r['value'] * 100, 1)}% ({r['numerator']}/{r['denominator']})"
+
+
+def build_geo_csv(
+    db: Session, property_id: int | None, today: date | None = None,
+) -> tuple[str, str]:
+    today = today or date.today()
+    report = build_geo_report(db, property_id, today=today)
+    if report.get("scope_required"):
+        raise ValueError(report["message"])
+
+    prop_name = report["property_name"]
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    _preamble(w, "GEO Visibility export", prop_name, None, today)
+
+    if not report.get("has_queries"):
+        w.writerow(["No AI Visibility queries have been run for this property."])
+        return buf.getvalue(), "beacon-geo-visibility.csv"
+
+    s = report["summary"]
+    w.writerow(["Summary metric", "value", "note"])
+    w.writerow(["Queries completed", s["queries_completed"], ""])
+    w.writerow(["Platforms tested", len(s["platforms_tested"]),
+                "; ".join(p["label"] for p in s["platforms_tested"])])
+    w.writerow(["Mention count", s["mention_count"], ""])
+    w.writerow(["Responses with a citation", s["citation_count"], ""])
+    w.writerow(["Mention rate", _rate_cell(s["mention_rate"]), "numerator/denominator shown"])
+    w.writerow(["Citation rate", _rate_cell(s["citation_rate"]), "numerator/denominator shown"])
+    w.writerow(["Owned-domain citations", s["owned_domain_citations"], ""])
+    w.writerow(["Competitor appearances", s["competitor_appearances"], ""])
+    w.writerow(["Last run", s["last_run"] or "", ""])
+
+    w.writerow([])
+    w.writerow(["Source landscape"])
+    w.writerow(["domain", "category", "cited_in_responses", "pct_of_completed", "platforms"])
+    for d in report["source_landscape"]["domains"]:
+        w.writerow([
+            d["domain"], d["category_label"], d["cited_in_responses"],
+            "" if d["pct_of_completed"] is None else f"{round(d['pct_of_completed'] * 100, 1)}%",
+            "; ".join(d["platforms"]),
+        ])
+
+    cs = report["competitor_share"]
+    w.writerow([])
+    w.writerow([cs["label"]])  # "Share of tested AI answers", never market share
+    if cs["has_competitors"] and cs["share_of_voice"]:
+        w.writerow(["entity", "is_property", "mentions", "share"])
+        for e in cs["share_of_voice"].get("entities", []):
+            w.writerow([
+                e["name"], "yes" if e["is_property"] else "no", e["mentions"],
+                "" if e.get("share") is None else f"{round(e['share'] * 100, 1)}%",
+            ])
+    else:
+        w.writerow(["No competitors configured, or sample below minimum."])
+    return buf.getvalue(), "beacon-geo-visibility.csv"

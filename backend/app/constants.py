@@ -21,6 +21,8 @@ APP_PHASE = (
     "controls, data states, source status), 16B SEO Performance report "
     "(summary, trends, distribution, quadrant, movers, landing pages), and 16C "
     "Executive report (composed metrics, deterministic cited narrative, top "
-    "actions, CSV export, print layout) complete"
+    "actions, CSV export, print layout), and 16D GEO Visibility report "
+    "(distinct metrics, sample-gated rates, prompt matrix + evidence drawers, "
+    "deterministic source landscape, competitor share of tested answers) complete"
 )
-TEST_COUNT = 455
+TEST_COUNT = 472
