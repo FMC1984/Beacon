@@ -8,7 +8,7 @@ AI_TRAFFIC_DISCLOSURE = (
 
 # Shown on the admin status page. TEST_COUNT is updated manually at each
 # release checkpoint (pytest does not run in the server process).
-APP_VERSION = "0.15.0"
+APP_VERSION = "0.16.0"
 APP_PHASE = (
     "Phases 1-8 complete; Phase 9 platform architecture, Phase 10 Content "
     "Intelligence, Phase 10.5 Property Context, Phase 11 Review Intelligence, "
@@ -17,6 +17,8 @@ APP_PHASE = (
     "Phase 15a Semantic Intelligence (enrichment + negation) and 15b hybrid "
     "retrieval (deterministic rerank + debug) complete; 15c clustering pending. "
     "Google GA4/GSC auto-sync, admin self-check, and scheduled AI Visibility "
-    "standing prompts live"
+    "standing prompts live. Phase 16A Reports foundation (tabs, shared "
+    "controls, data states, source status) and 16B SEO Performance report "
+    "(summary, trends, distribution, quadrant, movers, landing pages) complete"
 )
-TEST_COUNT = 395
+TEST_COUNT = 435

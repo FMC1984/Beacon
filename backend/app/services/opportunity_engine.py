@@ -37,6 +37,7 @@ SOURCE_LABELS = {
     "ai_query_signals": "AI Query Signals",
     "ai_visibility": "AI Visibility",
     "competitors": "Competitor IQ",
+    "seo": "SEO Performance",
 }
 
 STATE_WEIGHT = {
@@ -169,6 +170,14 @@ def build_opportunities(
     try:
         comp = analyze_share_of_voice(db, property_id, today=today)
         collect("competitors", comp.get("recommendations"))
+    except Exception:
+        pass
+    try:
+        # Imported here to avoid a module cycle (reporting_seo reuses the AI
+        # Query Signals URL helpers, which this module also feeds).
+        from app.services.reporting_seo import seo_recommendations
+
+        collect("seo", seo_recommendations(db, property_id, today=today))
     except Exception:
         pass
 

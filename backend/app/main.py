@@ -23,6 +23,7 @@ from app.routers import (
     nora,
     properties,
     property_context,
+    reports_v2,
     review_intelligence,
     reviews,
     uploads,
@@ -87,6 +88,7 @@ app.include_router(reviews.router, prefix="/api")
 app.include_router(review_intelligence.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
 app.include_router(google.router, prefix="/api")
+app.include_router(reports_v2.router, prefix="/api")
 
 
 @app.on_event("startup")

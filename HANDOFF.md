@@ -80,7 +80,60 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
-### Reliability + AI Visibility scheduling (2026-07-12, 395 tests)
+### Phase 16B — SEO Performance report (2026-07-12, 435 tests)
+- `GET /api/reports/seo` (`app/services/reporting_seo.py`): summary cards
+  (GSC clicks/impressions/CTR/position + GA4-organic sessions/engaged/key
+  events/conversion rate; organic = session_medium == "organic"), daily
+  trends (gaps stay gaps, never zero-filled), ranking distribution (buckets
+  1-3/4-10/11-20/21-50/51+, labeled "imported queries, not a rank tracker"),
+  opportunity quadrant (deterministic flags with published rules; branded =
+  property name/slug/two-word-name-prefix substring), gains/losses (floors:
+  10 impressions, 3 clicks or 1.0 position change), landing-page join via
+  the existing `_norm_path` from ai_query_signals (matched/ga4_only/gsc_only
+  counts, unmatched sides are null). Query categorization reuses
+  `semantic.enrichment.enrich_text` (shared taxonomy, no new dictionary).
+- Comparisons refuse to render when previous-window coverage is incompatible
+  (reporting.comparable) — amber warning instead of a fake percentage.
+  Verified live: DCHP's previous period predates its data, so compare mode
+  shows the warning. All caps report dropped-row counts (no silent caps).
+- Opportunity Engine gained a sixth source: "seo" (SOURCE_LABELS +
+  lazy-imported `seo_recommendations` in build_opportunities; findings need
+  3+ affected queries). Existing corroboration/gating/ranking applies.
+- Frontend: `components/reports/SeoReport.tsx` + `SeoCharts.tsx` (Recharts
+  metric-selectable trend chart with reversed axis for position; scatter
+  quadrant, bubble=clicks, click-to-inspect drawer). SEO tab meta flipped to
+  "available". Fixtures `gsc_queries.csv` / `ga4_organic_landing.csv` cover
+  two 14-day windows for comparison tests.
+- Local DCHP note: its 678 GSC rows are a query-level snapshot without a
+  page column, so Landing Pages honestly shows "no page-level rows" locally;
+  the hosted instance's daily Google sync stores date+query+page and will
+  populate it.
+
+### Phase 16A — Reports foundation (2026-07-12, 418 tests)
+- Phase 16 = Tina's approved "Reporting, Visual Intelligence" spec (she called
+  it Phase 12; renumbered since 15b was already done). Approved order:
+  16A foundation → 16B SEO report → 16C executive+print/CSV → 16D GEO →
+  16E AEO/question coverage → 16F RAG-health polish + content change log.
+  Semantic clustering pieces deferred with 15c (not enough data volume).
+  Role-gating reinterpreted as export hygiene (Beacon has no user accounts).
+- **Reports** nav entry under Overview; `/reports/{executive,seo,geo,aeo,
+  semantic,content-impact}` route tabs, all honest placeholders (tab metadata
+  served by `GET /api/reports/meta`, flip `status` to "available" per phase).
+- `app/services/reporting.py`: DataState enum (8 states — missing data is a
+  named state, NEVER zero), `previous_window`, `compare`/`pct_change` (null on
+  missing/zero baseline), `rate` (always carries numerator/denominator,
+  insufficient-sample gate), `coverage_state` (complete/delayed/partial rules),
+  `comparable` (incompatible-coverage warning), `source_status` (per-source
+  freshness, scope-isolated via metrics.py `_resolve_scope`).
+- `GET /api/reports/status` powers the control-bar Data status chip + the
+  Executive tab source panel. Router is `app/routers/reports_v2.py` (named to
+  avoid colliding with the existing generated-report model).
+- Frontend shared kit in `components/reports/`: ReportContext (scope synced
+  with SCOPE_STORAGE_KEY, 7/30/90 days, compare toggle), ReportControls,
+  DataStates (StateBadge/SampleBadge/SourceBadge/FreshnessFooter/Empty/Error),
+  ReportMetricCard (comparison-aware, state-aware), PlannedReport.
+- Export button is a disabled placeholder until 16C. No em dashes in any new
+  user-facing copy (tests assert this).
 - **Admin self-check**: `GET /api/admin/healthcheck` — ok/warn/fail per item
   (DB, search-index parity between Chroma and the `rag_chunks` registry,
   providers, RAG sync queue depth, Google-connection freshness <48h, disk

@@ -25,6 +25,7 @@ function Icon({ children }: { children: ReactNode }) {
 const ICONS: Record<string, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></>,
   opportunities: <><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></>,
+  reports: <><path d="M3 3v18h18" /><path d="M7 15v3M11 11v7M15 13v5M19 7v11" /></>,
   visibility: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
   signals: <><path d="M3 12h4l3 8 4-16 3 8h4" /></>,
   competitors: <><circle cx="9" cy="7" r="3" /><path d="M2 21v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1" /><circle cx="18" cy="7" r="2.5" /><path d="M22 21v-1a4 4 0 0 0-3-3.9" /></>,
@@ -46,6 +47,7 @@ const GROUPS: Group[] = [
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
       { href: "/opportunities", label: "Opportunities", icon: "opportunities" },
+      { href: "/reports", label: "Reports", icon: "reports" },
     ],
   },
   {
