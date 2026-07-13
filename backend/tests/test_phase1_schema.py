@@ -31,6 +31,7 @@ EXPECTED_TABLES = {
     "ai_visibility_prompts",
     "ai_visibility_score_history",
     "competitors",
+    "content_changes",
 }
 
 

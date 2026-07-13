@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.constants import APP_VERSION
 from app.models import Property
 from app.services.reporting_aeo import build_aeo_report
+from app.services.reporting_content_impact import build_content_impact_report
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report
 from app.services.reporting_seo import build_seo_report
@@ -274,3 +275,42 @@ def build_aeo_csv(
     w.writerow(["Citation readiness", report["citation_readiness"]["value"]])
     w.writerow([report["citation_readiness"]["disclaimer"]])
     return buf.getvalue(), "beacon-aeo-readiness.csv"
+
+
+def build_content_impact_csv(
+    db: Session, property_id: int | None, window: int = 30, today: date | None = None,
+) -> tuple[str, str]:
+    today = today or date.today()
+    report = build_content_impact_report(db, property_id, window=window, today=today)
+    if report.get("scope_required"):
+        raise ValueError(report["message"])
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    _preamble(w, "Content Impact export", report["property_name"], None, today)
+    w.writerow(["Caveat", report["caveat"]])
+    w.writerow(["Comparison window (days before/after)", report["window"]])
+    w.writerow([])
+
+    if not report["has_changes"]:
+        w.writerow(["No content changes recorded for this property."])
+        return buf.getvalue(), "beacon-content-impact.csv"
+
+    w.writerow([
+        "change", "type", "date", "metric", "before", "after",
+        "observed_change", "after_window_complete", "state",
+    ])
+    for c in report["changes"]:
+        cmp = c["comparison"]
+        for m in cmp["metrics"]:
+            change = m["comparison"]["change"] if m["comparison"] else ""
+            w.writerow([
+                c["change_title"], c["change_type"], c["date_implemented"],
+                m["label"],
+                "" if m["before"] is None else m["before"],
+                "" if m["after"] is None else m["after"],
+                "" if change == "" or change is None else change,
+                "yes" if cmp["after_complete"] else "no",
+                m["state"],
+            ])
+    return buf.getvalue(), "beacon-content-impact.csv"

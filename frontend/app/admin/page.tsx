@@ -60,6 +60,23 @@ type ReindexResult = {
 type HealthCheck = { name: string; status: "ok" | "warn" | "fail"; detail: string };
 type Health = { overall: "ok" | "warn" | "fail"; checked_at: string; checks: HealthCheck[] };
 
+type RagHealth = {
+  total_indexed_chunks: number | null;
+  registry_chunks: number;
+  parity_ok: boolean;
+  chunks_by_source: Record<string, number>;
+  chunks_by_property: Record<string, number>;
+  orphans: { registered_without_vector: string[]; vector_without_record: string[] };
+  duplicate_content_hashes: { text_hash: string; count: number }[];
+  stale_pre_enrichment_chunks: number;
+  properties_with_content_not_indexed: number[];
+  configured_sources_not_indexed: string[];
+  embedding_model: string;
+  index_version: string;
+  failed_jobs: number;
+  queued_jobs: number;
+};
+
 const DOT: Record<string, string> = {
   ok: "bg-emerald-a",
   warn: "bg-amber-a",
@@ -75,6 +92,7 @@ export default function AdminPage() {
   const [status, setStatus] = useState<Status | null>(null);
   const [sync, setSync] = useState<SyncStatus | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
+  const [ragHealth, setRagHealth] = useState<RagHealth | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reindexing, setReindexing] = useState(false);
   const [reindexResult, setReindexResult] = useState<ReindexResult | null>(null);
@@ -92,6 +110,10 @@ export default function AdminPage() {
     fetch(`${API_BASE}/admin/healthcheck`)
       .then((r) => r.json())
       .then(setHealth)
+      .catch(() => {});
+    fetch(`${API_BASE}/admin/rag-health`)
+      .then((r) => r.json())
+      .then(setRagHealth)
       .catch(() => {});
   }, []);
 
@@ -323,6 +345,94 @@ export default function AdminPage() {
               )}
             </div>
           </section>
+
+          {ragHealth && (
+            <section className="rounded-2xl border border-line bg-surface p-5 text-sm">
+              <h2 className="mb-3 text-sm font-medium text-muted">RAG index health</h2>
+              <Row
+                label="Registry / vector parity"
+                value={
+                  ragHealth.parity_ok
+                    ? "in sync"
+                    : `${ragHealth.total_indexed_chunks ?? "?"} vectors vs ${ragHealth.registry_chunks} registry rows`
+                }
+                className={ragHealth.parity_ok ? "text-emerald-a" : "text-amber-a"}
+              />
+              <Row label="Embedding model" value={ragHealth.embedding_model} />
+              <Row label="Index version" value={ragHealth.index_version} />
+              <Row
+                label="Orphans (registered, no vector)"
+                value={String(ragHealth.orphans.registered_without_vector.length)}
+                className={
+                  ragHealth.orphans.registered_without_vector.length > 0
+                    ? "text-amber-a"
+                    : "text-muted"
+                }
+              />
+              <Row
+                label="Orphans (vector, no record)"
+                value={String(ragHealth.orphans.vector_without_record.length)}
+                className={
+                  ragHealth.orphans.vector_without_record.length > 0
+                    ? "text-amber-a"
+                    : "text-muted"
+                }
+              />
+              <Row
+                label="Duplicate content hashes"
+                value={String(ragHealth.duplicate_content_hashes.length)}
+                className={
+                  ragHealth.duplicate_content_hashes.length > 0 ? "text-amber-a" : "text-muted"
+                }
+              />
+              <Row
+                label="Stale (pre-enrichment) chunks"
+                value={String(ragHealth.stale_pre_enrichment_chunks)}
+                className={
+                  ragHealth.stale_pre_enrichment_chunks > 0 ? "text-amber-a" : "text-muted"
+                }
+              />
+              <Row
+                label="Properties with content, not indexed"
+                value={
+                  ragHealth.properties_with_content_not_indexed.length
+                    ? ragHealth.properties_with_content_not_indexed.join(", ")
+                    : "none"
+                }
+                className={
+                  ragHealth.properties_with_content_not_indexed.length
+                    ? "text-amber-a"
+                    : "text-muted"
+                }
+              />
+              <Row
+                label="Configured sources not indexed"
+                value={
+                  ragHealth.configured_sources_not_indexed.length
+                    ? ragHealth.configured_sources_not_indexed.join(", ")
+                    : "none"
+                }
+                className={
+                  ragHealth.configured_sources_not_indexed.length
+                    ? "text-amber-a"
+                    : "text-muted"
+                }
+              />
+              <div className="mt-3 border-t border-line/50 pt-3">
+                <p className="mb-1.5 text-xs text-muted">Chunks by source</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(ragHealth.chunks_by_source).map(([s, n]) => (
+                    <span
+                      key={s}
+                      className="rounded-full border border-line px-2 py-0.5 text-xs text-muted"
+                    >
+                      {s}: {n}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-line bg-surface p-5 text-sm">
             <h2 className="mb-3 text-sm font-medium text-muted">Nora</h2>

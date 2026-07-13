@@ -241,6 +241,109 @@ def sync_status(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/rag-health")
+def rag_health(db: Session = Depends(get_db)):
+    """Administrator-facing RAG index health (Phase 16F). Read-only. Surfaces
+    the registry/vector parity, orphans, duplicates, stale chunks, properties
+    with no indexed content, and configured sources not yet indexed - the
+    things that quietly break retrieval. Client roles never see this (it lives
+    on /admin and is excluded from every client-facing report export)."""
+    from app.models import DataConnection, OAuthStatus, Property, SourceType
+
+    registry_total = db.query(func.count(RAGChunk.id)).scalar() or 0
+
+    def _group(col):
+        return {
+            str(k): v
+            for k, v in db.query(col, func.count(RAGChunk.id)).group_by(col).all()
+        }
+
+    chroma = _chroma_status()
+    chroma_ids: set[str] = set()
+    if chroma["status"] == "ok":
+        try:
+            got = get_collection().get(include=[])
+            chroma_ids = set(got.get("ids", []))
+        except Exception:
+            chroma_ids = set()
+
+    registry_ids = {
+        cid for (cid,) in db.query(RAGChunk.chroma_id).all() if cid
+    }
+    # Orphans, both directions: registered but no vector, vector but no record.
+    missing_vectors = sorted(registry_ids - chroma_ids)[:50] if chroma_ids else []
+    unregistered_vectors = sorted(chroma_ids - registry_ids)[:50]
+
+    # Duplicate content: the same text hash registered more than once.
+    dup_rows = (
+        db.query(RAGChunk.text_hash, func.count(RAGChunk.id))
+        .filter(RAGChunk.text_hash.isnot(None))
+        .group_by(RAGChunk.text_hash)
+        .having(func.count(RAGChunk.id) > 1)
+        .all()
+    )
+    duplicate_hashes = [{"text_hash": h, "count": n} for h, n in dup_rows]
+
+    # Chunks indexed before enrichment existed (Phase 15a) are stale metadata.
+    pre_enrichment = (
+        db.query(func.count(RAGChunk.id)).filter(RAGChunk.enrichment.is_(None)).scalar()
+    )
+
+    # Properties with content ingested but nothing in the index.
+    from app.models import PropertyContent
+
+    content_props = {
+        pid for (pid,) in db.query(PropertyContent.property_id).distinct().all()
+    }
+    indexed_props = {
+        pid for (pid,) in db.query(RAGChunk.property_id).distinct().all() if pid
+    }
+    props_missing_index = sorted(content_props - indexed_props)
+
+    # Configured Google connections whose source has no indexed chunks.
+    connected = (
+        db.query(DataConnection)
+        .filter(DataConnection.oauth_status == OAuthStatus.CONNECTED)
+        .all()
+    )
+    indexed_sources = {
+        s for (s,) in db.query(RAGChunk.source).distinct().all() if s
+    }
+    sources_not_indexed = sorted(
+        {c.source_type.value for c in connected} - indexed_sources
+    )
+
+    # Only needed for display; an unconfigured embedder must not 500 the panel.
+    try:
+        embedder = get_embedder()
+        embedding_model, index_version = embedder.version, embedder.key
+    except Exception:
+        embedding_model, index_version = embedding_provider_name(), "unconfigured"
+    return {
+        "total_indexed_chunks": chroma.get("indexed_chunks"),
+        "registry_chunks": registry_total,
+        "parity_ok": chroma.get("indexed_chunks") == registry_total,
+        "chunks_by_source": _group(RAGChunk.source),
+        "chunks_by_property": _group(RAGChunk.property_id),
+        "orphans": {
+            "registered_without_vector": missing_vectors,
+            "vector_without_record": unregistered_vectors,
+        },
+        "duplicate_content_hashes": duplicate_hashes,
+        "stale_pre_enrichment_chunks": pre_enrichment,
+        "properties_with_content_not_indexed": props_missing_index,
+        "configured_sources_not_indexed": sources_not_indexed,
+        "embedding_model": embedding_model,
+        "index_version": index_version,
+        "failed_jobs": db.query(func.count(RagSyncJob.id))
+        .filter(RagSyncJob.status == RagSyncStatus.FAILED)
+        .scalar(),
+        "queued_jobs": db.query(func.count(RagSyncJob.id))
+        .filter(RagSyncJob.status == RagSyncStatus.QUEUED)
+        .scalar(),
+    }
+
+
 @router.post("/process-queue")
 def process_queue(db: Session = Depends(get_db)):
     """Drain queued RAG sync jobs now (the manual alternative to autosync / the
@@ -336,15 +439,24 @@ def retrieval_debug(
     top_k: int = 6,
     db: Session = Depends(get_db),
 ):
-    """Developer-only view of hybrid retrieval (Phase 15b): why each chunk
-    matched, component by component. Not surfaced in the end-user UI."""
+    """Administrator/internal view of hybrid retrieval (Phase 15b + 16F): why
+    each chunk matched, component by component, plus retrieval latency and the
+    index version. Not surfaced in any client-facing report or export."""
+    import time
+
     from app.services.rag.retriever import retrieve
 
+    embedder = get_embedder()
+    started = time.perf_counter()
     chunks = retrieve(
-        db, get_embedder(), q, property_id=property_id, source=source, top_k=top_k
+        db, embedder, q, property_id=property_id, source=source, top_k=top_k
     )
+    latency_ms = round((time.perf_counter() - started) * 1000, 1)
     return {
         "query": q,
+        "retrieval_latency_ms": latency_ms,
+        "index_version": embedder.key,
+        "embedding_model": embedder.version,
         "results": [
             {
                 "chroma_id": c.chroma_id,

@@ -13,8 +13,10 @@ from app.db import get_db
 from app.models import Company, Property
 from app.services.reporting import source_status
 from app.services.reporting_aeo import build_aeo_report
+from app.services.reporting_content_impact import build_content_impact_report
 from app.services.reporting_csv import (
     build_aeo_csv,
+    build_content_impact_csv,
     build_executive_csv,
     build_geo_csv,
     build_seo_csv,
@@ -66,7 +68,7 @@ REPORT_TABS = [
     {
         "key": "content-impact",
         "label": "Content Impact",
-        "status": "planned",
+        "status": "available",
         "planned_phase": "16F",
         "summary": "Content change log with before-and-after windows. Observed changes are never claimed as caused.",
     },
@@ -131,6 +133,17 @@ def aeo_report(
     if property_id is not None and db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return build_aeo_report(db, property_id)
+
+
+@router.get("/content-impact")
+def content_impact_report(
+    property_id: int | None = Query(default=None),
+    window: int = Query(default=30),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return build_content_impact_report(db, property_id, window=window)
 
 
 @router.get("/geo/evidence")
@@ -212,6 +225,21 @@ def aeo_report_csv(
         raise HTTPException(status_code=404, detail="Property not found.")
     try:
         content, filename = build_aeo_csv(db, property_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _csv_response(content, filename)
+
+
+@router.get("/content-impact/export.csv")
+def content_impact_csv(
+    property_id: int | None = Query(default=None),
+    window: int = Query(default=30),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        content, filename = build_content_impact_csv(db, property_id, window=window)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return _csv_response(content, filename)

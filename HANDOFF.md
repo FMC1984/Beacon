@@ -80,6 +80,41 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16F — Content Impact + RAG Index Health (2026-07-12, 500 tests)
+- **First Phase-16 migration**: `f3b1c2d4e5a6_content_changes.py` creates the
+  `content_changes` table (plain create_table; batch mode is only for ALTER).
+  New model `app/models/content_change.py` (ChangeType enum). Registered in
+  `models/__init__.py` and the `test_phase1_schema.py` expected-tables set.
+- **Content change log CRUD**: `app/routers/content_changes.py` ->
+  `/api/content-changes/{property_id}` (GET/POST/PUT/DELETE). Operator-recorded
+  website changes; company_id auto-denormalized from the property. Change
+  scoped to its property (cross-property update/delete 404s).
+- **Content Impact report** (`app/services/reporting_content_impact.py`,
+  `GET /api/reports/content-impact`): per change, compares equal windows
+  (14/30/60 days) before vs after the change date over GSC clicks/impressions/
+  CTR/position and GA4-organic sessions/key-events. This is OBSERVATIONAL, not
+  causal: the fixed `EXTERNAL_FACTORS_CAVEAT` ("...Beacon does not claim the
+  content change caused the result.") rides on the report and every change; no
+  causal narrative is generated. An after-window that has not fully elapsed is
+  disclosed ("still accumulating N/M days") and its after value is null, never
+  0. Missing before-window data shows n/a, not 0. CSV export + timeline for
+  annotating other charts. Content Impact tab -> available (5 of 6 report tabs
+  now live; only Semantic Intelligence deferred with 15c).
+- **RAG Index Health** (`GET /api/admin/rag-health`, admin-only): registry/
+  vector parity, orphans (both directions), duplicate content hashes, stale
+  pre-enrichment chunks, properties with content not indexed, configured
+  sources not indexed, embedding model + index version, failed/queued jobs.
+  Resilient to an unconfigured embedder (never 500s the panel). Rendered as a
+  new panel on `/admin`. Live it correctly flags the local drift (4 vectors vs
+  10 registry rows) — exactly what it is for.
+- **Retrieval transparency polish**: `/api/admin/retrieval-debug` now also
+  returns `retrieval_latency_ms`, `index_version`, `embedding_model`. Stays
+  admin-only and is never in any client report/export.
+- Role note (unchanged from the plan): Beacon has no user accounts, so
+  "administrator-only" = the `/admin` surface, and "client-facing exclusion" =
+  the report CSV/print exports (which never carry chunk ids, vectors,
+  similarity, latency; test-enforced across every CSV).
+
 ### Phase 16E — AEO Readiness report (2026-07-12, 487 tests)
 - `GET /api/reports/aeo` (`app/services/reporting_aeo.py`), per-property,
   reuses Content IQ's `_question_coverage` and `_freshness` (no recompute):

@@ -25,6 +25,8 @@ APP_PHASE = (
     "(distinct metrics, sample-gated rates, prompt matrix + evidence drawers, "
     "deterministic source landscape, competitor share of tested answers), and "
     "16E AEO Readiness report (explainable weighted score, question coverage "
-    "heatmap, citation readiness, structured-data empty state) complete"
+    "heatmap, citation readiness, structured-data empty state), and 16F "
+    "(Content Impact report with before/after windows and no-causation caveat, "
+    "content change log, RAG Index Health + retrieval transparency) complete"
 )
-TEST_COUNT = 487
+TEST_COUNT = 500

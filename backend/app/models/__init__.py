@@ -31,6 +31,7 @@ from app.models.ai_visibility_schedule import (
     AIVisibilityScoreHistory,
 )
 from app.models.competitor import Competitor
+from app.models.content_change import ChangeType, ContentChange
 
 __all__ = [
     "Company",
@@ -66,4 +67,6 @@ __all__ = [
     "AIVisibilityPrompt",
     "AIVisibilityScoreHistory",
     "Competitor",
+    "ContentChange",
+    "ChangeType",
 ]

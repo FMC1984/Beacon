@@ -1,5 +1,5 @@
-import { ReportTabPage } from "@/components/reports/ReportTabPage";
+import { ContentImpactReport } from "@/components/reports/ContentImpactReport";
 
-export default function ContentImpactReport() {
-  return <ReportTabPage tabKey="content-impact" />;
+export default function ContentImpactReportPage() {
+  return <ContentImpactReport />;
 }

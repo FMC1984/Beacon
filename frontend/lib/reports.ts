@@ -249,13 +249,13 @@ export const fetchExecutiveReport = (
 // Download URL for a report section's CSV export (client-safe: no internal
 // RAG metadata). Scope precedence matches the report endpoints.
 export function reportCsvUrl(
-  section: "seo" | "executive" | "geo" | "aeo",
+  section: "seo" | "executive" | "geo" | "aeo" | "content-impact",
   scope: ReportScope,
   days: number,
   compare: boolean
 ): string {
   const params = scopeParams(scope);
-  if (section !== "geo" && section !== "aeo") {
+  if (section === "seo" || section === "executive") {
     params.set("days", String(days));
     params.set("compare", String(compare));
   }
@@ -492,3 +492,118 @@ export const fetchAeoReport = (propertyId: number | null) => {
   if (propertyId !== null) params.set("property_id", String(propertyId));
   return getJSON<AeoReport>(`/reports/aeo?${params}`);
 };
+
+// --- Content Impact report + change log (Phase 16F) ---
+
+export const CHANGE_TYPES = [
+  "new_page",
+  "expanded_content",
+  "faq_update",
+  "metadata_update",
+  "internal_link_update",
+  "structured_data_update",
+  "technical_correction",
+  "other",
+] as const;
+
+export type ChangeType = (typeof CHANGE_TYPES)[number];
+
+export type ContentChange = {
+  id: number;
+  property_id: number;
+  company_id: number | null;
+  change_title: string;
+  change_type: ChangeType;
+  date_implemented: string;
+  page_url: string | null;
+  notes: string | null;
+  related_opportunity: string | null;
+  created_by: string | null;
+  before_snapshot_ref: string | null;
+  after_snapshot_ref: string | null;
+  created_at: string;
+};
+
+export type ContentChangeInput = {
+  change_title: string;
+  change_type: ChangeType;
+  date_implemented: string;
+  page_url?: string | null;
+  notes?: string | null;
+};
+
+export type ImpactMetric = {
+  key: string;
+  label: string;
+  higher_is_better: boolean;
+  before: number | null;
+  after: number | null;
+  comparison: Comparison | null;
+  state: DataStateKey;
+};
+
+export type ImpactComparison = {
+  days: number;
+  before_window: { start: string; end: string };
+  after_window: { start: string; end: string };
+  after_complete: boolean;
+  after_days_elapsed: number;
+  metrics: ImpactMetric[];
+  caveat: string;
+};
+
+export type ContentImpactChange = {
+  id: number;
+  change_title: string;
+  change_type: string;
+  date_implemented: string;
+  page_url: string | null;
+  notes: string | null;
+  related_opportunity: string | null;
+  comparison: ImpactComparison;
+};
+
+export type ContentImpactReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      window: number;
+      available_windows: number[];
+      caveat: string;
+      has_changes: boolean;
+      changes: ContentImpactChange[];
+      timeline: { date: string; title: string; type: string }[];
+      generated_on: string;
+    };
+
+export const fetchContentImpact = (propertyId: number | null, window: number) => {
+  const params = new URLSearchParams();
+  if (propertyId !== null) params.set("property_id", String(propertyId));
+  params.set("window", String(window));
+  return getJSON<ContentImpactReport>(`/reports/content-impact?${params}`);
+};
+
+export const fetchContentChanges = (propertyId: number) =>
+  getJSON<ContentChange[]>(`/content-changes/${propertyId}`);
+
+export async function createContentChange(
+  propertyId: number,
+  input: ContentChangeInput
+): Promise<ContentChange> {
+  const res = await fetch(`${API_BASE}/content-changes/${propertyId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export async function deleteContentChange(propertyId: number, changeId: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/content-changes/${propertyId}/${changeId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+}
