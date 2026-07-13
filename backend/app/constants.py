@@ -29,7 +29,9 @@ APP_PHASE = (
     "(Content Impact report with before/after windows and no-causation caveat, "
     "content change log, RAG Index Health + retrieval transparency), and 16G "
     "(Audience geography report: sessions and users by city and region from GA4, "
-    "AI-referral split, located-share honesty, executive top-cities panel) "
-    "complete"
+    "AI-referral split, located-share honesty, executive top-cities panel), and "
+    "16H (Google Business Profile reviews: manual CSV import now, plus a "
+    "flag-gated live GBP OAuth + reviews sync connector ready for when Google "
+    "approves API access) complete"
 )
-TEST_COUNT = 509
+TEST_COUNT = 516

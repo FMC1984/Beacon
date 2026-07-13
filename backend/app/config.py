@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     google_sync_days: int = 30
     # When on, a background task re-syncs every connected Google source daily.
     google_autosync: bool = False
+    # Google Business Profile reviews connector. OFF by default and deliberately
+    # so: the GBP reviews API is access-restricted (Google must allowlist the
+    # Cloud project) and uses the restricted business.manage scope. Adding that
+    # scope to the shared consent screen before Google approves it would break
+    # the working GA4/GSC connect flow, so GBP stays dark until this is flipped
+    # on (after approval). When off, nothing about the current flow changes.
+    google_gbp_enabled: bool = False
     # When on, a weekly background task runs each property's active AI Visibility
     # standing prompts (spends OpenAI budget) and snapshots the score. Off by
     # default because it costs money; enable deliberately.

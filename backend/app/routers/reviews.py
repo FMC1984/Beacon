@@ -5,14 +5,26 @@ chunk of a deleted review."""
 
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import get_db
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Property, PropertyReview
 from app.schemas.reviews import ReviewIn, ReviewOut
+from app.services.ingestion.common import UploadValidationError
+from app.services.ingestion.reviews import ingest_reviews
+from app.services.rag_sync_service import drain_queue
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -70,6 +82,36 @@ def create_review(property_id: int, payload: ReviewIn, db: Session = Depends(get
     db.refresh(review)
     trigger_rag_sync(db, property_id=property_id, source="reviews", reason="review_create")
     return review
+
+
+@router.post("/{property_id}/import", status_code=201)
+async def import_reviews(
+    property_id: int,
+    background: BackgroundTasks,
+    file: UploadFile,
+    provider: str = Form("google"),
+    db: Session = Depends(get_db),
+):
+    """Bulk-import reviews from a CSV export (the working path for Google
+    Business Profile reviews until the live connector is API-approved). Tolerant
+    of column naming; upserts by (provider, external_review_id) so re-imports
+    update rather than duplicate. One RAG sync refreshes the review chunks and
+    the derived Review Intelligence chunk for the whole batch."""
+    _require_property(db, property_id)
+    data = await file.read()
+    try:
+        summary = ingest_reviews(db, property_id, data, provider)
+    except UploadValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    db.commit()
+    job = trigger_rag_sync(
+        db, property_id=property_id, source="reviews", reason="review_import"
+    )
+    summary["provider"] = provider
+    summary["sync_job_id"] = job.id
+    if settings.rag_autosync and background is not None:
+        background.add_task(drain_queue)
+    return summary
 
 
 @router.put("/{property_id}/{review_id}", response_model=ReviewOut)

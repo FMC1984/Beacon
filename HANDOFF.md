@@ -80,6 +80,35 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 16H — Google Business Profile reviews (2026-07-13, 516 tests)
+- **Manual review import (works today, no external dependency)**: tolerant CSV
+  parser `ingestion/reviews.py` + `POST /api/reviews/{property_id}/import`
+  (Form `provider`, default "google"). Upserts by (provider, external_review_id)
+  so re-imports update, not duplicate; skips rows with no review text; parses
+  numeric/worded/glyph ratings. Triggers one "reviews" RAG sync for the batch.
+  Frontend: `components/ReviewImport.tsx` on the Review Intelligence page.
+- **Live GBP connector (flag-gated, ready but dark)**: `google_gbp_enabled`
+  (env `BEACON_GOOGLE_GBP_ENABLED`, default False). When off, NOTHING about the
+  live GA4/GSC flow changes - this is deliberate: the GBP reviews API is
+  access-restricted (Google must allowlist the Cloud project) and needs the
+  restricted `business.manage` scope, which would break the shared consent
+  screen if added before approval. When on: the scope joins `current_scopes()`,
+  GBP joins `_google_sources()` (so `/google/callback` provisions a GBP
+  connection and `/google/status` returns `gbp_enabled`), `list_resources`
+  lists GBP locations, and `run_google_sync` pulls reviews via new
+  `gapi.list_gbp_locations` / `gapi.gbp_reviews` (v4 reviews API; starRating +
+  reviewReply + createTime normalized) and upserts PropertyReview rows through
+  the SAME `upsert_reviews` the manual import uses. No schema migration:
+  PropertyReview / DataConnection / SyncJob already existed and GBP was already
+  a SourceType. `GoogleConnections.tsx` labels GBP and reports "N reviews" (no
+  date range) on sync.
+- **To go live**: (1) request Business Profile API access for the Cloud project
+  and get it allowlisted; (2) add the `business.manage` scope to the OAuth
+  consent screen; (3) set `BEACON_GOOGLE_GBP_ENABLED=true`; (4) reconnect Google
+  on Uploads, pick the location, Sync now.
+- NOTE: frontend unverified in-browser (local Node 18 < Next's 20.9); types pass
+  and the import API was verified live via curl.
+
 ### Phase 16G — Audience geography report (2026-07-13, 509 tests)
 - **Schema**: `c1a2d3e4f5b6_ga4_city_region.py` adds nullable `city` / `region`
   to `ga4_sessions_daily` (+ `ix_ga4_property_city`). Both nullable because

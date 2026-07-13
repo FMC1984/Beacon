@@ -26,7 +26,11 @@ from app.services.rag_sync_service import drain_queue
 
 router = APIRouter(prefix="/google", tags=["google"])
 
-GOOGLE_SOURCES = (SourceType.GA4, SourceType.GSC)
+# GA4 + GSC always; GBP (reviews) only when enabled, because its restricted
+# scope must not join the shared consent screen until the project is approved.
+def _google_sources() -> tuple[SourceType, ...]:
+    base = (SourceType.GA4, SourceType.GSC)
+    return base + (SourceType.GBP,) if settings.google_gbp_enabled else base
 
 
 def _conn_out(c: DataConnection) -> dict:
@@ -52,13 +56,14 @@ def status(property_id: int, db: Session = Depends(get_db)):
         db.query(DataConnection)
         .filter(
             DataConnection.property_id == property_id,
-            DataConnection.source_type.in_(GOOGLE_SOURCES),
+            DataConnection.source_type.in_(_google_sources()),
         )
         .order_by(DataConnection.source_type)
         .all()
     )
     return {
         "configured": bool(settings.google_client_id and settings.google_client_secret),
+        "gbp_enabled": settings.google_gbp_enabled,
         "connections": [_conn_out(c) for c in conns],
     }
 
@@ -76,9 +81,9 @@ def connect(property_id: int, db: Session = Depends(get_db)):
 @router.get("/callback")
 def callback(state: str, code: str = "", error: str = "", db: Session = Depends(get_db)):
     """Google redirects the operator's browser here. On success, one
-    connection row per source (GA4 + GSC) is created or refreshed for the
-    property encoded in the signed state, then the browser is sent back to
-    the frontend."""
+    connection row per source (GA4 + GSC, plus GBP when enabled) is created or
+    refreshed for the property encoded in the signed state, then the browser is
+    sent back to the frontend."""
     frontend = settings.frontend_url.rstrip("/")
     try:
         property_id = verify_state(state)
@@ -94,7 +99,7 @@ def callback(state: str, code: str = "", error: str = "", db: Session = Depends(
 
     email = account_email(tokens["access_token"])
     refresh = tokens.get("refresh_token")
-    for source in GOOGLE_SOURCES:
+    for source in _google_sources():
         conn = (
             db.query(DataConnection)
             .filter_by(property_id=property_id, source_type=source)
@@ -122,8 +127,8 @@ def callback(state: str, code: str = "", error: str = "", db: Session = Depends(
 
 @router.get("/connections/{connection_id}/resources")
 def list_resources(connection_id: int, db: Session = Depends(get_db)):
-    """The GA4 properties or GSC sites the connected account can read, so the
-    operator picks which one feeds this Beacon property."""
+    """The GA4 properties, GSC sites, or GBP locations the connected account can
+    read, so the operator picks which one feeds this Beacon property."""
     conn = db.get(DataConnection, connection_id)
     if conn is None:
         raise HTTPException(status_code=404, detail="Connection not found.")
@@ -133,7 +138,9 @@ def list_resources(connection_id: int, db: Session = Depends(get_db)):
         token = refresh_access_token(conn.refresh_token)
         if conn.source_type == SourceType.GA4:
             return {"resources": gapi.list_ga4_properties(token)}
-        return {"resources": gapi.list_gsc_sites(token)}
+        if conn.source_type == SourceType.GSC:
+            return {"resources": gapi.list_gsc_sites(token)}
+        return {"resources": gapi.list_gbp_locations(token)}
     except GoogleOAuthError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

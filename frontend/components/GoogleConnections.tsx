@@ -21,6 +21,7 @@ type Resource = { id: string; name: string };
 const SOURCE_LABELS: Record<string, string> = {
   ga4: "GA4 traffic",
   gsc: "Search Console",
+  gbp: "Business Profile reviews",
 };
 
 function fmtWhen(iso: string | null) {
@@ -102,9 +103,17 @@ export function GoogleConnections({ propertyId }: { propertyId: string }) {
       const res = await fetch(`${API_BASE}/google/connections/${conn.id}/sync`, { method: "POST" });
       const body = await res.json();
       if (res.ok) {
+        const label = SOURCE_LABELS[conn.source_type] ?? conn.source_type;
+        // Reviews are not date-windowed, so GBP has no date range to report.
+        const range =
+          body.date_start && body.date_end
+            ? ` (${body.date_start} to ${body.date_end})`
+            : "";
         setNotice({
           ok: true,
-          text: `${SOURCE_LABELS[conn.source_type]}: synced ${body.rows_imported} rows (${body.date_start} to ${body.date_end}).`,
+          text: `${label}: synced ${body.rows_imported} ${
+            conn.source_type === "gbp" ? "reviews" : "rows"
+          }${range}.`,
         });
       } else {
         setNotice({ ok: false, text: body.detail ?? "Sync failed." });
@@ -131,8 +140,9 @@ export function GoogleConnections({ propertyId }: { propertyId: string }) {
         <div>
           <h2 className="text-sm font-medium">Google auto-sync</h2>
           <p className="mt-0.5 text-xs text-muted">
-            Scheduled sync from the GA4 Data API and Search Console API. Not
-            real-time: Google&apos;s own data lags a day or two.
+            Scheduled sync from the GA4 Data API, Search Console API, and
+            Business Profile reviews. Not real-time: Google&apos;s own data lags
+            a day or two.
           </p>
         </div>
         {configured && (

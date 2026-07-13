@@ -27,7 +27,22 @@ SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
 ]
 
+# Restricted scope for reading Business Profile reviews. Requested ONLY when the
+# GBP connector is enabled (settings.google_gbp_enabled): before Google has
+# allowlisted the project for the Business Profile API, including this scope in
+# the shared consent screen makes the whole GA4/GSC connect fail, so it stays
+# out of the default set.
+GBP_SCOPE = "https://www.googleapis.com/auth/business.manage"
+
 STATE_TTL_SECONDS = 900
+
+
+def current_scopes() -> list[str]:
+    """The scopes this server requests, including GBP only when enabled."""
+    scopes = list(SCOPES)
+    if settings.google_gbp_enabled:
+        scopes.append(GBP_SCOPE)
+    return scopes
 
 
 class GoogleOAuthError(RuntimeError):
@@ -88,7 +103,7 @@ def auth_url(property_id: int) -> str:
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_redirect_uri,
         "response_type": "code",
-        "scope": " ".join(SCOPES),
+        "scope": " ".join(current_scopes()),
         "access_type": "offline",
         # Force the consent screen so Google always returns a refresh_token,
         # even on re-connect.

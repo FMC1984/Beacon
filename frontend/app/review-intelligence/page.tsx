@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE, Company, Property, fetchCompanies, fetchProperties } from "@/lib/api";
 import { ScopeSelect } from "@/components/ScopeSelect";
+import { ReviewImport } from "@/components/ReviewImport";
 
 type Citation = { review_id: number | null; provider: string; excerpt: string };
 
@@ -93,6 +94,10 @@ export default function ReviewIntelligencePage() {
             properties={properties}
             value={propertyId}
             onChange={setPropertyId}
+          />
+          <ReviewImport
+            propertyId={propertyId}
+            onImported={() => propertyId !== null && load(propertyId)}
           />
           <button onClick={analyze} disabled={loading}
             className="rounded-xl bg-violet-a px-4 py-2 text-sm font-medium text-background disabled:opacity-50">

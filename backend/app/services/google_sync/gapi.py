@@ -14,6 +14,23 @@ from app.services.google_sync.oauth import GoogleOAuthError
 ADMIN_API = "https://analyticsadmin.googleapis.com/v1beta"
 DATA_API = "https://analyticsdata.googleapis.com/v1beta"
 GSC_API = "https://www.googleapis.com/webmasters/v3"
+# Business Profile is split across APIs: accounts + location listing live on the
+# newer v1 endpoints, but reviews are ONLY on the legacy My Business v4 endpoint
+# (there is no v1 reviews resource). Both require the Cloud project to be
+# allowlisted for Business Profile API access.
+GBP_ACCOUNTS_API = "https://mybusinessaccountmanagement.googleapis.com/v1"
+GBP_INFO_API = "https://mybusinessbusinessinformation.googleapis.com/v1"
+GBP_REVIEWS_API = "https://mybusiness.googleapis.com/v4"
+
+# GBP returns star ratings as words; Beacon stores numbers. "STAR_RATING_UNSPECIFIED"
+# maps to None (a real "no rating"), never 0.
+_GBP_STAR_TO_NUMBER = {
+    "ONE": 1.0,
+    "TWO": 2.0,
+    "THREE": 3.0,
+    "FOUR": 4.0,
+    "FIVE": 5.0,
+}
 
 
 def _request(method: str, url: str, access_token: str, json: dict | None = None) -> dict:
@@ -105,6 +122,83 @@ def ga4_run_report(
             }
         )
     return rows
+
+
+def _gbp_date(ts: str | None) -> date | None:
+    """GBP timestamps are RFC3339 (2021-01-05T12:34:56.000Z); keep the calendar
+    date, which is all Beacon's review_date stores."""
+    if not ts:
+        return None
+    try:
+        return date.fromisoformat(ts[:10])
+    except ValueError:
+        return None
+
+
+def list_gbp_locations(access_token: str) -> list[dict]:
+    """Every Business Profile location the account manages: [{id, name}], where
+    id is the full 'accounts/A/locations/L' resource used as the reviews parent."""
+    out: list[dict] = []
+    read_mask = "readMask=name,title,storefrontAddress"
+    accounts = _request(
+        "GET", f"{GBP_ACCOUNTS_API}/accounts?pageSize=100", access_token
+    )
+    for account in accounts.get("accounts", []):
+        acct = account["name"]  # "accounts/123"
+        url = f"{GBP_INFO_API}/{acct}/locations?pageSize=100&{read_mask}"
+        while url:
+            body = _request("GET", url, access_token)
+            for loc in body.get("locations", []):
+                # Location name is "locations/456"; the v4 reviews path needs it
+                # under its account: "accounts/123/locations/456".
+                loc_name = loc["name"].split("/")[-1]
+                addr = loc.get("storefrontAddress", {})
+                locality = addr.get("locality")
+                title = loc.get("title", loc_name)
+                out.append(
+                    {
+                        "id": f"{acct}/locations/{loc_name}",
+                        "name": f"{title} ({locality})" if locality else title,
+                    }
+                )
+            token = body.get("nextPageToken")
+            url = (
+                f"{GBP_INFO_API}/{acct}/locations?pageSize=100&{read_mask}&pageToken={token}"
+                if token
+                else None
+            )
+    return out
+
+
+def gbp_reviews(access_token: str, location_resource: str) -> list[dict]:
+    """All reviews for one location, normalized to Beacon's review shape. The
+    reviews API is not date-windowed, so this pulls the full set and the sync
+    upserts by review id."""
+    out: list[dict] = []
+    base = f"{GBP_REVIEWS_API}/{location_resource}/reviews?pageSize=200"
+    url = base
+    while url:
+        body = _request("GET", url, access_token)
+        for rv in body.get("reviews", []):
+            reviewer = rv.get("reviewer", {})
+            reply = rv.get("reviewReply") or {}
+            external_id = rv.get("reviewId") or rv.get("name", "").split("/")[-1] or None
+            out.append(
+                {
+                    "external_review_id": external_id,
+                    "author_name": reviewer.get("displayName"),
+                    "rating": _GBP_STAR_TO_NUMBER.get(rv.get("starRating")),
+                    "title": None,
+                    "body": rv.get("comment") or "",
+                    "review_date": _gbp_date(rv.get("createTime")),
+                    "response_text": reply.get("comment"),
+                    "response_date": _gbp_date(reply.get("updateTime")),
+                    "source_url": None,
+                }
+            )
+        token = body.get("nextPageToken")
+        url = f"{base}&pageToken={token}" if token else None
+    return out
 
 
 def gsc_query(access_token: str, site_url: str, start: date, end: date) -> list[dict]:

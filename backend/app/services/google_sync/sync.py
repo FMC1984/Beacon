@@ -25,6 +25,17 @@ from app.models import (
 from app.services.classifier import get_classifier
 from app.services.google_sync import gapi
 from app.services.google_sync.oauth import GoogleOAuthError, refresh_access_token
+from app.services.ingestion.reviews import upsert_reviews
+
+# Provider label stored on reviews pulled from Google Business Profile. Matches
+# the manual-import default so both paths dedup against the same rows.
+GBP_PROVIDER = "google"
+
+_REPORT_TYPES = {
+    SourceType.GA4: "ga4_sessions_by_source_medium",
+    SourceType.GSC: "gsc_search_analytics_query_page",
+    SourceType.GBP: "gbp_location_reviews",
+}
 
 
 def _window(today: date | None = None) -> tuple[date, date]:
@@ -93,6 +104,16 @@ def _write_gsc(db: Session, conn: DataConnection, job: SyncJob, rows: list[dict]
     return len(rows)
 
 
+def _write_gbp_reviews(db: Session, conn: DataConnection, job: SyncJob, reviews: list[dict]) -> int:
+    """Upsert Business Profile reviews as PropertyReview rows, deduped by
+    (provider, external_review_id) exactly like the manual import. Reviews are
+    not date-windowed, so this updates in place rather than replace-by-date."""
+    rows = [{**rv, "provider": GBP_PROVIDER} for rv in reviews]
+    result = upsert_reviews(db, conn.property_id, rows)
+    job.rows_updated = result["updated"]
+    return result["imported"]
+
+
 def run_google_sync(db: Session, connection_id: int, today: date | None = None) -> SyncJob:
     """Execute one sync for one connection. Raises ValueError on a connection
     that is not ready; Google/API failures are recorded on the job AND the
@@ -109,17 +130,16 @@ def run_google_sync(db: Session, connection_id: int, today: date | None = None) 
         )
 
     lo, hi = _window(today)
+    # Reviews are not date-windowed; only the daily metrics sources carry a
+    # window on the job.
+    windowed = conn.source_type in (SourceType.GA4, SourceType.GSC)
     job = SyncJob(
         connection_id=conn.id,
         source_type=conn.source_type,
-        report_type=(
-            "ga4_sessions_by_source_medium"
-            if conn.source_type == SourceType.GA4
-            else "gsc_search_analytics_query_page"
-        ),
+        report_type=_REPORT_TYPES.get(conn.source_type),
         endpoint=conn.resource_id,
-        date_start=lo,
-        date_end=hi,
+        date_start=lo if windowed else None,
+        date_end=hi if windowed else None,
     )
     db.add(job)
     db.flush()
@@ -133,6 +153,9 @@ def run_google_sync(db: Session, connection_id: int, today: date | None = None) 
         elif conn.source_type == SourceType.GSC:
             rows = gapi.gsc_query(token, conn.resource_id, lo, hi)
             job.rows_imported = _write_gsc(db, conn, job, rows, lo, hi)
+        elif conn.source_type == SourceType.GBP:
+            reviews = gapi.gbp_reviews(token, conn.resource_id)
+            job.rows_imported = _write_gbp_reviews(db, conn, job, reviews)
         else:
             raise ValueError(f"Unsupported source_type {conn.source_type}.")
     except GoogleOAuthError as exc:
@@ -153,10 +176,13 @@ def run_google_sync(db: Session, connection_id: int, today: date | None = None) 
     conn.last_sync_at = datetime.now(timezone.utc)
     db.commit()
 
+    # GBP feeds the review pipeline, so its RAG sync uses the "reviews" source
+    # (refreshes per-review chunks + the Review Intelligence chunk), not "gbp".
+    rag_source = "reviews" if conn.source_type == SourceType.GBP else conn.source_type.value
     trigger_rag_sync(
         db,
         property_id=conn.property_id,
-        source=conn.source_type.value,
+        source=rag_source,
         reason=f"google_sync_{conn.source_type.value}",
     )
     db.commit()
