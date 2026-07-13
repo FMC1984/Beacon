@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { API_BASE } from "@/lib/api";
 
 const KEY_STORAGE = "beacon.accessKey";
@@ -84,8 +85,15 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
         className="w-full max-w-sm space-y-4 rounded-2xl border border-line bg-surface p-6"
       >
         <div>
-          <h1 className="text-lg font-semibold">Beacon</h1>
-          <p className="mt-1 text-sm text-muted">
+          <Image
+            src="/beacon-logo.png"
+            alt="Beacon"
+            width={130}
+            height={26}
+            priority
+            className="h-7 w-auto"
+          />
+          <p className="mt-3 text-sm text-muted">
             This instance is protected. Enter the access key to continue.
           </p>
         </div>

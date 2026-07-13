@@ -96,9 +96,19 @@ function Chevron({ dir }: { dir: "left" | "right" | "down" }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({
+  mobile = false,
+  onNavigate,
+}: {
+  /** In a mobile drawer: always expanded, no collapse handle or logo (the
+   * drawer supplies its own header), fills the drawer instead of stickying. */
+  mobile?: boolean;
+  /** Called when a nav link is tapped, so the mobile drawer can close. */
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedState, setCollapsed] = useState(false);
+  const collapsed = mobile ? false : collapsedState;
   const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({});
 
   // Restore persisted state after mount (avoids SSR hydration mismatch).
@@ -132,33 +142,42 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-line bg-surface/40 transition-[width] duration-200 ${
-        collapsed ? "w-16" : "w-60"
-      }`}
+      className={
+        mobile
+          ? "flex h-full w-full flex-col"
+          : `sticky top-0 flex h-screen shrink-0 flex-col border-r border-line bg-surface/40 transition-[width] duration-200 ${
+              collapsed ? "w-16" : "w-60"
+            }`
+      }
     >
-      {/* Floating handle sitting on the divider line, near the top. */}
-      <button
-        onClick={toggleCollapsed}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={collapsed ? "Expand" : "Collapse"}
-        className="absolute -right-3 top-16 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-sm transition-colors hover:border-violet-a/50 hover:text-foreground"
-      >
-        <Chevron dir={collapsed ? "right" : "left"} />
-      </button>
-
-      <div className={`flex h-14 items-center ${collapsed ? "justify-center px-0" : "px-3"}`}>
-        <Link
-          href="/"
-          className={`flex items-center ${collapsed ? "" : "px-2"}`}
-          aria-label="Beacon home"
+      {/* Floating handle sitting on the divider line, near the top. Desktop only. */}
+      {!mobile && (
+        <button
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand" : "Collapse"}
+          className="absolute -right-3 top-16 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-sm transition-colors hover:border-violet-a/50 hover:text-foreground"
         >
-          {collapsed ? (
-            <Image src="/beacon-mark.png" alt="Beacon" width={28} height={28} priority className="h-7 w-7 shrink-0" />
-          ) : (
-            <Image src="/beacon-logo.png" alt="Beacon" width={130} height={26} priority className="h-6 w-auto shrink-0" />
-          )}
-        </Link>
-      </div>
+          <Chevron dir={collapsed ? "right" : "left"} />
+        </button>
+      )}
+
+      {/* Logo header: the mobile drawer supplies its own, so skip it here. */}
+      {!mobile && (
+        <div className={`flex h-14 items-center ${collapsed ? "justify-center px-0" : "px-3"}`}>
+          <Link
+            href="/"
+            className={`flex items-center ${collapsed ? "" : "px-2"}`}
+            aria-label="Beacon home"
+          >
+            {collapsed ? (
+              <Image src="/beacon-mark.png" alt="Beacon" width={28} height={28} priority className="h-7 w-7 shrink-0" />
+            ) : (
+              <Image src="/beacon-logo.png" alt="Beacon" width={130} height={26} priority className="h-6 w-auto shrink-0" />
+            )}
+          </Link>
+        </div>
+      )}
 
       <nav className={`flex-1 space-y-4 overflow-y-auto pb-4 pt-1 ${collapsed ? "px-2" : "px-3"}`}>
         {GROUPS.map((group, gi) => {
@@ -185,6 +204,7 @@ export function Sidebar() {
                       <Link
                         key={item.href}
                         href={item.href}
+                        onClick={onNavigate}
                         aria-current={active ? "page" : undefined}
                         title={collapsed ? item.label : undefined}
                         className={`flex items-center gap-3 rounded-lg py-2 text-sm transition-colors ${
