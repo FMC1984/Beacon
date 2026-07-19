@@ -41,6 +41,7 @@ SOURCE_AI_QUERY_SIGNALS = "ai_query_signals"
 SOURCE_AI_VISIBILITY = "ai_visibility"
 SOURCE_COMPETITOR_INTELLIGENCE = "competitor_intelligence"
 SOURCE_OPPORTUNITY_ENGINE = "opportunity_engine"
+SOURCE_SEO_PERFORMANCE = "seo_performance"
 
 
 @dataclass(frozen=True)
@@ -400,6 +401,31 @@ def _opportunity_engine_chunks(
     ]
 
 
+def _seo_performance_chunks(db: Session, prop: Property) -> list[Chunk]:
+    """One deterministic SEO-performance chunk per property (striking-distance
+    queries by name with position/impressions/clicks, low-CTR queries, and
+    movers), so Nora can answer the briefing's own strategic questions instead
+    of only knowing that such queries exist. Empty without query data."""
+    from app.services.reporting_seo import seo_performance_summary_text
+
+    text = seo_performance_summary_text(db, prop.id)
+    if not text:
+        return []
+    return [
+        Chunk(
+            chroma_id=f"seo_performance-p{prop.id}",
+            property_id=prop.id,
+            source=SOURCE_SEO_PERFORMANCE,
+            source_table="seo_performance",
+            source_ref=f"seo_performance: property={prop.id}",
+            period_start=None,
+            period_end=None,
+            text=text,
+            page=None,
+        )
+    ]
+
+
 def _property_context_chunks(db: Session, prop: Property) -> list[Chunk]:
     """One verbatim property-context chunk per configured property, so Nora
     grounds context answers in retrieved text rather than inference. Empty when
@@ -555,6 +581,8 @@ def build_chunks(
             chunks.extend(_ai_visibility_chunks(db, prop))
         if want(SOURCE_COMPETITOR_INTELLIGENCE):
             chunks.extend(_competitor_intelligence_chunks(db, prop))
+        if want(SOURCE_SEO_PERFORMANCE):
+            chunks.extend(_seo_performance_chunks(db, prop))
         if content_provider is not None:
             if want(SOURCE_CONTENT):
                 chunks.extend(_content_chunks(db, prop, content_provider))

@@ -80,6 +80,27 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### SEO Performance RAG chunk (2026-07-13, 583 tests)
+- Gap found by Tina in production: the briefing's Ask-Nora question about
+  striking-distance queries was honestly unanswerable - the SEO quadrant
+  computes the query list, but it was never indexed, so Nora could only
+  retrieve chunks that MENTION striking distance. Nora refusing to fabricate
+  was correct; the handoff wrote checks the index couldn't cash.
+- Fix, following the opportunity_engine/competitor summary-chunk pattern:
+  `seo_performance_summary_text()` in reporting_seo builds a deterministic
+  bounded summary (top 15 striking-distance queries BY NAME with position/
+  impressions/clicks, low-CTR queries, top movers, honest scope note);
+  `_seo_performance_chunks` in the chunker indexes it (source
+  "seo_performance", one chunk per property, absent without query data).
+- Freshness: the GA4 and GSC widen lists in rag_sync_service now include
+  seo_performance, so the chunk rebuilds whenever query data syncs. On the
+  hosted instance the next daily Google autosync builds it automatically
+  (or Rebuild RAG Index on /admin does it immediately).
+- End-to-end test proves the briefing's exact question retrieves the chunk
+  naming the queries through the hybrid retriever, citation resolving to
+  seo_performance.
+
+
 ### Phase 17E — Auto-snapshot + printable briefing (2026-07-13, 578 tests)
 - **Month-end auto-snapshot**: `autosnapshot_closed_months()` in
   reporting_briefing + a daily startup loop in main.py (same pattern as the

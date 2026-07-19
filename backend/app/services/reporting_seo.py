@@ -743,3 +743,80 @@ def seo_recommendations(db: Session, property_id: int, today: date | None = None
             "citations": cite(qs),
         })
     return recs
+
+
+# --- RAG summary chunk (17E follow-up) ----------------------------------------
+# Nora can only answer what the index contains. The briefing's strategic
+# questions reference striking-distance queries and movers by name, so this
+# derived, deterministic summary makes those queries retrievable with
+# citations - the same pattern as the Opportunity Engine and Competitor
+# Intelligence chunks. Bounded size; empty when there is no query data.
+
+_SUMMARY_STRIKING_LIMIT = 15
+_SUMMARY_MOVERS_LIMIT = 3
+
+
+def seo_performance_summary_text(db: Session, property_id: int) -> str | None:
+    """Deterministic SEO-performance summary for the RAG index, or None when
+    there is nothing real to say (no imported query data)."""
+    prop = db.get(Property, property_id)
+    if prop is None:
+        return None
+    report = build_seo_report(db, property_id, 30, want_compare=True)
+    quad = report.get("quadrant", {})
+    points = quad.get("points") or []
+    if not points:
+        return None
+
+    window = report["window"]
+    lines = [
+        f"SEO Performance summary for {prop.name} "
+        f"({window['start']} to {window['end']}, imported Search Console queries).",
+    ]
+
+    striking = [p for p in points if p["flags"]["striking_distance"]]
+    striking.sort(key=lambda p: -p["impressions"])
+    if striking:
+        shown = striking[:_SUMMARY_STRIKING_LIMIT]
+        lines.append(
+            f"{len(striking)} striking-distance queries rank in positions 8 to "
+            f"20, within reach of page one. Top {len(shown)} by impressions:"
+        )
+        for p in shown:
+            lines.append(
+                f"- \"{p['query']}\": average position {p['position']}, "
+                f"{p['impressions']} impressions, {p['clicks']} clicks."
+            )
+        if len(striking) > len(shown):
+            lines.append(
+                f"({len(striking) - len(shown)} more striking-distance queries "
+                "are in the SEO Performance report.)"
+            )
+
+    low_ctr = [p for p in points if p["flags"]["high_impressions_low_ctr"]]
+    if low_ctr:
+        top = sorted(low_ctr, key=lambda p: -p["impressions"])[:_SUMMARY_MOVERS_LIMIT]
+        lines.append(
+            f"{len(low_ctr)} queries draw impressions but few clicks, e.g. "
+            + "; ".join(f"\"{p['query']}\" ({p['impressions']} impressions)" for p in top)
+            + "."
+        )
+
+    movers = report.get("movers", {})
+    for key, label in (("gains", "gained"), ("losses", "lost")):
+        rows = (movers.get(key) or [])[:_SUMMARY_MOVERS_LIMIT]
+        if rows:
+            lines.append(
+                "Queries that " + label + " clicks versus the previous period: "
+                + "; ".join(
+                    f"\"{m['query']}\" ({m['previous_clicks']} to {m['current_clicks']})"
+                    for m in rows
+                )
+                + "."
+            )
+
+    lines.append(
+        "Counts describe imported Search Console queries only, not a complete "
+        "rank-tracking database."
+    )
+    return "\n".join(lines)

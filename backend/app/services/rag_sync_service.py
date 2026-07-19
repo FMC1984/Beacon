@@ -88,9 +88,11 @@ def process_job(
             if job.source == "content":
                 sources = ["content", "content_intelligence", "ai_query_signals"]
             elif job.source == "ga4":
-                sources = ["ga4", "ai_query_signals"]
+                # GA4 organic feeds the SEO Performance summary chunk too.
+                sources = ["ga4", "ai_query_signals", "seo_performance"]
             elif job.source == "gsc":
-                sources = ["gsc", "ai_query_signals"]
+                # GSC queries are the SEO Performance summary's backbone.
+                sources = ["gsc", "ai_query_signals", "seo_performance"]
             elif job.source == "ai_visibility":
                 # New AI Visibility data feeds competitor share-of-voice too.
                 sources = ["ai_visibility", "competitor_intelligence"]

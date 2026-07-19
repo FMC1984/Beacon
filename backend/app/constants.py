@@ -53,6 +53,6 @@ APP_PHASE = (
     "key-exempt route, rotating revocable tokens, frozen client-safe "
     "payload) complete. Phase 17E month-end briefing auto-snapshot (daily "
     "loop, deterministic and free so ON by default, manual saves win, "
-    "no-data months skipped) and print-friendly briefing complete"
+    "no-data months skipped) and print-friendly briefing complete. SEO Performance RAG chunk indexed (striking-distance queries by name with metrics) so Nora answers the briefing's own strategic questions"
 )
-TEST_COUNT = 578
+TEST_COUNT = 583
