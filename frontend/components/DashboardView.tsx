@@ -313,6 +313,7 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
                 label="Sessions"
                 value={fmtNum(data.ga4.sessions)}
                 sub={`${fmtNum(data.ga4.key_events)} key events`}
+                className="gradient-hairline"
               />
               <AIMetricCard
                 label="AI referral sessions"

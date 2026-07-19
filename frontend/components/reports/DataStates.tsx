@@ -6,6 +6,7 @@
 
 import type { DataStateKey } from "@/lib/reports";
 import { fmtDate } from "@/lib/format";
+import { BeaconSweep } from "@/components/BeaconSweep";
 
 type Tone = "ok" | "info" | "warn" | "bad";
 
@@ -86,9 +87,10 @@ export function FreshnessFooter({
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-line bg-surface/50 p-8 text-center">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-muted">{body}</p>
+    <div className="relative overflow-hidden rounded-2xl border border-dashed border-line bg-surface/50 p-8 text-center">
+      <BeaconSweep />
+      <p className="relative text-sm font-medium">{title}</p>
+      <p className="relative mx-auto mt-1 max-w-md text-sm text-muted">{body}</p>
     </div>
   );
 }

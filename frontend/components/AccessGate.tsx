@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { API_BASE } from "@/lib/api";
+import { BeaconSweep } from "@/components/BeaconSweep";
 
 const KEY_STORAGE = "beacon.accessKey";
 
@@ -89,8 +90,9 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen items-center justify-center px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm space-y-4 rounded-2xl border border-line bg-surface p-6"
+        className="relative w-full max-w-sm space-y-4 overflow-hidden rounded-2xl border border-line bg-surface p-6"
       >
+        <BeaconSweep className="opacity-70" />
         <div>
           <Image
             src="/beacon-logo.png"

@@ -16,14 +16,17 @@ export function MetricCard({
   value,
   sub,
   accent = "var(--accent-cyan)",
+  className = "",
 }: {
   label: string;
   value: string;
   sub?: string;
   accent?: string;
+  /** Extra classes; pass "gradient-hairline" to mark a page's hero card. */
+  className?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <div className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-3xl font-semibold tracking-tight" style={{ color: accent }}>
         {value}

@@ -33,8 +33,27 @@
 }
 
 body {
-  background: var(--background);
+  /* Aurora wash (visual polish pass): violet + cyan radial glow at low
+     opacity behind everything, fixed so it doesn't scroll away. Text
+     contrast is untouched; the print guard below strips it entirely. */
+  background:
+    radial-gradient(900px 420px at 16% -6%, rgba(167, 139, 250, 0.10), transparent 62%),
+    radial-gradient(760px 380px at 86% -10%, rgba(34, 211, 238, 0.07), transparent 60%),
+    radial-gradient(1100px 620px at 50% 118%, rgba(167, 139, 250, 0.04), transparent 62%),
+    var(--background);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--foreground);
+}
+
+/* Gradient hairline (visual polish pass): a 1px violet-to-cyan border
+   reserved for each page's single hero card. Doubled selector so it wins
+   the cascade against utility border/background classes on the same node. */
+.gradient-hairline.gradient-hairline {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, rgba(167, 139, 250, 0.75), rgba(34, 211, 238, 0.55), rgba(167, 139, 250, 0.2)) border-box;
 }
 
 /* Print-friendly report layout (Phase 16C). The screen app is dark; the
@@ -46,7 +65,8 @@ body {
     display: none !important;
   }
   body {
-    background: #fff;
+    /* No aurora in print: client deliverables stay clean black-on-white. */
+    background: #fff !important;
     color: #111;
   }
 }

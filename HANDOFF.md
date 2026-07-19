@@ -80,6 +80,26 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Visual polish pass (2026-07-18)
+- Tina approved 3 of 5 pitched ingredients (mockup artifact:
+  claude.ai/code/artifact/20aefc0e-...): aurora wash, gradient hairline,
+  beacon sweep. REJECTED: grain texture, gradient text - do not add them.
+- Aurora: three low-opacity violet/cyan radial-gradients on body
+  (globals.css), background-attachment fixed; print guard strips it
+  (client deliverables stay black-on-white).
+- .gradient-hairline (doubled selector to beat utility cascade): 1px
+  violet-to-cyan border via padding-box/border-box double background.
+  Applied to exactly ONE hero card per page: the briefing hero and the
+  dashboard Sessions card (MetricCard gained an optional className).
+  Keep the one-per-page restraint.
+- BeaconSweep (components/BeaconSweep.tsx): decorative radiating-arcs SVG
+  (aria-hidden) behind EmptyState and the AccessGate form; parents need
+  relative + overflow-hidden.
+- No local visual verify possible (Node 18 blocks new Next dev servers);
+  the hosted ACCESS GATE shows aurora + sweep publicly, so post-deploy
+  screenshot of the gate verifies the pass without the key.
+
+
 ### Data-accuracy audit (2026-07-18, 591 tests)
 - Tina asked "make sure all the other numbers are accurate" after the
   conversion-rate catch. Full audit: sync request dimensions -> every

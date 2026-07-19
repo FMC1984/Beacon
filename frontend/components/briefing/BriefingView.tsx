@@ -366,8 +366,8 @@ function StrategistSection({ propertyId, period }: { propertyId: number; period:
 export function BriefingBody({ data }: { data: Briefing }) {
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div className="rounded-2xl border border-line bg-surface p-6">
+      {/* Hero: the page's single gradient-hairline card (visual polish pass) */}
+      <div className="gradient-hairline rounded-2xl border border-line bg-surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Monthly Strategic Briefing</h1>
