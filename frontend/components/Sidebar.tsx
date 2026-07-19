@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BeaconSweep } from "@/components/BeaconSweep";
 import { useEffect, useState, type ReactNode } from "react";
 
 function Icon({ children }: { children: ReactNode }) {
@@ -146,12 +147,21 @@ export function Sidebar({
     <aside
       className={
         mobile
-          ? "flex h-full w-full flex-col"
+          ? "relative flex h-full w-full flex-col"
           : `sticky top-0 flex h-screen shrink-0 flex-col border-r border-line bg-surface/40 transition-[width] duration-200 ${
               collapsed ? "w-16" : "w-60"
             }`
       }
     >
+      {/* Beacon sweep motif anchored to the sidebar foot: every page carries
+          the brand mark without competing with the nav. The wrapper (not the
+          aside) clips, so the floating collapse handle stays un-clipped. */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-52 overflow-hidden opacity-60"
+        aria-hidden
+      >
+        <BeaconSweep />
+      </div>
       {/* Floating handle sitting on the divider line, near the top. Desktop only. */}
       {!mobile && (
         <button

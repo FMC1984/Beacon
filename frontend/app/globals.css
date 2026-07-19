@@ -37,9 +37,9 @@ body {
      opacity behind everything, fixed so it doesn't scroll away. Text
      contrast is untouched; the print guard below strips it entirely. */
   background:
-    radial-gradient(900px 420px at 16% -6%, rgba(167, 139, 250, 0.10), transparent 62%),
-    radial-gradient(760px 380px at 86% -10%, rgba(34, 211, 238, 0.07), transparent 60%),
-    radial-gradient(1100px 620px at 50% 118%, rgba(167, 139, 250, 0.04), transparent 62%),
+    radial-gradient(1400px 640px at 14% -10%, rgba(167, 139, 250, 0.20), transparent 64%),
+    radial-gradient(1100px 560px at 88% -12%, rgba(34, 211, 238, 0.13), transparent 62%),
+    radial-gradient(1600px 800px at 50% 120%, rgba(167, 139, 250, 0.08), transparent 64%),
     var(--background);
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -53,7 +53,8 @@ body {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, rgba(167, 139, 250, 0.75), rgba(34, 211, 238, 0.55), rgba(167, 139, 250, 0.2)) border-box;
+    linear-gradient(120deg, rgba(167, 139, 250, 0.95), rgba(34, 211, 238, 0.8), rgba(167, 139, 250, 0.45)) border-box;
+  box-shadow: 0 0 32px -10px rgba(167, 139, 250, 0.35);
 }
 
 /* Print-friendly report layout (Phase 16C). The screen app is dark; the
