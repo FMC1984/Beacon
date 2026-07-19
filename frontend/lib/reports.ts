@@ -143,7 +143,7 @@ export type SeoReport = {
   window: { days: number; start: string; end: string; anchored_to_latest_data: boolean };
   previous_window: { start: string; end: string };
   compare_requested: boolean;
-  summary: { cards: SeoCard[] };
+  summary: { cards: SeoCard[]; gsc_note?: string };
   trends: { state: DataStateKey; series: SeoTrendPoint[] };
   ranking_distribution: {
     state: DataStateKey;
@@ -635,7 +635,6 @@ export type AudienceCity = {
   city: string;
   region: string | null;
   sessions: number;
-  users: number;
   engaged_sessions: number;
   key_events: number;
   ai_sessions: number;
@@ -647,7 +646,6 @@ export type AudienceCity = {
 export type AudienceRegion = {
   region: string;
   sessions: number;
-  users: number;
   sessions_share: number | null;
 };
 
@@ -677,7 +675,6 @@ export type AudienceReport =
       last_data_date: string;
       summary: {
         total_sessions: number;
-        total_users: number;
         ai_sessions: number;
         ai_share: number | null;
         located_sessions: number;

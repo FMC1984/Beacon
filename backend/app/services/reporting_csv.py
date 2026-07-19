@@ -25,17 +25,27 @@ from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report
 from app.services.reporting_seo import build_seo_report
 
+_GSC_SCOPE = (
+    " Totals cover imported Search Console queries; Google omits some "
+    "anonymized queries from query-level exports, so true totals can be higher."
+)
+
 # Human definitions for every exported metric key. Kept here so the CSV can
 # stand alone away from the app.
 _DEFINITIONS = {
-    "organic_clicks": "Search Console clicks from organic search in the window.",
-    "organic_impressions": "Search Console impressions from organic search in the window.",
-    "ctr": "Organic clicks divided by organic impressions.",
-    "avg_position": "Impression-weighted average Search Console position (lower is better).",
+    "organic_clicks": "Search Console clicks from organic search in the window." + _GSC_SCOPE,
+    "organic_impressions": "Search Console impressions from organic search in the window." + _GSC_SCOPE,
+    "ctr": "Organic clicks divided by organic impressions." + _GSC_SCOPE,
+    "avg_position": "Impression-weighted average Search Console position (lower is better)." + _GSC_SCOPE,
     "organic_sessions": "GA4 sessions with session medium 'organic'.",
     "organic_engaged_sessions": "GA4 engaged sessions from organic medium.",
     "organic_key_events": "GA4 key events from organic-medium sessions.",
-    "organic_conversion_rate": "Organic key events divided by organic sessions.",
+    "organic_conversion_rate": (
+        "Organic key events divided by organic sessions. Key events are "
+        "whatever the GA4 property marks as key and can fire more than once "
+        "per session; this is a per-session event ratio, not a share of "
+        "sessions that converted."
+    ),
     "ai_referral_sessions": "GA4 sessions classified as AI referrals.",
     "ai_share": "AI referral sessions divided by all sessions.",
     "ai_mention_rate": "Share of tested AI responses that mentioned the property (sample-gated).",
@@ -363,25 +373,27 @@ def build_audience_csv(
     w.writerow(["AI share of sessions", _pct_cell(s["ai_share"]), ""])
     w.writerow([])
 
+    # No "users" column: unique users cannot be derived from the stored
+    # per-dimension aggregates (summing rows overcounts), so Beacon does not
+    # export a number it cannot support. Sessions are exact.
     w.writerow([
-        "City", "Region", "sessions", "share_of_sessions", "users",
+        "City", "Region", "sessions", "share_of_sessions",
         "engaged_sessions", "engagement_rate", "key_events",
         "ai_sessions", "ai_share",
     ])
     for c in report["cities"]:
         w.writerow([
             c["city"], c["region"] or "", c["sessions"],
-            _pct_cell(c["sessions_share"]), c["users"], c["engaged_sessions"],
+            _pct_cell(c["sessions_share"]), c["engaged_sessions"],
             _pct_cell(c["engagement_rate"]), c["key_events"],
             c["ai_sessions"], _pct_cell(c["ai_share"]),
         ])
 
     w.writerow([])
-    w.writerow(["Region", "sessions", "share_of_sessions", "users"])
+    w.writerow(["Region", "sessions", "share_of_sessions"])
     for rg in report["regions"]:
         w.writerow([
             rg["region"], rg["sessions"], _pct_cell(rg["sessions_share"]),
-            rg["users"],
         ])
 
     return buf.getvalue(), "beacon-audience.csv"

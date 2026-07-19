@@ -98,7 +98,6 @@ function CityTable({ report }: { report: Loaded }) {
               <th className="px-2 py-2 font-medium">Region</th>
               <th className="px-2 py-2 text-right font-medium">Sessions</th>
               <th className="px-2 py-2 font-medium">Share</th>
-              <th className="px-2 py-2 text-right font-medium">Users</th>
               <th className="px-2 py-2 text-right font-medium">Engaged</th>
               <th className="px-2 py-2 text-right font-medium">AI</th>
             </tr>
@@ -119,7 +118,6 @@ function CityTable({ report }: { report: Loaded }) {
                       </span>
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-right text-muted tabular-nums">{fmtNum(c.users)}</td>
                   <td className="px-2 py-2 text-right text-muted tabular-nums">
                     {c.engagement_rate !== null ? fmtPct(c.engagement_rate) : "—"}
                   </td>

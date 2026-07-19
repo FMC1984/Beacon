@@ -290,17 +290,25 @@ def _summary_section(db, property_ids, window, prev_win, want_compare):
         card("organic_key_events", "Organic key events", ga4_src,
              cur_a["key_events"] if cur_ga4 else None, pa["key_events"], ga4_state,
              ga4_last, warning=ga4_warn),
-        card("organic_conversion_rate", "Organic conversion rate", ga4_src,
-             round(cur_a["cr"], 4) if cur_ga4 and cur_a["cr"] is not None else None,
-             round(pa["cr"], 4) if pa["cr"] is not None else None,
-             ga4_state, ga4_last, unit="pct",
+        # Key events are GA4 event COUNTS and can fire more than once per
+        # session, so this is a per-session ratio, never a "share of sessions
+        # that converted" (which the stored aggregates cannot support).
+        card("organic_conversion_rate", "Organic key events per session", ga4_src,
+             round(cur_a["cr"], 2) if cur_ga4 and cur_a["cr"] is not None else None,
+             round(pa["cr"], 2) if pa["cr"] is not None else None,
+             ga4_state, ga4_last,
              sample=rate(cur_a["key_events"], cur_a["sessions"]) if cur_ga4 else None,
              warning=ga4_warn),
     ]
+    from app.constants import GSC_IMPORTED_QUERIES_DISCLOSURE
+
     return {
         "cards": cards,
         "gsc_coverage": gsc_cov,
         "ga4_coverage": ga4_cov,
+        # Fixed disclosure: GSC sums cover imported queries only (Google omits
+        # some anonymized queries from query-level exports).
+        "gsc_note": GSC_IMPORTED_QUERIES_DISCLOSURE,
     }
 
 

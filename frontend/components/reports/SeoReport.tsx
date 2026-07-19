@@ -209,25 +209,38 @@ export function SeoReport() {
             formatValue={(n) =>
               c.unit === "pct"
                 ? fmtPct(n)
-                : c.key === "avg_position"
-                ? n.toFixed(1)
+                : c.key === "avg_position" || c.key === "organic_conversion_rate"
+                ? n.toFixed(c.key === "avg_position" ? 1 : 2)
                 : fmtNum(n)
             }
             higherIsBetter={c.higher_is_better}
             source={c.source}
             lastDataDate={c.last_data_date}
+            // Key events are event COUNTS (can fire >1 per session), so the
+            // "X of Y" subset phrasing would be a lie for that card; it gets
+            // an honest sentence instead.
             sample={
-              c.sample
+              c.sample && c.key === "ctr"
                 ? {
                     numerator: c.sample.numerator,
                     denominator: c.sample.denominator,
-                    unit: c.key === "ctr" ? "impressions clicked" : "sessions converting",
+                    unit: "impressions clicked",
                   }
+                : undefined
+            }
+            subText={
+              c.sample && c.key === "organic_conversion_rate"
+                ? `${fmtNum(c.sample.numerator)} key events across ${fmtNum(
+                    c.sample.denominator
+                  )} sessions. Key events reflect this GA4 property's configuration and can fire more than once per session.`
                 : undefined
             }
           />
         ))}
       </div>
+      {data.summary.gsc_note && (
+        <p className="mt-2 text-[11px] leading-snug text-muted">{data.summary.gsc_note}</p>
+      )}
 
       <Section title="Search performance trends" sub="Search Console, daily. Days without data appear as gaps, not zeros.">
         {data.trends.state !== "complete" ? (
@@ -390,7 +403,7 @@ export function SeoReport() {
                     <th className="py-2 pr-3 text-right font-medium">Sessions</th>
                     <th className="py-2 pr-3 text-right font-medium">Engaged</th>
                     <th className="py-2 pr-3 text-right font-medium">Key events</th>
-                    <th className="py-2 pr-3 text-right font-medium">Conv. rate</th>
+                    <th className="py-2 pr-3 text-right font-medium">Events / session</th>
                     <th className="py-2 pr-3 text-right font-medium">Clicks</th>
                     <th className="py-2 text-right font-medium">Impressions</th>
                   </tr>
@@ -416,7 +429,7 @@ export function SeoReport() {
                         {r.key_events !== null ? fmtNum(r.key_events) : "n/a"}
                       </td>
                       <td className="py-2 pr-3 text-right">
-                        {r.conversion_rate !== null ? fmtPct(r.conversion_rate) : "n/a"}
+                        {r.conversion_rate !== null ? r.conversion_rate.toFixed(2) : "n/a"}
                       </td>
                       <td className="py-2 pr-3 text-right">
                         {r.clicks !== null ? fmtNum(r.clicks) : "n/a"}

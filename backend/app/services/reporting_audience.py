@@ -71,14 +71,18 @@ def aggregate_geography(rows) -> dict:
     stay distinct. Rows GA4 could not place (city NULL) collapse into a single
     Unknown bucket. Region rollups only count rows with a known region.
     """
+    # NB: total_users is deliberately NOT aggregated here. GA4 reports users
+    # per dimension combination (date x source x medium x landing x city), so
+    # summing rows counts the same user many times; unique users cannot be
+    # derived from the stored aggregates and Beacon does not show a number it
+    # cannot support. Sessions are session-scoped and sum exactly.
     cities: dict[tuple[str, str | None], dict] = {}
     regions: dict[str, dict] = {}
-    total_sessions = total_users = ai_sessions = engaged = key_events = 0
+    total_sessions = ai_sessions = engaged = key_events = 0
     located_sessions = 0
 
     for r in rows:
         total_sessions += r.sessions
-        total_users += r.total_users
         engaged += r.engaged_sessions
         key_events += r.key_events
         if r.is_ai_referral:
@@ -95,25 +99,20 @@ def aggregate_geography(rows) -> dict:
                 "city": ckey[0],
                 "region": ckey[1],
                 "sessions": 0,
-                "users": 0,
                 "engaged_sessions": 0,
                 "key_events": 0,
                 "ai_sessions": 0,
             },
         )
         c["sessions"] += r.sessions
-        c["users"] += r.total_users
         c["engaged_sessions"] += r.engaged_sessions
         c["key_events"] += r.key_events
         if r.is_ai_referral:
             c["ai_sessions"] += r.sessions
 
         if r.region:
-            rg = regions.setdefault(
-                r.region, {"region": r.region, "sessions": 0, "users": 0}
-            )
+            rg = regions.setdefault(r.region, {"region": r.region, "sessions": 0})
             rg["sessions"] += r.sessions
-            rg["users"] += r.total_users
 
     for c in cities.values():
         c["engagement_rate"] = _share(c["engaged_sessions"], c["sessions"])
@@ -130,7 +129,6 @@ def aggregate_geography(rows) -> dict:
 
     return {
         "total_sessions": total_sessions,
-        "total_users": total_users,
         "engaged_sessions": engaged,
         "key_events": key_events,
         "ai_sessions": ai_sessions,
@@ -226,7 +224,6 @@ def build_audience_report(
 
     summary = {
         "total_sessions": total,
-        "total_users": agg["total_users"],
         "ai_sessions": agg["ai_sessions"],
         "ai_share": _share(agg["ai_sessions"], total),
         "located_sessions": located,

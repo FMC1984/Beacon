@@ -53,7 +53,13 @@ def test_summary_cards_math_and_sources(client, seo_property):
     assert cards["organic_sessions"]["value"] == 150
     assert cards["organic_engaged_sessions"]["value"] == 85
     assert cards["organic_key_events"]["value"] == 6
-    assert cards["organic_conversion_rate"]["value"] == round(6 / 150, 4)
+    # Key events per session is a RATIO of event counts (events can fire more
+    # than once per session), never a "share of sessions converting" and never
+    # displayed as a percentage.
+    assert cards["organic_conversion_rate"]["value"] == round(6 / 150, 2)
+    assert cards["organic_conversion_rate"]["label"] == "Organic key events per session"
+    assert cards["organic_conversion_rate"]["unit"] is None
+    assert "converting" not in str(cards["organic_conversion_rate"])
     assert cards["organic_sessions"]["source"] == "GA4 (organic medium)"
     assert cards["organic_clicks"]["source"] == "Search Console"
     assert cards["avg_position"]["higher_is_better"] is False

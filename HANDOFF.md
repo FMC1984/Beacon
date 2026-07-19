@@ -80,6 +80,54 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Data-accuracy audit (2026-07-18, 591 tests)
+- Tina asked "make sure all the other numbers are accurate" after the
+  conversion-rate catch. Full audit: sync request dimensions -> every
+  aggregation -> cross-surface equality.
+- VERIFIED CORRECT: CTR (ratio of sums), avg position (impressions-
+  weighted), organic filter (lower(medium)=="organic", AI/referral rows
+  excluded), GA4 sessions/engaged/keyEvents sums (session-scoped dims,
+  exact), events-table user caveat, movers thresholds, landing joins.
+- FIXED 1 - GSC anonymized-query undercount now DISCLOSED: the sync pulls
+  dimensions [date, query, page]; Google omits some anonymized queries from
+  query-level exports, so every GSC total can understate Search Console UI
+  totals. New fixed constant GSC_IMPORTED_QUERIES_DISCLOSURE (same posture
+  as AI_TRAFFIC_DISCLOSURE) rendered under the SEO summary cards
+  (summary.gsc_note) + appended to the four GSC CSV definitions. Proper fix
+  (a second date-only totals request stored distinctly) deliberately NOT
+  rushed: it would touch ~10 consumers with double-count risk; planned
+  follow-up.
+- FIXED 2 - Audience "Users" REMOVED: total_users summed across
+  date x source x medium x landing x city rows counts the same user many
+  times; uniques cannot be derived from stored aggregates, so the number is
+  gone from the audience payload, table, and CSV (sessions are exact and
+  remain). GA4SessionsDaily.total_users still stored + raw-exported.
+- tests/test_data_accuracy.py locks the invariants permanently: ratio-of-
+  sums CTR, weighted position, organic exclusions, dashboard == SEO report
+  == executive == briefing KPI equality on one seeded window, audience
+  sessions == dashboard, no users fields anywhere in the audience payload,
+  GSC disclosure present in report + CSV.
+
+
+### Key-events "conversion rate" honesty fix (2026-07-18, 583 tests)
+- Found by Tina in production: the SEO report showed "Organic conversion
+  rate 72% - 713 of 984 sessions converting". The numerator is a COUNT of
+  GA4 key events (which can fire more than once per session and reflect
+  whatever the GA4 property marks as key), not a count of converting
+  sessions - the stored aggregates cannot support that claim at all.
+- Fix: card relabeled "Organic key events per session", value is a ratio
+  (0.72, never a percent), sub-line reads "713 key events across 984
+  sessions" with the can-fire-more-than-once note; the generic "sessions
+  converting" sample phrasing is gone; landing-pages column is now
+  "Events / session" (ratio); CSV definition spells out the semantics.
+  16B test now locks label/unit and asserts "converting" never appears.
+- Exec report / briefing / prints unaffected (they never used this card).
+- Also from today: comparison gate on the hosted SEO report correctly
+  refuses May-Jun comparison (prior window predates the Google sync);
+  it self-resolves as the rolling window passes the sync start (~early
+  August). No change needed - working as designed.
+
+
 ### SEO Performance RAG chunk (2026-07-13, 583 tests)
 - Gap found by Tina in production: the briefing's Ask-Nora question about
   striking-distance queries was honestly unanswerable - the SEO quadrant

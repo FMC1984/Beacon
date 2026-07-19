@@ -42,6 +42,7 @@ export function ReportMetricCard({
   source,
   lastDataDate,
   sample,
+  subText,
 }: {
   label: string;
   state: DataStateKey;
@@ -57,6 +58,10 @@ export function ReportMetricCard({
   source?: string;
   lastDataDate?: string | null;
   sample?: { numerator: number; denominator: number; unit: string };
+  /** Preformatted explanatory line under the value, for metrics whose sample
+   * does not fit the "X of Y" subset phrasing (e.g. event counts that can
+   * exceed one per session). */
+  subText?: string;
 }) {
   const fmt = formatValue ?? ((n: number) => String(n));
   const complete = state === "complete";
@@ -107,6 +112,7 @@ export function ReportMetricCard({
               {sample.numerator} of {sample.denominator} {sample.unit}
             </p>
           )}
+          {subText && <p className="mt-1 text-xs text-muted">{subText}</p>}
         </>
       ) : (
         <p className="mt-2 text-sm text-muted">

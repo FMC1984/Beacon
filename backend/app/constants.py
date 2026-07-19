@@ -6,6 +6,16 @@ AI_TRAFFIC_DISCLOSURE = (
     "Actual AI-influenced traffic is likely higher."
 )
 
+# Fixed copy for every Search Console total (same posture as the AI
+# disclosure): Beacon's GSC rows come from a query-dimension export, and
+# Google omits some anonymized queries from those, so sums over imported
+# queries can understate the property totals shown in Search Console itself.
+GSC_IMPORTED_QUERIES_DISCLOSURE = (
+    "Search Console totals are sums over imported queries. Google omits some "
+    "anonymized queries from query-level exports, so true totals can be "
+    "higher."
+)
+
 # Shown on the admin status page. TEST_COUNT is updated manually at each
 # release checkpoint (pytest does not run in the server process).
 APP_VERSION = "0.16.0"
@@ -55,4 +65,4 @@ APP_PHASE = (
     "loop, deterministic and free so ON by default, manual saves win, "
     "no-data months skipped) and print-friendly briefing complete. SEO Performance RAG chunk indexed (striking-distance queries by name with metrics) so Nora answers the briefing's own strategic questions"
 )
-TEST_COUNT = 583
+TEST_COUNT = 591
