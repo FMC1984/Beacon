@@ -676,6 +676,17 @@ export function BriefingView() {
           <div className="flex items-center gap-2">
             {savedMsg && <span className="text-xs text-muted">{savedMsg}</span>}
             <button
+              onClick={() =>
+                window.open(
+                  `/briefing/print?property_id=${body.property_id}&year=${body.period.year}&month=${body.period.month}`,
+                  "_blank"
+                )
+              }
+              className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted transition-colors hover:text-foreground"
+            >
+              Print / PDF
+            </button>
+            <button
               onClick={onGenerate}
               disabled={saving}
               className="rounded-xl border border-violet-a/50 bg-violet-a/15 px-3 py-2 text-sm disabled:opacity-60"

@@ -181,3 +181,31 @@ async def start_ai_visibility_autorun():
             await asyncio.sleep(7 * 24 * 60 * 60)
 
     asyncio.create_task(loop())
+
+
+@app.on_event("startup")
+async def start_briefing_autosnapshot():
+    """Daily month-end check: freeze a Monthly Briefing snapshot for any
+    property whose previous calendar month has data but no snapshot yet.
+    Deterministic composition, zero external-API cost, idempotent (manual
+    saves win), so it is ON by default (BEACON_BRIEFING_AUTOSNAPSHOT=0 to
+    disable). Failures never crash the loop."""
+    if not settings.briefing_autosnapshot:
+        return
+    import asyncio
+
+    async def loop():
+        from app.db import SessionLocal
+        from app.services.reporting_briefing import autosnapshot_closed_months
+
+        while True:
+            db = SessionLocal()
+            try:
+                autosnapshot_closed_months(db)
+            except Exception:
+                pass  # a bad compose never kills the scheduler
+            finally:
+                db.close()
+            await asyncio.sleep(24 * 60 * 60)
+
+    asyncio.create_task(loop())

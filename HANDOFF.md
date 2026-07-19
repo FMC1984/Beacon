@@ -80,6 +80,26 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 17E — Auto-snapshot + printable briefing (2026-07-13, 578 tests)
+- **Month-end auto-snapshot**: `autosnapshot_closed_months()` in
+  reporting_briefing + a daily startup loop in main.py (same pattern as the
+  Google autosync). For each ACTIVE property: if the PREVIOUS calendar month
+  has GA4/GSC data but no snapshot, compose + freeze one
+  (generated_by="autosnapshot"). Manual saves always win (existing rows are
+  never overwritten); months with no data are skipped, never frozen empty;
+  idempotent; January correctly rolls to December. Flag
+  BEACON_BRIEFING_AUTOSNAPSHOT defaults ON (deterministic + zero API cost,
+  unlike the AI Visibility autorun which stays OFF).
+- **Print-friendly briefing**: /briefing/print?property_id=&year=&month=
+  reuses the 16C .print-doc pattern (black-on-white, auto window.print, "Save
+  as PDF" = real client deliverable): health table, cited summary, KPIs,
+  story, cross-system insights, priorities, questions, methodology note
+  restating the no-composite-score and co-occurrence-not-causation rules.
+  "Print / PDF" button next to Save snapshot on /briefing.
+- Reports History now fills itself: the flagship is a monthly artifact
+  without anyone remembering to click Save.
+
+
 ### Phase 17D — Strategist synthesis + tokenized Share (2026-07-13, 571 tests)
 - **If I Were Your Strategist** (`app/services/strategist.py`): the briefing's
   one sanctioned LLM step, held to Nora's discipline. The model sees ONLY

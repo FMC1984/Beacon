@@ -51,6 +51,8 @@ APP_PHASE = (
     "in code, insufficient-data gate never calls the model, demo mode "
     "deterministic, manual button) and tokenized briefing Share (public "
     "key-exempt route, rotating revocable tokens, frozen client-safe "
-    "payload) complete"
+    "payload) complete. Phase 17E month-end briefing auto-snapshot (daily "
+    "loop, deterministic and free so ON by default, manual saves win, "
+    "no-data months skipped) and print-friendly briefing complete"
 )
-TEST_COUNT = 571
+TEST_COUNT = 578

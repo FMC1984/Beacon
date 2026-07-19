@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     # standing prompts (spends OpenAI budget) and snapshots the score. Off by
     # default because it costs money; enable deliberately.
     ai_visibility_autorun: bool = False
+    # When on, a daily background task freezes a Monthly Briefing snapshot for
+    # any property whose previous calendar month has data but no snapshot yet.
+    # ON by default: composing a briefing is deterministic and costs nothing
+    # (no LLM, no external API) - unlike the AI Visibility autorun above.
+    briefing_autosnapshot: bool = True
 
     model_config = SettingsConfigDict(
         env_prefix="BEACON_", env_file=".env", extra="ignore"

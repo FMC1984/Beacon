@@ -67,6 +67,70 @@ def _trend_of(card: dict | None) -> str | None:
     return cmp["direction"] if cmp else None
 
 
+# --- month-end auto-snapshot (17E) ---------------------------------------------
+
+
+def autosnapshot_closed_months(db: Session, today: date | None = None) -> dict:
+    """Freeze a briefing snapshot for every property whose PREVIOUS calendar
+    month has data but no snapshot yet. Deterministic and idempotent: a month
+    that already has a snapshot is skipped (manual saves win), and a property
+    with no GA4/GSC rows in that month is skipped rather than frozen empty.
+    Returns a summary for logging/tests."""
+    from app.models import MonthlyBriefing
+
+    today = today or date.today()
+    py, pm = _prev_month(today.year, today.month)
+    start, end = _month_bounds(py, pm)
+
+    created, skipped_existing, skipped_no_data = [], [], []
+    props = db.query(Property).filter(Property.is_active.is_(True)).all()
+    for prop in props:
+        exists = (
+            db.query(MonthlyBriefing.id)
+            .filter(
+                MonthlyBriefing.property_id == prop.id,
+                MonthlyBriefing.period_start == start,
+            )
+            .first()
+        )
+        if exists:
+            skipped_existing.append(prop.id)
+            continue
+        has_data = (
+            db.query(GA4SessionsDaily.id)
+            .filter(
+                GA4SessionsDaily.property_id == prop.id,
+                GA4SessionsDaily.date >= start,
+                GA4SessionsDaily.date <= end,
+            )
+            .first()
+            or db.query(GSCPerformanceDaily.id)
+            .filter(
+                GSCPerformanceDaily.property_id == prop.id,
+                GSCPerformanceDaily.date >= start,
+                GSCPerformanceDaily.date <= end,
+            )
+            .first()
+        )
+        if not has_data:
+            skipped_no_data.append(prop.id)
+            continue
+        payload = compose_briefing(db, prop.id, py, pm, today=today)
+        db.add(MonthlyBriefing(
+            property_id=prop.id, period_start=start, period_end=end,
+            payload=payload, generated_by="autosnapshot",
+        ))
+        db.commit()
+        created.append(prop.id)
+
+    return {
+        "month": f"{py}-{pm:02d}",
+        "created": created,
+        "skipped_existing": skipped_existing,
+        "skipped_no_data": skipped_no_data,
+    }
+
+
 # --- month windows -----------------------------------------------------------
 
 
