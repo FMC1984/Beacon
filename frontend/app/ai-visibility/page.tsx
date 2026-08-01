@@ -337,7 +337,7 @@ export default function AIVisibilityPage() {
   );
 }
 
-type StandingPrompt = { id: number; prompt_text: string; platform: string; active: boolean };
+type StandingPrompt = { id: number; prompt_text: string; platform: string; active: boolean; cadence?: string; volatile?: boolean; owning_url?: string | null };
 type ScorePoint = {
   captured_at: string;
   score: number | null;
@@ -386,6 +386,34 @@ function StandingPanel({ propertyId }: { propertyId: number }) {
     load();
   }
 
+  async function importSet(file: File) {
+    setBusy(true);
+    setNote(null);
+    try {
+      const payload = JSON.parse(await file.text());
+      const res = await fetch(`${API_BASE}/ai-visibility/${propertyId}/import-question-set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const b = await res.json();
+      if (!res.ok) {
+        setNote({ ok: false, text: b.detail ?? "Import failed." });
+      } else {
+        setNote({
+          ok: true,
+          text: `Imported: ${b.prompts_created} new prompt(s), ${b.prompts_updated} updated` +
+            (b.competitors_created?.length ? `, competitors added: ${b.competitors_created.join(", ")}.` : "."),
+        });
+      }
+    } catch {
+      setNote({ ok: false, text: "Could not read that file as question-set JSON." });
+    } finally {
+      setBusy(false);
+      load();
+    }
+  }
+
   async function runNow() {
     setBusy(true);
     setNote(null);
@@ -417,6 +445,20 @@ function StandingPanel({ propertyId }: { propertyId: number }) {
       <section className="rounded-2xl border border-line bg-surface p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Standing prompts</h2>
+          <div className="flex items-center gap-2">
+          <label className="cursor-pointer rounded-lg border border-line px-3 py-1.5 text-xs text-muted hover:text-foreground">
+            Import question set
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importSet(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <button
             onClick={runNow}
             disabled={busy || prompts.length === 0}
@@ -425,6 +467,7 @@ function StandingPanel({ propertyId }: { propertyId: number }) {
           >
             {busy ? "Running…" : "Run all now"}
           </button>
+          </div>
         </div>
         <p className="mt-1 text-xs text-muted">
           A reusable question set. Run weekly (automatically when enabled, or with
@@ -439,7 +482,21 @@ function StandingPanel({ propertyId }: { propertyId: number }) {
           {prompts.length === 0 && <p className="text-sm text-muted">No standing prompts yet.</p>}
           {prompts.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-surface-raised px-3 py-2 text-sm">
-              <span className="flex-1">{p.prompt_text}</span>
+              <span className="flex-1">
+                {p.prompt_text}
+                <span className="ml-2 inline-flex gap-1 align-middle">
+                  {p.cadence && (
+                    <span className="rounded-full border border-line px-1.5 py-0.5 text-[10px] text-muted">
+                      {p.cadence}
+                    </span>
+                  )}
+                  {p.volatile && (
+                    <span className="rounded-full border border-amber-a/40 bg-amber-a/10 px-1.5 py-0.5 text-[10px] text-amber-a">
+                      volatile
+                    </span>
+                  )}
+                </span>
+              </span>
               <span className="text-xs text-muted">{p.platform}</span>
               <button onClick={() => remove(p.id)} className="text-xs text-muted hover:text-pink-a">✕</button>
             </div>

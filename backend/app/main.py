@@ -155,10 +155,14 @@ async def start_ai_visibility_autorun():
 
     async def loop():
         from app.db import SessionLocal
-        from app.models import AIVisibilityPrompt, Property
-        from app.services.ai_visibility.schedule import run_standing_prompts
+        from app.models import AIVisibilityPrompt
+        from app.services.ai_visibility.schedule import run_due_prompts
         from app.services.rag_sync_service import drain_queue
 
+        # Daily tick, cadence-aware (question-set import): weeklies run every
+        # ~7 days, monthlies on the 1st and 15th. Idempotent within a day, so
+        # a restart never double-runs; the per-property daily budget still
+        # caps spend.
         while True:
             db = SessionLocal()
             try:
@@ -169,16 +173,18 @@ async def start_ai_visibility_autorun():
                     .distinct()
                     .all()
                 ]
+                any_ran = False
                 for pid in property_ids:
                     try:
-                        run_standing_prompts(db, pid)
+                        result = run_due_prompts(db, pid)
+                        any_ran = any_ran or result["prompts_run"] > 0
                     except Exception:
-                        pass  # a bad property never aborts the weekly batch
-                if property_ids and settings.rag_autosync:
+                        pass  # a bad property never aborts the daily tick
+                if any_ran and settings.rag_autosync:
                     drain_queue()
             finally:
                 db.close()
-            await asyncio.sleep(7 * 24 * 60 * 60)
+            await asyncio.sleep(24 * 60 * 60)
 
     asyncio.create_task(loop())
 

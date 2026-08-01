@@ -236,6 +236,23 @@ def matrix_cell_evidence(db: Session, property_id: int, query_id: int) -> dict:
     owned_cited = [d for d in cites if any(d == o or d.endswith("." + o) for o in owned)]
     excerpt = q.raw_response_text.strip()
     truncated = len(excerpt) > RESPONSE_EXCERPT_CHARS
+
+    # Question-set success criteria: deterministic containment check of the
+    # prompt's must_contain components against the stored response.
+    from app.models import AIVisibilityPrompt
+    from app.services.ai_visibility.question_set import evaluate_must_contain
+
+    prompt_row = (
+        db.query(AIVisibilityPrompt)
+        .filter(
+            AIVisibilityPrompt.property_id == property_id,
+            AIVisibilityPrompt.prompt_text == q.prompt_text,
+        )
+        .first()
+    )
+    required = evaluate_must_contain(
+        q.raw_response_text, prompt_row.must_contain if prompt_row else None
+    )
     return {
         "query_id": q.id,
         "prompt": q.prompt_text,
@@ -247,6 +264,10 @@ def matrix_cell_evidence(db: Session, property_id: int, query_id: int) -> dict:
         "cited_domains": cites,
         "owned_domains_cited": owned_cited,
         "detected_competitors": detected,
+        # Empty when the prompt has no must_contain criteria.
+        "required_components": required,
+        "owning_url": prompt_row.owning_url if prompt_row else None,
+        "volatile": bool(prompt_row.volatile) if prompt_row else False,
     }
 
 

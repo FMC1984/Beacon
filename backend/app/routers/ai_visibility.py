@@ -139,6 +139,23 @@ class PromptIn(BaseModel):
     platform: str = "chatgpt"
 
 
+@router.post("/{property_id}/import-question-set")
+def import_prompts_question_set(
+    property_id: int, payload: dict, db: Session = Depends(get_db)
+):
+    """Import an operator-authored question-set JSON (the dchp-beacon-queries
+    shape): questions become cadence-aware standing prompts (upserted by text,
+    so re-importing a revision updates instead of duplicating) and named
+    organization competitors become Competitor rows."""
+    from app.services.ai_visibility.question_set import import_question_set
+
+    _require_property(db, property_id)
+    try:
+        return import_question_set(db, property_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
 @router.get("/{property_id}/prompts")
 def list_prompts(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
@@ -155,6 +172,11 @@ def list_prompts(property_id: int, db: Session = Depends(get_db)):
                 "prompt_text": r.prompt_text,
                 "platform": r.platform,
                 "active": r.active,
+                "cadence": r.cadence,
+                "runs_per_cycle": r.runs_per_cycle,
+                "volatile": r.volatile,
+                "owning_url": r.owning_url,
+                "last_run_at": r.last_run_at.isoformat() if r.last_run_at else None,
             }
             for r in rows
         ],

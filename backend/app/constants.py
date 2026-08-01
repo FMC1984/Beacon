@@ -63,6 +63,6 @@ APP_PHASE = (
     "key-exempt route, rotating revocable tokens, frozen client-safe "
     "payload) complete. Phase 17E month-end briefing auto-snapshot (daily "
     "loop, deterministic and free so ON by default, manual saves win, "
-    "no-data months skipped) and print-friendly briefing complete. SEO Performance RAG chunk indexed (striking-distance queries by name with metrics) so Nora answers the briefing's own strategic questions"
+    "no-data months skipped) and print-friendly briefing complete. SEO Performance RAG chunk indexed (striking-distance queries by name with metrics) so Nora answers the briefing's own strategic questions. DCHP question-set import: cadence-aware standing prompts (weekly/monthly, 1st+15th), web search required on visibility runs (non-browsing runs discarded), deterministic must_contain evaluation, org-competitor mapping"
 )
-TEST_COUNT = 591
+TEST_COUNT = 600

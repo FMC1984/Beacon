@@ -80,7 +80,47 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
-### Visual polish pass (2026-07-18)
+### DCHP question-set import (2026-08-01, 600 tests)
+- Tina supplied dchp-beacon-queries.json (12 questions: 4 weekly + 8
+  monthly, budget ~$3-5/mo, citation watchlist, must_contain criteria).
+  Migration c3e4f5a6b7d8 adds prompt metadata (cadence, runs_per_cycle,
+  intent, owning_url, volatile, must_contain JSON, notes, last_run_at).
+- Import: POST /api/ai-visibility/{pid}/import-question-set (+ "Import
+  question set" button on Standing & Trend). Upserts by prompt TEXT so
+  re-importing a revised file updates rather than duplicates. Org
+  competitors only (douglasco.gov/chfainfo.com/coloradohousingconnects.org
+  -> Competitor rows); hud.gov/ILS domains stay with the source classifier
+  (marking them competitor would override the more accurate
+  government/directory categories). publichousing.com, lowincomehousing.us,
+  apartmentfinder, aplaceformom, after55 added to directory list.
+- WEB SEARCH now on visibility runs (settings ai_visibility_web_search +
+  ai_visibility_require_search, both default ON): the OpenAI provider
+  passes the web_search tool, caps output at 400 tokens, reasoning effort
+  low; a response with NO web_search_call raises BrowsingUnavailableError
+  and the run is NOT stored (recall-only answers are false misses).
+- Cadence scheduler: run_due_prompts() - weeklies due every ~6.5 days,
+  monthlies on the 1st and 15th (runs_per_cycle=2) or 1st only; idempotent
+  within a day; last_run_at stamped on every run (manual run-all too). The
+  autorun loop is now a DAILY tick calling run_due_prompts; still gated
+  behind BEACON_AI_VISIBILITY_AUTORUN (OFF). The imported budget design
+  assumes scheduled runs - Tina must flip the flag to activate ~33/mo.
+- must_contain: deterministic containment at read time (never an LLM
+  judge, matching the file's llm_judge:false); evidence drawer now shows
+  required_components present/missing + owning_url + volatile.
+- NOT implemented from the file (advisory for the operator): service_tier
+  flex, per-run cost tracking, alert rules (weekly-miss/answer_current
+  flags), source_position. answer_current needs manual judgment.
+- Tina decisions pending: flip autorun flag on Render; optionally set
+  BEACON_AI_VISIBILITY_MODEL (file wants consumer-mirroring "chat-latest";
+  default stays gpt-5-mini until she chooses).
+
+
+### Visual polish pass (2026-07-18; AMPLIFIED same day)
+- v1 was too timid ("I don't see much of a change"). v2: aurora roughly
+  doubled (0.20/0.13/0.08, larger radii), hairline brightened
+  (0.95/0.8/0.45) + soft violet outer glow on hero cards, and BeaconSweep
+  added to the sidebar foot (clipped by its own wrapper, NOT the aside -
+  the floating collapse handle must stay un-clipped). Original notes:
 - Tina approved 3 of 5 pitched ingredients (mockup artifact:
   claude.ai/code/artifact/20aefc0e-...): aurora wash, gradient hairline,
   beacon sweep. REJECTED: grain texture, gradient text - do not add them.

@@ -23,6 +23,12 @@ class PlatformNotConnectedError(RuntimeError):
     """Recognized platform, but no live connector is implemented for it yet."""
 
 
+class BrowsingUnavailableError(RuntimeError):
+    """require_search is on and the model answered without browsing. The run
+    is discarded rather than stored: a non-browsing response measures training
+    recall, not retrieval, and would record a false miss."""
+
+
 def read_queries(db: Session, property_id: int) -> list[AIVisibilityRecord]:
     rows = (
         db.query(AIVisibilityQuery)
@@ -94,14 +100,34 @@ class OpenAIVisibilityProvider(_StoredReader):
                 "platforms marked live in ai_visibility.json can be queried."
             )
         # Neutral instruction: answer the prompt as a general AI assistant would.
-        response = self._client.responses.create(
-            model=self.model,
-            instructions=(
+        kwargs: dict = {
+            "model": self.model,
+            "instructions": (
                 "You are a general AI assistant answering a consumer's question. "
                 "Answer normally and cite sources where relevant."
             ),
-            input=prompt,
-        )
+            "input": prompt,
+            "max_output_tokens": settings.ai_visibility_max_output_tokens,
+        }
+        # Web search: consumer assistants browse for local/volatile questions,
+        # so measuring without it records recall, not retrieval.
+        if settings.ai_visibility_web_search:
+            kwargs["tools"] = [{"type": "web_search"}]
+        if settings.ai_visibility_reasoning_effort:
+            kwargs["reasoning"] = {"effort": settings.ai_visibility_reasoning_effort}
+        response = self._client.responses.create(**kwargs)
+
+        if settings.ai_visibility_web_search and settings.ai_visibility_require_search:
+            browsed = any(
+                getattr(item, "type", "") == "web_search_call"
+                for item in (getattr(response, "output", None) or [])
+            )
+            if not browsed:
+                raise BrowsingUnavailableError(
+                    "Run discarded: the model answered without web search. "
+                    "Non-browsing responses measure training recall, not "
+                    "retrieval, and would record a false miss."
+                )
         return response.output_text
 
 

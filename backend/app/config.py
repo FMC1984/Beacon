@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     ai_visibility_daily_limit: int = 20
     # Model used when querying the ChatGPT connector live.
     ai_visibility_model: str = "gpt-5-mini"
+    # Web search on visibility runs (question-set requirement): non-browsing
+    # responses measure training recall, not retrieval, and produce false
+    # misses. require_search discards runs where the model did not browse.
+    ai_visibility_web_search: bool = True
+    ai_visibility_require_search: bool = True
+    # Output bills far above input; only enough response to carry citations.
+    ai_visibility_max_output_tokens: int = 400
+    ai_visibility_reasoning_effort: str = "low"
     # Shared access key for hosted deployments (e.g. Render). Empty (the
     # default) means no auth - correct for local single-user use. When set,
     # every /api request except /api/health must carry it in the X-Beacon-Key
