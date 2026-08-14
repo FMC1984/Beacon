@@ -11,6 +11,10 @@ from app.config import settings
 from app.connectors.base import AIVisibilityQueryProvider
 from app.extensions.hooks import trigger_rag_sync
 from app.models import AIVisibilityQuery, Property
+from app.services.ai_visibility.mentions import (
+    persist_mentions_for_query,
+    resolve_property_terms,
+)
 from app.services.ai_visibility.parsing import detect_mention, extract_sources
 from app.services.ai_visibility.providers import get_ai_visibility_provider
 from app.services.ai_visibility.reference import validate_platform
@@ -50,10 +54,10 @@ def budget_status(db: Session, property_id: int, now: datetime | None = None) ->
 
 
 def brand_terms_for(prop: Property) -> list[str]:
-    """Deterministic brand terms for mention detection: the property name only.
-    Beacon never invents aliases; if a name is missing there is nothing to
-    match."""
-    return [prop.name] if prop and prop.name else []
+    """Deterministic brand terms for mention detection: the property name
+    plus any operator-asserted aliases (Property.aliases). Beacon never
+    invents an alias; if a name is missing there is nothing to match."""
+    return resolve_property_terms(prop)
 
 
 def run_query(
@@ -111,6 +115,7 @@ def run_query(
     db.add(row)
     db.commit()
     db.refresh(row)
+    persist_mentions_for_query(db, row)
     trigger_rag_sync(
         db, property_id=property_id, source="ai_visibility", reason="ai_visibility_query"
     )

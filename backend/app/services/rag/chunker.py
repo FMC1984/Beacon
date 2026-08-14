@@ -41,6 +41,7 @@ SOURCE_AI_QUERY_SIGNALS = "ai_query_signals"
 SOURCE_AI_VISIBILITY = "ai_visibility"
 SOURCE_COMPETITOR_INTELLIGENCE = "competitor_intelligence"
 SOURCE_OPPORTUNITY_ENGINE = "opportunity_engine"
+SOURCE_SHARE_OF_VOICE = "share_of_voice"
 SOURCE_SEO_PERFORMANCE = "seo_performance"
 
 
@@ -375,6 +376,32 @@ def _competitor_intelligence_chunks(db: Session, prop: Property) -> list[Chunk]:
     ]
 
 
+def _share_of_voice_chunks(db: Session, prop: Property) -> list[Chunk]:
+    """One deterministic AI Share of Voice chunk per property (Phase 18C), so
+    Nora can ground Share of Voice questions without a bespoke retrieval
+    path. Distinct from the competitor_intelligence chunk above - never
+    fused. Empty unless competitors are tracked and the sample clears the
+    minimum."""
+    from app.services.reporting_share_of_voice import share_of_voice_summary_text
+
+    text = share_of_voice_summary_text(db, prop.id)
+    if not text:
+        return []
+    return [
+        Chunk(
+            chroma_id=f"share_of_voice-p{prop.id}",
+            property_id=prop.id,
+            source=SOURCE_SHARE_OF_VOICE,
+            source_table="share_of_voice",
+            source_ref=f"share_of_voice: property={prop.id}",
+            period_start=None,
+            period_end=None,
+            text=text,
+            page=None,
+        )
+    ]
+
+
 def _opportunity_engine_chunks(
     db: Session, prop: Property, content_provider: ContentProvider
 ) -> list[Chunk]:
@@ -581,6 +608,8 @@ def build_chunks(
             chunks.extend(_ai_visibility_chunks(db, prop))
         if want(SOURCE_COMPETITOR_INTELLIGENCE):
             chunks.extend(_competitor_intelligence_chunks(db, prop))
+        if want(SOURCE_SHARE_OF_VOICE):
+            chunks.extend(_share_of_voice_chunks(db, prop))
         if want(SOURCE_SEO_PERFORMANCE):
             chunks.extend(_seo_performance_chunks(db, prop))
         if content_provider is not None:

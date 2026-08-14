@@ -98,6 +98,34 @@ def compare(current: float | None, previous: float | None) -> dict:
     }
 
 
+def pct_point_change(current: float | None, previous: float | None) -> float | None:
+    """Point difference between two ALREADY-fractional percentages (0-1
+    scale), e.g. 0.26 -> 0.32 returns 0.06 ("+6 pts"). This is NOT the
+    relative change pct_change() computes (which would read +0.23, i.e.
+    "+23%") - use this whenever both values are themselves percentages
+    (share of voice, mention rate, etc), never a raw count or amount."""
+    if current is None or previous is None:
+        return None
+    return round(current - previous, 4)
+
+
+def compare_points(current: float | None, previous: float | None) -> dict:
+    """Comparison envelope for two already-fractional percentage metrics.
+    Deliberately shaped differently from compare() (`point_change`, not
+    `pct_change`) so a percentage-of-percentages comparison can never be
+    accidentally rendered through the relative-% formatting path."""
+    change = pct_point_change(current, previous)
+    direction = None
+    if change is not None:
+        direction = "up" if change > 0 else "down" if change < 0 else "flat"
+    return {
+        "current": current,
+        "previous": previous,
+        "point_change": change,
+        "direction": direction,
+    }
+
+
 def rate(numerator: int, denominator: int, minimum_sample: int = 1) -> dict:
     """A sampled rate that always travels with its sample. Below the minimum
     sample (or with an empty denominator) the value is null and the state says

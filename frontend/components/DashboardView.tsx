@@ -21,6 +21,7 @@ import { TrendChart } from "@/components/TrendChart";
 import { PlatformDonut } from "@/components/PlatformDonut";
 import { Funnel } from "@/components/Funnel";
 import { EventsPanel } from "@/components/EventsPanel";
+import { SovKpiCard, useSovKpi } from "@/components/SovKpiCard";
 
 const RANGES = [7, 30, 90];
 
@@ -43,6 +44,7 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isProperty);
   const [staleSources, setStaleSources] = useState<string[]>([]);
+  const sovKpi = useSovKpi(isProperty ? propertyId : null);
 
   useEffect(() => {
     fetchProperties().then(setProperties).catch(() => {});
@@ -302,6 +304,12 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
           >
             Go to uploads
           </Link>
+        </div>
+      )}
+
+      {isProperty && sovKpi && propertyId !== null && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <SovKpiCard propertyId={propertyId} kpi={sovKpi} />
         </div>
       )}
 

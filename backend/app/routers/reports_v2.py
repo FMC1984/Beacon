@@ -22,10 +22,20 @@ from app.services.reporting_csv import (
     build_executive_csv,
     build_geo_csv,
     build_seo_csv,
+    build_sov_csv,
 )
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report, matrix_cell_evidence
 from app.services.reporting_seo import build_seo_report
+from app.services.reporting_share_of_voice import (
+    build_sov_report,
+    competitive_ranking,
+    sov_kpi_card,
+    sov_prompt_drilldown,
+    sov_response_evidence,
+    sov_topic_drilldown,
+    winners_losers,
+)
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -80,6 +90,13 @@ REPORT_TABS = [
         "status": "available",
         "planned_phase": "16F",
         "summary": "Content change log with before-and-after windows. Observed changes are never claimed as caused.",
+    },
+    {
+        "key": "share-of-voice",
+        "label": "AI Share of Voice",
+        "status": "available",
+        "planned_phase": "18B",
+        "summary": "Property mentions against operator-named competitors in tested AI answers, by platform and topic, with drilldown to the response evidence.",
     },
 ]
 
@@ -186,6 +203,120 @@ def geo_matrix_evidence(
         raise HTTPException(status_code=404, detail=str(exc))
 
 
+def _sov_filters(
+    topic_id: int | None, platform: str | None, prompt_id: int | None,
+    competitor_id: int | None, audience: str | None, location: str | None,
+    intent: str | None, priority: str | None,
+) -> dict:
+    return dict(
+        topic_id=topic_id, platform=platform, prompt_id=prompt_id,
+        competitor_id=competitor_id, audience=audience, location=location,
+        intent=intent, priority=priority,
+    )
+
+
+@router.get("/share-of-voice")
+def share_of_voice_report(
+    property_id: int | None = Query(default=None),
+    days: int = Query(default=30, ge=1, le=365),
+    compare: bool = Query(default=False),
+    topic_id: int | None = Query(default=None),
+    platform: str | None = Query(default=None),
+    prompt_id: int | None = Query(default=None),
+    competitor_id: int | None = Query(default=None),
+    audience: str | None = Query(default=None),
+    location: str | None = Query(default=None),
+    intent: str | None = Query(default=None),
+    priority: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return build_sov_report(
+            db, property_id, days, compare,
+            **_sov_filters(topic_id, platform, prompt_id, competitor_id, audience, location, intent, priority),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/share-of-voice/kpi")
+def share_of_voice_kpi(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return sov_kpi_card(db, property_id, days)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/share-of-voice/ranking")
+def share_of_voice_ranking(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    topic_id: int | None = Query(default=None),
+    platform: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        ranking = competitive_ranking(db, property_id, days, topic_id=topic_id, platform=platform)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"ranking": ranking, "winners_losers": winners_losers(db, property_id, days)}
+
+
+@router.get("/share-of-voice/topics/{topic_id}")
+def share_of_voice_topic_drilldown(
+    topic_id: int,
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    platform: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return sov_topic_drilldown(db, property_id, topic_id, days, platform=platform)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/share-of-voice/prompts/{prompt_id}")
+def share_of_voice_prompt_drilldown(
+    prompt_id: int,
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return sov_prompt_drilldown(db, property_id, prompt_id, days)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/share-of-voice/evidence")
+def share_of_voice_evidence(
+    property_id: int = Query(...),
+    response_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        return sov_response_evidence(db, property_id, response_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
 def _csv_response(content: str, filename: str) -> Response:
     return Response(
         content=content,
@@ -284,6 +415,32 @@ def content_impact_csv(
         raise HTTPException(status_code=404, detail="Property not found.")
     try:
         content, filename = build_content_impact_csv(db, property_id, window=window)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return _csv_response(content, filename)
+
+
+@router.get("/share-of-voice/export.csv")
+def share_of_voice_csv(
+    property_id: int | None = Query(default=None),
+    days: int = Query(default=30, ge=1, le=365),
+    topic_id: int | None = Query(default=None),
+    platform: str | None = Query(default=None),
+    prompt_id: int | None = Query(default=None),
+    competitor_id: int | None = Query(default=None),
+    audience: str | None = Query(default=None),
+    location: str | None = Query(default=None),
+    intent: str | None = Query(default=None),
+    priority: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    try:
+        content, filename = build_sov_csv(
+            db, property_id, days,
+            **_sov_filters(topic_id, platform, prompt_id, competitor_id, audience, location, intent, priority),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return _csv_response(content, filename)

@@ -22,6 +22,7 @@ from app.models import (
 from app.services.ai_visibility.analyzer import analyze_ai_visibility
 from app.services.ai_visibility.execution import RateLimitExceeded, run_query
 from app.services.ai_visibility.providers import get_ai_visibility_provider
+from app.services.reporting_share_of_voice import snapshot_sov
 
 logger = logging.getLogger("beacon.ai_visibility.schedule")
 
@@ -176,7 +177,10 @@ def run_due_prompts(
 
 
 def snapshot_score(db: Session, property_id: int, now: datetime | None = None) -> dict:
-    """Compute the current visibility analysis and append a history point."""
+    """Compute the current visibility analysis and append a history point.
+    Also snapshots Share of Voice (Phase 18) so both histories accrue on the
+    same schedule; a snapshot_sov() failure never blocks the AI Visibility
+    history point it's paired with."""
     now = now or datetime.now(timezone.utc)
     analysis = analyze_ai_visibility(db, property_id)
     score_obj = analysis.get("score")
@@ -192,6 +196,10 @@ def snapshot_score(db: Session, property_id: int, now: datetime | None = None) -
     )
     db.add(row)
     db.commit()
+    try:
+        snapshot_sov(db, property_id, today=now.date())
+    except Exception as exc:
+        logger.warning("sov snapshot failed: property=%s err=%s", property_id, exc)
     return {"score": score, "sample_size": sample, "mention_rate": rate}
 
 

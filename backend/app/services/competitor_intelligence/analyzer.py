@@ -179,6 +179,7 @@ def analyze_share_of_voice(
     }
 
     recommendations = _recommendations(context, sufficient, n, prop_count, entities)
+    recommendations += _topic_recommendations(db, property_id, today)
     limitations = [DIRECTIONAL_CAVEAT]
     if not sufficient:
         limitations.append(
@@ -255,4 +256,76 @@ def _recommendations(context, sufficient, n, prop_count, entities) -> list[dict]
             "competitors were. Improve how the property surfaces for these prompts.",
             "Actionable",
         )
+    return recs
+
+
+# Gap-to-leader threshold for the High Priority bucket below: large enough to
+# be a real competitive shortfall, not sample noise.
+_LARGE_GAP_THRESHOLD = 0.20
+
+
+def _topic_recommendations(db: Session, property_id: int, today: date | None) -> list[dict]:
+    """Topic-aware Share of Voice opportunity buckets (Phase 18C), feeding
+    the same "competitors" Opportunity Engine source as _recommendations()
+    above rather than a separate one (avoids double corroboration).
+
+    Buckets, evaluated per AI Topic in priority order: Protect (this
+    property already leads a high-priority topic - keep it), High Priority
+    (a competitor leads by a large margin on a topic that is also declining
+    for this property), everything else is Monitor/Low Priority and is
+    intentionally NOT surfaced as a recommendation - not every topic needs
+    an action item. Never reads prompt-volume or demand data Beacon does
+    not reliably have; "priority" here is only the operator-asserted
+    AITopic.priority field."""
+    from app.services.reporting_share_of_voice import build_sov_report
+
+    try:
+        report = build_sov_report(db, property_id, 30, compare=False, today=today)
+    except ValueError:
+        return []
+    if report.get("scope_required") or not report.get("has_competitors"):
+        return []
+
+    recs = []
+    for row in report.get("by_topic", []):
+        if not row["sufficient"] or row["share_of_voice"] is None:
+            continue
+        leader = row["leader"]
+        is_leader = bool(leader and leader["is_property"])
+        gap = row["gap_to_leader"]
+        declining = row["trend_arrow"] == "down"
+
+        if is_leader and row["priority"] == "high":
+            recs.append({
+                "title": f'Protect Share of Voice leadership on "{row["topic_name"]}"',
+                "reason": (
+                    f'This property leads AI Share of Voice on the high-priority '
+                    f'topic "{row["topic_name"]}" at {round(row["share_of_voice"] * 100)}%. '
+                    "Keep the content and prompts that earned this lead current."
+                ),
+                "state": "Monitor",
+                "impact": "Medium",
+                "effort": "Low",
+                "gate_reason": None,
+            })
+        elif (
+            not is_leader
+            and leader is not None
+            and gap is not None
+            and gap >= _LARGE_GAP_THRESHOLD
+            and declining
+        ):
+            recs.append({
+                "title": f'Close the Share of Voice gap on "{row["topic_name"]}"',
+                "reason": (
+                    f'{leader["name"]} leads AI Share of Voice on "{row["topic_name"]}" '
+                    f'by {round(gap * 100)} points, and this property\'s share is '
+                    "declining on that topic. Strengthen the content and prompts "
+                    "this topic targets."
+                ),
+                "state": "Actionable",
+                "impact": "High",
+                "effort": "Medium",
+                "gate_reason": None,
+            })
     return recs

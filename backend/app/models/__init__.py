@@ -34,6 +34,9 @@ from app.models.ai_visibility_schedule import (
 from app.models.competitor import Competitor
 from app.models.content_change import ChangeType, ContentChange
 from app.models.briefing import MonthlyBriefing
+from app.models.ai_topic import AITopic
+from app.models.mention import Mention, ENTITY_PROPERTY, ENTITY_COMPETITOR
+from app.models.ai_sov_snapshot import AIShareOfVoiceSnapshot
 
 __all__ = [
     "Company",
@@ -73,4 +76,9 @@ __all__ = [
     "ContentChange",
     "ChangeType",
     "MonthlyBriefing",
+    "AITopic",
+    "Mention",
+    "ENTITY_PROPERTY",
+    "ENTITY_COMPETITOR",
+    "AIShareOfVoiceSnapshot",
 ]

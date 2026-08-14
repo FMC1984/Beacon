@@ -39,6 +39,16 @@ class AIVisibilityPrompt(Base):
     cadence: Mapped[str] = mapped_column(String(20), default="weekly")
     runs_per_cycle: Mapped[int] = mapped_column(Integer, default=1)
     intent: Mapped[str | None] = mapped_column(String(50))
+    # Real topic grouping for Share of Voice by-topic reporting (Phase 18) -
+    # distinct from `intent`, which stays a free-text classification tag.
+    topic_id: Mapped[int | None] = mapped_column(ForeignKey("ai_topics.id"))
+    # Free-text SoV filter dimensions (Phase 18), same posture as `intent`:
+    # operator types whatever they want, no controlled vocabulary yet.
+    audience: Mapped[str | None] = mapped_column(String(100))
+    persona: Mapped[str | None] = mapped_column(String(100))
+    location_market: Mapped[str | None] = mapped_column(String(100))
+    priority: Mapped[str | None] = mapped_column(String(20))
+    tags: Mapped[list | None] = mapped_column(JSON)
     # The page that should own this answer, relative to the property site.
     owning_url: Mapped[str | None] = mapped_column(String(500))
     # Volatile answers (waitlist status, schedules) go stale; flagged so a

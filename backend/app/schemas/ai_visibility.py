@@ -20,3 +20,6 @@ class AIVisibilityQueryOut(BaseModel):
     brand_mentioned: bool
     sources_cited: list[str] | None
     created_at: datetime
+    execution_status: str = "success"
+    property_mention_count: int = 0
+    competitor_mention_count: int = 0

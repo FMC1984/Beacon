@@ -16,6 +16,7 @@ import {
   type MatrixCell,
 } from "@/lib/reports";
 import { EmptyState, ErrorState, StateBadge } from "./DataStates";
+import { EvidenceDrawerShell, EvidenceField } from "./EvidenceDrawer";
 import { ReportMetricCard } from "./ReportMetricCard";
 import { useReportContext } from "./ReportContext";
 
@@ -193,63 +194,46 @@ function EvidenceDrawer({
   evidence: GeoEvidence | "loading" | null;
   onClose: () => void;
 }) {
-  if (evidence === null) return null;
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/40" onClick={onClose}>
-      <div
-        className="h-full w-full max-w-md overflow-y-auto border-l border-line bg-surface p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label="Query evidence"
-      >
-        <button onClick={onClose} aria-label="Close evidence" className="mb-4 text-muted hover:text-foreground">
-          ✕ Close
-        </button>
-        {evidence === "loading" ? (
-          <p className="text-sm text-muted">Loading evidence...</p>
-        ) : (
-          <div className="space-y-4 text-sm">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted">Query</p>
-              <p className="mt-1">{evidence.prompt}</p>
-            </div>
-            <div className="flex gap-4 text-xs text-muted">
-              <span>{evidence.platform_label}</span>
-              <span>Run {fmtDate(evidence.run_date)}</span>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted">Stored response excerpt</p>
-              <p className="mt-1 whitespace-pre-wrap rounded-lg bg-surface-raised p-3 text-xs leading-relaxed text-muted">
-                {evidence.response_excerpt}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Evi label="Brand mentioned" value={evidence.brand_mentioned ? "Yes" : "No"} />
-              <Evi label="Owned domains cited" value={evidence.owned_domains_cited.join(", ") || "None"} />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted">Cited domains</p>
-              <p className="mt-1 text-xs">{evidence.cited_domains.join(", ") || "None detected"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted">Detected competitors</p>
-              <p className="mt-1 text-xs">
-                {evidence.detected_competitors.join(", ") || "None of the configured competitors"}
-              </p>
-            </div>
+    <EvidenceDrawerShell
+      open={evidence !== null}
+      loading={evidence === "loading"}
+      onClose={onClose}
+      ariaLabel="Query evidence"
+    >
+      {evidence && evidence !== "loading" && (
+        <div className="space-y-4 text-sm">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted">Query</p>
+            <p className="mt-1">{evidence.prompt}</p>
           </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Evi({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-      <p className="mt-1 text-xs">{value}</p>
-    </div>
+          <div className="flex gap-4 text-xs text-muted">
+            <span>{evidence.platform_label}</span>
+            <span>Run {fmtDate(evidence.run_date)}</span>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted">Stored response excerpt</p>
+            <p className="mt-1 whitespace-pre-wrap rounded-lg bg-surface-raised p-3 text-xs leading-relaxed text-muted">
+              {evidence.response_excerpt}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <EvidenceField label="Brand mentioned" value={evidence.brand_mentioned ? "Yes" : "No"} />
+            <EvidenceField label="Owned domains cited" value={evidence.owned_domains_cited.join(", ") || "None"} />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted">Cited domains</p>
+            <p className="mt-1 text-xs">{evidence.cited_domains.join(", ") || "None detected"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted">Detected competitors</p>
+            <p className="mt-1 text-xs">
+              {evidence.detected_competitors.join(", ") || "None of the configured competitors"}
+            </p>
+          </div>
+        </div>
+      )}
+    </EvidenceDrawerShell>
   );
 }
 

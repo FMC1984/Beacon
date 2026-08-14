@@ -10,11 +10,12 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.extensions.hooks import trigger_rag_sync
-from app.models import AIVisibilityPrompt, AIVisibilityQuery, Property
+from app.models import AITopic, AIVisibilityPrompt, AIVisibilityQuery, Property
 from app.providers.base import MissingAPIKeyError
 from app.schemas.ai_visibility import AIVisibilityQueryIn, AIVisibilityQueryOut
 from app.services.ai_visibility.analyzer import analyze_ai_visibility
@@ -137,6 +138,12 @@ def list_queries(
 class PromptIn(BaseModel):
     prompt_text: str
     platform: str = "chatgpt"
+    topic_id: int | None = None
+    audience: str | None = None
+    persona: str | None = None
+    location_market: str | None = None
+    priority: str | None = None
+    tags: list[str] | None = None
 
 
 @router.post("/{property_id}/import-question-set")
@@ -177,11 +184,76 @@ def list_prompts(property_id: int, db: Session = Depends(get_db)):
                 "volatile": r.volatile,
                 "owning_url": r.owning_url,
                 "last_run_at": r.last_run_at.isoformat() if r.last_run_at else None,
+                "topic_id": r.topic_id,
+                "audience": r.audience,
+                "persona": r.persona,
+                "location_market": r.location_market,
+                "priority": r.priority,
+                "tags": r.tags,
             }
             for r in rows
         ],
         "budget": budget_status(db, property_id),
     }
+
+
+@router.get("/{property_id}/topics")
+def list_topics(property_id: int, db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    rows = (
+        db.query(AITopic)
+        .filter_by(property_id=property_id)
+        .order_by(AITopic.topic_name)
+        .all()
+    )
+    return {
+        "topics": [
+            {
+                "id": t.id, "topic_name": t.topic_name, "description": t.description,
+                "priority": t.priority, "status": t.status,
+            }
+            for t in rows
+        ]
+    }
+
+
+class TopicIn(BaseModel):
+    topic_name: str
+    description: str | None = None
+    priority: str = "medium"
+
+
+@router.post("/{property_id}/topics", status_code=201)
+def add_topic(property_id: int, payload: TopicIn, db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    name = (payload.topic_name or "").strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Topic name is empty.")
+    row = AITopic(
+        property_id=property_id, topic_name=name,
+        description=payload.description, priority=payload.priority,
+    )
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A topic with this name already exists.")
+    db.refresh(row)
+    return {
+        "id": row.id, "topic_name": row.topic_name, "description": row.description,
+        "priority": row.priority, "status": row.status,
+    }
+
+
+@router.delete("/{property_id}/topics/{topic_id}")
+def delete_topic(property_id: int, topic_id: int, db: Session = Depends(get_db)):
+    row = db.query(AITopic).filter_by(id=topic_id, property_id=property_id).one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Topic not found.")
+    db.delete(row)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/{property_id}/prompt-suggestions")
@@ -197,12 +269,20 @@ def add_prompt(property_id: int, payload: PromptIn, db: Session = Depends(get_db
     if not text:
         raise HTTPException(status_code=422, detail="Prompt text is empty.")
     row = AIVisibilityPrompt(
-        property_id=property_id, prompt_text=text, platform=payload.platform
+        property_id=property_id, prompt_text=text, platform=payload.platform,
+        topic_id=payload.topic_id, audience=payload.audience, persona=payload.persona,
+        location_market=payload.location_market, priority=payload.priority,
+        tags=payload.tags,
     )
     db.add(row)
     db.commit()
     db.refresh(row)
-    return {"id": row.id, "prompt_text": row.prompt_text, "platform": row.platform, "active": row.active}
+    return {
+        "id": row.id, "prompt_text": row.prompt_text, "platform": row.platform,
+        "active": row.active, "topic_id": row.topic_id, "audience": row.audience,
+        "persona": row.persona, "location_market": row.location_market,
+        "priority": row.priority, "tags": row.tags,
+    }
 
 
 @router.delete("/{property_id}/prompts/{prompt_id}")
@@ -233,6 +313,18 @@ def run_standing(property_id: int, db: Session = Depends(get_db)):
 def get_score_history(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     return {"history": score_history(db, property_id)}
+
+
+@router.post("/{property_id}/backfill-mentions")
+def backfill_property_mentions(property_id: int, db: Session = Depends(get_db)):
+    """One-time (safely re-runnable) pass over this property's existing
+    AIVisibilityQuery history to populate Share of Voice Mention rows, so
+    trend/history reporting has real data instead of starting empty. Cheap
+    and purely deterministic (no external calls) - operator-triggered."""
+    from app.services.ai_visibility.mentions import backfill_mentions
+
+    _require_property(db, property_id)
+    return backfill_mentions(db, property_id=property_id)
 
 
 @router.get("/{property_id}/{query_id}")

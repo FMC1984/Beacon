@@ -28,6 +28,25 @@ def detect_mention(text: str, brand_terms: list[str]) -> bool:
     return any(_phrase_present(text, t) for t in brand_terms if t)
 
 
+def find_mention(text: str, terms: list[str]) -> dict | None:
+    """Like detect_mention, but returns which term matched, its first
+    character offset, and how many times that term occurs - instead of just
+    a bool. Terms are tried in the given order and the first one that
+    matches wins (callers should pass terms longest/most-specific first, so
+    a more specific alias is reported over a generic one). Same regex as
+    detect_mention/_phrase_present - one source of truth for what counts as
+    a match. Returns None when nothing matches."""
+    for term in terms:
+        term = (term or "").strip()
+        if not term:
+            continue
+        pattern = rf"(?:^|{_WORD}){re.escape(term.lower())}(?:{_WORD}|$)"
+        matches = list(re.finditer(pattern, text.lower()))
+        if matches:
+            return {"term": term, "position": matches[0].start(), "count": len(matches)}
+    return None
+
+
 # URLs and bare domains. Markdown links, angle brackets, and trailing
 # punctuation are all handled so the same response always yields the same set.
 _URL_RE = re.compile(r"https?://[^\s)>\]\"']+", re.IGNORECASE)

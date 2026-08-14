@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -12,6 +12,10 @@ class Property(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True)
     slug: Mapped[str] = mapped_column(String(200), unique=True)
+    # Alternate names AI responses might use for this property (e.g. "The
+    # Collective on 13th" / "Collective on 13th"). Operator-asserted, matched
+    # literally alongside `name` - same posture as Competitor.aliases.
+    aliases: Mapped[list | None] = mapped_column(JSON)
     # Client/site type (multifamily_apartment | housing_authority). Required;
     # existing rows default to multifamily_apartment. Drives terminology, the
     # Content Intelligence knowledge bases, connectors, and Nora framing. This is

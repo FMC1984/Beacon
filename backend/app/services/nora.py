@@ -27,6 +27,7 @@ from app.services.correlation import (
 from app.services.nora_llm import NoraLLM
 from app.services.rag.embedder import Embedder
 from app.services.rag.retriever import retrieve
+from app.services.reporting_share_of_voice import explain_sov_change
 
 _CORRELATION_TOPIC = re.compile(
     r"correlat|caus|convert|conversion|lease|leases|lead|leads|outcome|roi|"
@@ -35,6 +36,11 @@ _CORRELATION_TOPIC = re.compile(
 )
 _AI_TOPIC = re.compile(
     r"\bai\b|chatgpt|perplexity|copilot|gemini|claude|grok|assistant|llm",
+    re.IGNORECASE,
+)
+_SOV_TOPIC = re.compile(
+    r"share of voice|\bsov\b|losing ground|gaining ground|ahead of|behind "
+    r"(?:the )?competitor|competitive rank|out-?mention",
     re.IGNORECASE,
 )
 
@@ -60,6 +66,21 @@ GATE_PASSED_PROMPT = """
   {leases} leases). You may describe this as correlation. Never present it as
   causation."""
 
+SOV_DIAGNOSIS_PROMPT = """
+- The user is asking about an AI Share of Voice change. A code-verified
+  contributor exists: the "{topic_name}" topic moved {point_change_pts} pts
+  in the same direction as the overall Share of Voice change of
+  {aggregate_pts} pts between the previous and current period. State this as
+  a SUPPORTED DIAGNOSIS - the change is concentrated in this topic - but do
+  not claim it is the sole cause; other unmeasured factors may also matter."""
+
+SOV_NO_DIAGNOSIS_PROMPT = """
+- The user is asking about an AI Share of Voice change. Beacon does not have
+  enough topic-level data to point to a specific contributor. You may state
+  the OBSERVATION (the raw current-vs-previous numbers, if the excerpts
+  contain them), but you must explicitly say there is not enough data yet to
+  explain WHY it changed. Do not hypothesize a specific cause."""
+
 
 def sanitize(text: str) -> str:
     """Code enforcement of hard rule 7: no em dashes in generated copy."""
@@ -71,6 +92,10 @@ def is_correlation_question(question: str) -> bool:
     return bool(
         _CORRELATION_TOPIC.search(question) and _AI_TOPIC.search(question)
     )
+
+
+def is_sov_question(question: str) -> bool:
+    return bool(_SOV_TOPIC.search(question))
 
 
 def insufficient_data_template(unmet: list[str]) -> str:
@@ -134,6 +159,12 @@ def ask(
         c.citation.source_table == "ga4_sessions_daily" for c in chunks
     )
 
+    # Second, independent gate: computed in code before generation, same
+    # posture as the correlation gate above but for Share of Voice change
+    # explanations (compute-then-template, never let the model guess why).
+    sov_q = is_sov_question(question)
+    sov_contributor = explain_sov_change(db, property_id) if sov_q and property_id else None
+
     correlation_q = is_correlation_question(question)
     if correlation_q and not gate_passed:
         # Fixed template; the model is never called on this path.
@@ -151,6 +182,16 @@ def ask(
             if gate_passed
             else GATE_FAILED_PROMPT
         )
+        if sov_q:
+            system += (
+                SOV_DIAGNOSIS_PROMPT.format(
+                    topic_name=sov_contributor["topic_name"],
+                    point_change_pts=round(sov_contributor["point_change"] * 100),
+                    aggregate_pts=round(sov_contributor["aggregate_point_change"] * 100),
+                )
+                if sov_contributor
+                else SOV_NO_DIAGNOSIS_PROMPT
+            )
         excerpts = "\n\n".join(
             f"[{i}] ({c.citation.source_table}, "
             f"{c.citation.property_name or 'portfolio'}, "
@@ -191,4 +232,11 @@ def ask(
             "periods_confirmed": inputs.periods_confirmed,
             "unmet": unmet,
         },
+        "sov_gate": (
+            {"has_diagnosis": True, **sov_contributor}
+            if sov_contributor
+            else {"has_diagnosis": False}
+            if sov_q
+            else None
+        ),
     }

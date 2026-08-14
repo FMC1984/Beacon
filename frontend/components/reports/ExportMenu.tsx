@@ -5,7 +5,7 @@
  * with an explanation when the current section has no export yet. */
 
 import { useEffect, useRef, useState } from "react";
-import { reportCsvUrl, type ReportScope } from "@/lib/reports";
+import { reportCsvUrl, type ReportScope, type ReportSection } from "@/lib/reports";
 import type { RangeDays } from "./ReportContext";
 
 export function ExportMenu({
@@ -15,7 +15,7 @@ export function ExportMenu({
   compare,
   onPrint,
 }: {
-  section: "seo" | "executive" | "geo" | "aeo" | "content-impact" | "audience" | null;
+  section: ReportSection | null;
   scope: ReportScope;
   days: RangeDays;
   compare: boolean;

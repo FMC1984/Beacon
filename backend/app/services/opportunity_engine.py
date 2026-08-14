@@ -57,7 +57,7 @@ _TOPIC_KEYWORDS = (
     "maintenance", "lease", "faq", "floor plan", "pool", "fitness", "school",
     "transportation", "content", "review", "reputation", "visibility",
     "competitor", "engagement", "landing page", "search", "seo", "eligibility",
-    "affordab",
+    "affordab", "share of voice", "sov",
 )
 
 SENSITIVE_KEYWORDS = (

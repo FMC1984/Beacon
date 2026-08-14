@@ -178,6 +178,7 @@ def test_reports_meta_lists_all_tabs(client):
         "aeo",
         "semantic",
         "content-impact",
+        "share-of-voice",
     ]
     for t in tabs:
         assert t["label"] and t["summary"] and t["planned_phase"]

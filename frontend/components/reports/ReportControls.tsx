@@ -7,22 +7,21 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ScopeSelect } from "@/components/ScopeSelect";
-import { fetchReportStatus, type ReportStatus } from "@/lib/reports";
+import { fetchReportStatus, type ReportSection, type ReportStatus } from "@/lib/reports";
 import { fmtDate } from "@/lib/format";
 import { STATE_META, StateBadge } from "./DataStates";
 import { ExportMenu } from "./ExportMenu";
 import { useReportContext, type RangeDays } from "./ReportContext";
 
 // Which report section the Export menu should target, from the route.
-function sectionFromPath(
-  pathname: string
-): "seo" | "executive" | "geo" | "aeo" | "content-impact" | "audience" | null {
+function sectionFromPath(pathname: string): ReportSection | null {
   if (pathname.startsWith("/reports/seo")) return "seo";
   if (pathname.startsWith("/reports/executive")) return "executive";
   if (pathname.startsWith("/reports/audience")) return "audience";
   if (pathname.startsWith("/reports/geo")) return "geo";
   if (pathname.startsWith("/reports/aeo")) return "aeo";
   if (pathname.startsWith("/reports/content-impact")) return "content-impact";
+  if (pathname.startsWith("/reports/share-of-voice")) return "share-of-voice";
   return null;
 }
 

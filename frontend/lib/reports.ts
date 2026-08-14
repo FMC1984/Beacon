@@ -47,6 +47,17 @@ export type Comparison = {
   direction: "up" | "down" | "flat" | null;
 };
 
+// Percentage-POINT comparison for two already-fractional percentages (see
+// reporting.compare_points on the backend). Shaped differently from
+// Comparison on purpose: point_change, not pct_change, so "26% -> 32%"
+// always renders as "+6 pts", never "+23%".
+export type PointComparison = {
+  current: number | null;
+  previous: number | null;
+  point_change: number | null;
+  direction: "up" | "down" | "flat" | null;
+};
+
 export type ReportScope = {
   propertyId: number | null;
   companyId: number | null;
@@ -267,8 +278,11 @@ export const fetchExecutiveReport = (
 
 // Download URL for a report section's CSV export (client-safe: no internal
 // RAG metadata). Scope precedence matches the report endpoints.
+export type ReportSection =
+  | "seo" | "executive" | "geo" | "aeo" | "content-impact" | "audience" | "share-of-voice";
+
 export function reportCsvUrl(
-  section: "seo" | "executive" | "geo" | "aeo" | "content-impact" | "audience",
+  section: ReportSection,
   scope: ReportScope,
   days: number,
   compare: boolean
@@ -277,7 +291,7 @@ export function reportCsvUrl(
   if (section === "seo" || section === "executive") {
     params.set("days", String(days));
     params.set("compare", String(compare));
-  } else if (section === "audience") {
+  } else if (section === "audience" || section === "share-of-voice") {
     params.set("days", String(days));
   }
   return `${API_BASE}/reports/${section}/export.csv?${params}`;
@@ -695,3 +709,268 @@ export const fetchAudienceReport = (scope: ReportScope, days: number) => {
   params.set("days", String(days));
   return getJSON<AudienceReport>(`/reports/audience?${params}`);
 };
+
+// --- AI Share of Voice report (Phase 18) ---
+//
+// Property Mentions / (Property + Competitor Mentions). Distinct from AI
+// Visibility and Citation Share - never fused. Every filter below propagates
+// server-side into the underlying Mention-row query.
+
+export type SovFilters = {
+  topicId?: number | null;
+  platform?: string | null;
+  promptId?: number | null;
+  competitorId?: number | null;
+  audience?: string | null;
+  location?: string | null;
+  intent?: string | null;
+  priority?: string | null;
+};
+
+function sovFilterParams(params: URLSearchParams, f?: SovFilters) {
+  if (!f) return;
+  if (f.topicId != null) params.set("topic_id", String(f.topicId));
+  if (f.platform) params.set("platform", f.platform);
+  if (f.promptId != null) params.set("prompt_id", String(f.promptId));
+  if (f.competitorId != null) params.set("competitor_id", String(f.competitorId));
+  if (f.audience) params.set("audience", f.audience);
+  if (f.location) params.set("location", f.location);
+  if (f.intent) params.set("intent", f.intent);
+  if (f.priority) params.set("priority", f.priority);
+}
+
+export type SovTooltips = {
+  ai_share_of_voice: string;
+  ai_visibility: string;
+  citation_share: string;
+};
+
+export type SovOverview = {
+  share_of_voice: number | null;
+  property_mentions: number;
+  competitor_mentions: number;
+  total_mentions: number;
+  eligible_responses: number;
+  sample_size: number;
+  sufficient: boolean;
+  rank: number | null;
+  rank_of: number | null;
+  tied: boolean;
+  comparison: PointComparison | null;
+};
+
+export type SovTrendPoint = {
+  period: string;
+  share_of_voice: number | null;
+  sample_size: number;
+  sufficient: boolean;
+};
+
+export type SovByPlatformRow = {
+  platform: string;
+  platform_label: string;
+  share_of_voice: number | null;
+  sample_size: number;
+  sufficient: boolean;
+  top_competitor: { id: number; name: string; share_of_voice: number } | null;
+  rank: number | null;
+  rank_of: number | null;
+};
+
+export type SovByTopicRow = {
+  topic_id: number;
+  topic_name: string;
+  priority: string;
+  share_of_voice: number | null;
+  sample_size: number;
+  sufficient: boolean;
+  leader: { is_property: boolean; name: string; share_of_voice: number } | null;
+  gap_to_leader: number | null;
+  trend_arrow: "up" | "down" | "flat" | null;
+  trend_point_change: number | null;
+};
+
+export type SovReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      has_competitors: false;
+      message: string;
+      tooltips: SovTooltips;
+    }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      has_competitors: true;
+      generated_on: string;
+      window: { start: string; end: string; days: number };
+      overview: SovOverview;
+      trend: { granularity: string; points: SovTrendPoint[]; note: string };
+      by_platform: SovByPlatformRow[];
+      by_topic: SovByTopicRow[];
+      portfolio_average:
+        | { available: false; reason: string; property_count: number }
+        | { available: true; reason: null; average_share_of_voice: number; property_count: number };
+      tooltips: SovTooltips;
+    };
+
+export const fetchSovReport = (
+  scope: ReportScope, days: number, compare: boolean, filters?: SovFilters
+) => {
+  const params = scopeParams(scope);
+  params.set("days", String(days));
+  params.set("compare", String(compare));
+  sovFilterParams(params, filters);
+  return getJSON<SovReport>(`/reports/share-of-voice?${params}`);
+};
+
+export type SovKpi =
+  | { has_competitors: false; share_of_voice: null; message: string }
+  | {
+      has_competitors: true;
+      share_of_voice: number | null;
+      sufficient: boolean;
+      sample_size: number;
+      rank: number | null;
+      rank_of: number | null;
+      rank_label: string | null;
+      tied: boolean;
+      comparison: PointComparison;
+    };
+
+export const fetchSovKpi = (propertyId: number, days: number = 30) =>
+  getJSON<SovKpi>(`/reports/share-of-voice/kpi?property_id=${propertyId}&days=${days}`);
+
+export type SovRankingEntity = {
+  id: number | null;
+  name: string;
+  is_property: boolean;
+  share_of_voice: number | null;
+  mentions: number;
+  rank: number | null;
+};
+
+export type SovRanking =
+  | { has_competitors: false; entities: [] }
+  | { has_competitors: true; sufficient: boolean; sample_size: number; entities: SovRankingEntity[] };
+
+export type SovWinnersLosers = {
+  sufficient: boolean;
+  message?: string;
+  biggest_gain: { entity: "property"; point_change: number } | null;
+  biggest_loss: { entity: "property"; point_change: number } | null;
+  fastest_growing_competitor: {
+    id: number; name: string; point_change: number;
+    current_share: number | null; previous_share: number | null;
+  } | null;
+  largest_competitive_gap: {
+    id: number; name: string; gap: number;
+    competitor_share: number; property_share: number;
+  } | null;
+};
+
+export const fetchSovRanking = (
+  propertyId: number, days: number = 30, topicId?: number | null, platform?: string | null
+) => {
+  const params = new URLSearchParams({ property_id: String(propertyId), days: String(days) });
+  if (topicId != null) params.set("topic_id", String(topicId));
+  if (platform) params.set("platform", platform);
+  return getJSON<{ ranking: SovRanking; winners_losers: SovWinnersLosers }>(
+    `/reports/share-of-voice/ranking?${params}`
+  );
+};
+
+export type SovTopicDrilldownRow = {
+  prompt_id: number;
+  prompt_text: string;
+  platform: string;
+  share_of_voice: number | null;
+  sample_size: number;
+  sufficient: boolean;
+  mentioned: boolean;
+  leader: { name: string; share_of_voice: number } | null;
+  runs_in_window: number;
+};
+
+export type SovTopicDrilldown = {
+  topic: { id: number; topic_name: string; description: string | null; priority: string };
+  window: { start: string; end: string; days: number };
+  prompts: SovTopicDrilldownRow[];
+};
+
+export const fetchSovTopicDrilldown = (
+  propertyId: number, topicId: number, days: number = 30, platform?: string | null
+) => {
+  const params = new URLSearchParams({ property_id: String(propertyId), days: String(days) });
+  if (platform) params.set("platform", platform);
+  return getJSON<SovTopicDrilldown>(`/reports/share-of-voice/topics/${topicId}?${params}`);
+};
+
+export type SovPromptResponseRow = {
+  response_id: number;
+  platform: string;
+  platform_label: string;
+  run_date: string;
+  mentioned: boolean;
+  competitors_mentioned: string[];
+};
+
+export type SovPromptDrilldown = {
+  prompt: { id: number; prompt_text: string; platform: string; topic_id: number | null };
+  window: { start: string; end: string; days: number };
+  responses: SovPromptResponseRow[];
+};
+
+export const fetchSovPromptDrilldown = (
+  propertyId: number, promptId: number, days: number = 30
+) =>
+  getJSON<SovPromptDrilldown>(
+    `/reports/share-of-voice/prompts/${promptId}?property_id=${propertyId}&days=${days}`
+  );
+
+export type SovMention = {
+  entity_type: "property" | "competitor";
+  entity_id: number;
+  normalized_name: string;
+  raw_matched_text: string;
+  match_count: number;
+  position: number | null;
+  confidence: number;
+};
+
+export type SovEvidence = {
+  response_id: number;
+  prompt: string;
+  platform: string;
+  platform_label: string;
+  run_date: string;
+  execution_status: string;
+  model_metadata: Record<string, unknown> | null;
+  response_excerpt: string;
+  cited_domains: string[];
+  mentions: SovMention[];
+  required_components: { component: string; present: boolean }[];
+  owning_url: string | null;
+  topic_id: number | null;
+};
+
+export const fetchSovEvidence = (propertyId: number, responseId: number) =>
+  getJSON<SovEvidence>(
+    `/reports/share-of-voice/evidence?property_id=${propertyId}&response_id=${responseId}`
+  );
+
+// --- AI Topics (property-scoped, for Share of Voice by-topic filtering) ---
+
+export type AITopic = {
+  id: number;
+  topic_name: string;
+  description: string | null;
+  priority: string;
+  status: string;
+};
+
+export const fetchAiTopics = (propertyId: number) =>
+  getJSON<{ topics: AITopic[] }>(`/ai-visibility/${propertyId}/topics`);

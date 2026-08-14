@@ -34,6 +34,9 @@ EXPECTED_TABLES = {
     "competitors",
     "content_changes",
     "monthly_briefings",
+    "ai_topics",
+    "mentions",
+    "ai_sov_snapshots",
 }
 
 

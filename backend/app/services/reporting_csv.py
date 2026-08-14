@@ -24,6 +24,7 @@ from app.services.reporting_content_impact import build_content_impact_report
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report
 from app.services.reporting_seo import build_seo_report
+from app.services.reporting_share_of_voice import build_sov_report
 
 _GSC_SCOPE = (
     " Totals cover imported Search Console queries; Google omits some "
@@ -397,3 +398,64 @@ def build_audience_csv(
         ])
 
     return buf.getvalue(), "beacon-audience.csv"
+
+
+def build_sov_csv(
+    db: Session, property_id: int | None, days: int = 30,
+    today: date | None = None, **filters,
+) -> tuple[str, str]:
+    """AI Share of Voice export. Reads only the composed report payload
+    (never Mention rows or RAG-internal fields directly), same client-safe
+    posture as every other export in this module."""
+    today = today or date.today()
+    report = build_sov_report(db, property_id, days, compare=True, today=today, **filters)
+    if report.get("scope_required"):
+        raise ValueError(report["message"])
+
+    prop_name = report.get("property_name", "Unknown")
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    _preamble(w, "AI Share of Voice export", prop_name, report.get("window"), today)
+
+    if not report.get("has_competitors"):
+        w.writerow([report.get("message", "No competitors are tracked for this property.")])
+        return buf.getvalue(), "beacon-share-of-voice.csv"
+
+    ov = report["overview"]
+    w.writerow(["Overview metric", "value", "note"])
+    w.writerow([
+        "AI Share of Voice", _pct_cell(ov["share_of_voice"]),
+        "insufficient_sample" if not ov["sufficient"] else "",
+    ])
+    w.writerow([
+        "Point change vs previous period",
+        "" if ov["comparison"]["point_change"] is None
+        else f"{round(ov['comparison']['point_change'] * 100, 1)} pts",
+        "",
+    ])
+    w.writerow(["Rank", f"#{ov['rank']} of {ov['rank_of']}" if ov["rank"] else "insufficient_sample", ""])
+    w.writerow(["Property mentions", ov["property_mentions"], ""])
+    w.writerow(["Competitor mentions", ov["competitor_mentions"], ""])
+    w.writerow(["Eligible tested responses", ov["eligible_responses"], ""])
+
+    w.writerow([])
+    w.writerow(["Share of Voice by platform"])
+    w.writerow(["platform", "share_of_voice", "sample_size", "top_competitor", "rank"])
+    for row in report["by_platform"]:
+        w.writerow([
+            row["platform_label"], _pct_cell(row["share_of_voice"]), row["sample_size"],
+            row["top_competitor"]["name"] if row["top_competitor"] else "",
+            row["rank"] or "insufficient_sample",
+        ])
+
+    w.writerow([])
+    w.writerow(["Share of Voice by topic"])
+    w.writerow(["topic", "share_of_voice", "leader", "gap_to_leader", "trend"])
+    for row in report["by_topic"]:
+        w.writerow([
+            row["topic_name"], _pct_cell(row["share_of_voice"]),
+            row["leader"]["name"] if row["leader"] else "",
+            _pct_cell(row["gap_to_leader"]), row["trend_arrow"] or "",
+        ])
+
+    return buf.getvalue(), "beacon-share-of-voice.csv"

@@ -94,10 +94,11 @@ def process_job(
                 # GSC queries are the SEO Performance summary's backbone.
                 sources = ["gsc", "ai_query_signals", "seo_performance"]
             elif job.source == "ai_visibility":
-                # New AI Visibility data feeds competitor share-of-voice too.
-                sources = ["ai_visibility", "competitor_intelligence"]
+                # New AI Visibility data feeds competitor share-of-voice and
+                # Phase 18 AI Share of Voice too.
+                sources = ["ai_visibility", "competitor_intelligence", "share_of_voice"]
             elif job.source == "competitors":
-                sources = ["competitor_intelligence"]
+                sources = ["competitor_intelligence", "share_of_voice"]
             elif job.source == "reviews":
                 sources = ["reviews", "review_intelligence"]
             elif job.source == "property_context":
