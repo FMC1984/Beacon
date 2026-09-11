@@ -7,6 +7,8 @@ backend/.env
 # Local data (lives on the Render disk when hosted)
 backend/beacon.db
 backend/*.db
+backend/*.db-wal
+backend/*.db-shm
 backend/.chroma/
 backend/data/
 

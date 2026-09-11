@@ -45,6 +45,11 @@ from app.models.market import Market, Submarket
 from app.models.jobs import Job
 from app.models.app_state import AppState
 from app.models.ai_budgets import AIBudget
+from app.models.ai_prompt_library import (
+    AIPromptAssignment,
+    AIPromptCluster,
+    AIPromptEmbedding,
+)
 
 __all__ = [
     "Company",
@@ -98,4 +103,7 @@ __all__ = [
     "Job",
     "AppState",
     "AIBudget",
+    "AIPromptCluster",
+    "AIPromptEmbedding",
+    "AIPromptAssignment",
 ]

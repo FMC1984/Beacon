@@ -28,6 +28,35 @@ def noop(db: Session, job: Job) -> dict:
     return {"ok": True, "payload": job.payload or {}}
 
 
+@register("generate_market_prompts")
+def generate_market_prompts_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.prompt_library import generate_market_prompts
+
+    out = generate_market_prompts(db, int((job.payload or {}).get("market_id", job.market_id)))
+    return {k: v for k, v in out.items() if k != "prompts"}
+
+
+@register("generate_property_prompts")
+def generate_property_prompts_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.prompt_library import generate_property_prompts
+
+    out = generate_property_prompts(db, int((job.payload or {}).get("property_id", job.property_id)))
+    return {k: v for k, v in out.items() if k != "prompts"}
+
+
+@register("cluster_prompts")
+def cluster_prompts_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.clustering import cluster_prompts
+
+    p = job.payload or {}
+    report = cluster_prompts(
+        db, market_id=p.get("market_id", job.market_id), property_id=p.get("property_id", job.property_id),
+        scope=p.get("scope"),
+    )
+    return {"clusters_total": report.clusters_total, "clusters_created": report.clusters_created,
+            "prompts_clustered": report.prompts_clustered, "embedding_model": report.embedded_model}
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

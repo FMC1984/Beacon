@@ -1,0 +1,53 @@
+{
+  "version": "2026-09-11",
+  "notes": "Prompt universe templates (Phase 19). Placeholders: {city}, {state}, {name}, {competitor}. `market` templates run once per market and score every property in it; `feature` templates are market-level too, keyed by taxonomy topic; `brand` templates are property-specific. `variants` are alternate wordings that cluster with the primary text; only the cluster representative runs routinely and variants rotate. Text is what a renter would actually ask an assistant; nothing here fabricates facts about a property.",
+  "market": [
+    {"id": "mkt_best", "topic_key": "best_overall", "intent": "discovery", "text": "What are the best apartments in {city}, {state}?", "variants": ["Best apartment communities in {city}, {state}", "Which apartments in {city}, {state} are the best to rent?"]},
+    {"id": "mkt_where", "topic_key": "neighborhoods", "intent": "discovery", "text": "Where should I rent an apartment in {city}, {state}?", "variants": ["Best neighborhoods to rent an apartment in {city}, {state}", "What part of {city}, {state} is best for renting an apartment?"]},
+    {"id": "mkt_rent", "topic_key": "rent", "intent": "pricing", "text": "How much is rent for apartments in {city}, {state}?", "variants": ["Average apartment rent in {city}, {state}", "What do apartments cost in {city}, {state}?"]},
+    {"id": "mkt_downtown", "topic_key": "neighborhoods", "intent": "discovery", "text": "What are good apartments near downtown {city}, {state}?", "variants": ["Apartments close to downtown {city}, {state}"]},
+    {"id": "mkt_new", "topic_key": "availability", "intent": "discovery", "text": "Which apartment communities in {city}, {state} have units available now?", "variants": ["Apartments with immediate availability in {city}, {state}"]}
+  ],
+  "feature": [
+    {"id": "feat_pets", "topic_key": "pets", "intent": "feature", "text": "What apartments in {city}, {state} allow pets?", "variants": ["Pet-friendly apartments in {city}, {state}", "Best pet friendly apartment communities in {city}, {state}"]},
+    {"id": "feat_dog_park", "topic_key": "dog_park", "intent": "feature", "text": "Which apartments in {city}, {state} have a dog park?", "variants": ["Apartments with an on-site dog park in {city}, {state}"]},
+    {"id": "feat_breed", "topic_key": "breed_restrictions", "intent": "feature", "text": "Which apartments in {city}, {state} have no breed restrictions?", "variants": ["Apartments in {city}, {state} that allow large dogs"]},
+    {"id": "feat_pool", "topic_key": "pool", "intent": "feature", "text": "What apartments in {city}, {state} have a pool?", "variants": ["Apartment communities with a swimming pool in {city}, {state}", "Best {city}, {state} apartments with pools"]},
+    {"id": "feat_gym", "topic_key": "fitness_center", "intent": "feature", "text": "Which apartments in {city}, {state} have a fitness center?", "variants": ["Apartments with a gym in {city}, {state}"]},
+    {"id": "feat_parking", "topic_key": "parking", "intent": "feature", "text": "Which apartments in {city}, {state} include parking?", "variants": ["Apartments with covered parking in {city}, {state}"]},
+    {"id": "feat_garage", "topic_key": "garage", "intent": "feature", "text": "What apartments in {city}, {state} have garages?", "variants": ["Apartments with attached garages in {city}, {state}"]},
+    {"id": "feat_ev", "topic_key": "ev_charging", "intent": "feature", "text": "Which apartments in {city}, {state} have EV charging?", "variants": ["Apartments with electric vehicle chargers in {city}, {state}"]},
+    {"id": "feat_laundry", "topic_key": "washer_dryer", "intent": "feature", "text": "Which apartments in {city}, {state} have an in-unit washer and dryer?", "variants": ["Apartments with washer/dryer in unit in {city}, {state}"]},
+    {"id": "feat_utilities", "topic_key": "utilities", "intent": "pricing", "text": "Which apartments in {city}, {state} include utilities?", "variants": ["Apartments with utilities included in {city}, {state}"]},
+    {"id": "feat_luxury", "topic_key": "luxury", "intent": "discovery", "text": "What are the best luxury apartments in {city}, {state}?", "variants": ["Luxury apartment communities in {city}, {state}", "High-end apartments in {city}, {state}"]},
+    {"id": "feat_affordable", "topic_key": "affordable", "intent": "discovery", "text": "What are the best affordable apartments in {city}, {state}?", "variants": ["Cheap apartments in {city}, {state}", "Income-restricted apartments in {city}, {state}"]},
+    {"id": "feat_student", "topic_key": "student", "intent": "discovery", "text": "What are the best student apartments in {city}, {state}?", "variants": ["Off-campus student housing in {city}, {state}"]},
+    {"id": "feat_senior", "topic_key": "senior", "intent": "discovery", "text": "What are the best senior apartments in {city}, {state}?", "variants": ["55+ apartment communities in {city}, {state}"]},
+    {"id": "feat_family", "topic_key": "family", "intent": "discovery", "text": "What are the best apartments for families in {city}, {state}?", "variants": ["Family-friendly apartment communities in {city}, {state}"]},
+    {"id": "feat_schools", "topic_key": "schools", "intent": "location", "text": "Which apartments in {city}, {state} are near good schools?", "variants": ["Apartments in the best school districts in {city}, {state}"]},
+    {"id": "feat_transit", "topic_key": "transit", "intent": "location", "text": "Which apartments in {city}, {state} are near public transit?", "variants": ["Apartments near light rail in {city}, {state}"]},
+    {"id": "feat_employers", "topic_key": "employers", "intent": "location", "text": "What apartments in {city}, {state} are close to major employers?", "variants": ["Apartments near the biggest employers in {city}, {state}"]},
+    {"id": "feat_walkable", "topic_key": "walkability", "intent": "location", "text": "What are the most walkable apartments in {city}, {state}?", "variants": ["Walkable apartment neighborhoods in {city}, {state}"]},
+    {"id": "feat_floorplans", "topic_key": "floor_plans", "intent": "feature", "text": "Which apartments in {city}, {state} have two-bedroom floor plans?", "variants": ["Two bedroom apartments in {city}, {state}", "Studio apartments in {city}, {state}"]},
+    {"id": "feat_specials", "topic_key": "specials", "intent": "pricing", "text": "Which apartments in {city}, {state} have move-in specials right now?", "variants": ["Apartments offering a month free in {city}, {state}"]},
+    {"id": "feat_movein", "topic_key": "move_in", "intent": "decision", "text": "How do I apply for an apartment in {city}, {state}?", "variants": ["What does it take to get approved for an apartment in {city}, {state}?"]}
+  ],
+  "brand": {
+    "multifamily_apartment": [
+      {"id": "brand_good", "topic_key": "best_overall", "intent": "evaluation", "text": "Is {name} a good place to live?", "variants": ["What is it like to live at {name}?", "{name} reviews"]},
+      {"id": "brand_pets", "topic_key": "pets", "intent": "feature", "text": "Is {name} pet friendly?", "variants": ["Does {name} allow dogs?"]},
+      {"id": "brand_pros", "topic_key": "best_overall", "intent": "evaluation", "text": "What are the pros and cons of {name}?", "variants": []},
+      {"id": "brand_amenities", "topic_key": "amenities", "intent": "feature", "text": "What amenities does {name} offer?", "variants": []},
+      {"id": "brand_rent", "topic_key": "rent", "intent": "pricing", "text": "How much is rent at {name}?", "variants": ["What does a one bedroom cost at {name}?"]},
+      {"id": "brand_availability", "topic_key": "availability", "intent": "decision", "text": "Does {name} have apartments available?", "variants": []}
+    ],
+    "housing_authority": [
+      {"id": "ha_apply", "topic_key": "affordable", "intent": "decision", "text": "How do I apply for housing assistance with {name}?", "variants": []},
+      {"id": "ha_waitlist", "topic_key": "availability", "intent": "decision", "text": "Is the {name} waiting list open?", "variants": ["What is the Section 8 waitlist status for {city}, {state}?"]},
+      {"id": "ha_programs", "topic_key": "affordable", "intent": "discovery", "text": "What housing programs does {name} offer?", "variants": []},
+      {"id": "ha_contact", "topic_key": "move_in", "intent": "decision", "text": "How do I contact {name}?", "variants": []},
+      {"id": "ha_who", "topic_key": "affordable", "intent": "discovery", "text": "Who provides affordable housing in {city}, {state}?", "variants": ["Where can I find low income apartments in {city}, {state}?"]}
+    ]
+  },
+  "brand_competitor": {"id": "brand_vs", "topic_key": "best_overall", "intent": "comparison", "text": "{name} vs {competitor}: which is the better place to live?", "variants": []}
+}

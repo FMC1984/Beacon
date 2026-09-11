@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # Default monthly observation allowance for the default organization
     # (Tina's decision: 300 runs/month; the per-property daily cap stays).
     ai_org_monthly_run_default: int = 300
+    # Cosine threshold for grouping prompt wording variants into one cluster
+    # (Phase 19 prompt library). Higher = stricter (more clusters).
+    ai_cluster_threshold: float = 0.82
     # Shared access key for hosted deployments (e.g. Render). Empty (the
     # default) means no auth - correct for local single-user use. When set,
     # every /api request except /api/health must carry it in the X-Beacon-Key

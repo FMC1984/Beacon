@@ -29,10 +29,30 @@ class AIVisibilityPrompt(Base):
     __tablename__ = "ai_visibility_prompts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"))
+    # Nullable since Phase 19: market- and feature-scope prompts belong to a
+    # market, not a property (one run scores every property in the market).
+    property_id: Mapped[int | None] = mapped_column(ForeignKey("properties.id"))
     platform: Mapped[str] = mapped_column(String(50), default="chatgpt")
     prompt_text: Mapped[str] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # --- Phase 19 prompt library ---
+    organization_id: Mapped[int | None] = mapped_column(Integer)
+    scope: Mapped[str] = mapped_column(String(20), default="brand")
+    cluster_id: Mapped[int | None] = mapped_column(ForeignKey("ai_prompt_clusters.id"))
+    market_id: Mapped[int | None] = mapped_column(ForeignKey("markets.id"))
+    submarket_id: Mapped[int | None] = mapped_column(Integer)
+    importance: Mapped[int] = mapped_column(Integer, default=3)
+    funnel_stage: Mapped[str | None] = mapped_column(String(30))
+    topic_key: Mapped[str | None] = mapped_column(String(60))
+    # Provenance: what produced this prompt (template id, inputs, signals).
+    generated_from: Mapped[dict | None] = mapped_column(JSON)
+    generation_method: Mapped[str] = mapped_column(String(40), default="manual")
+    approved: Mapped[bool] = mapped_column(Boolean, default=True)
+    repeat_count: Mapped[int] = mapped_column(Integer, default=1)
+    prompt_hash: Mapped[str | None] = mapped_column(String(64))
+    # Only the representative of a cluster runs routinely; variants rotate.
+    is_representative: Mapped[bool] = mapped_column(Boolean, default=True)
+    variant_group: Mapped[str | None] = mapped_column(String(64))
     # Question-set metadata (operator-asserted, imported from a seed JSON).
     # cadence: "weekly" | "monthly". runs_per_cycle: how many runs per cycle
     # (weeklies run once per week; monthlies typically twice per month).

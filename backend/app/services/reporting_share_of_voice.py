@@ -90,13 +90,19 @@ def _rows(
     matching filters - one query, no N+1. Prompts join on property_id +
     prompt_text since AIVisibilityQuery has no prompt foreign key (existing
     pattern - see reporting_geo.matrix_cell_evidence)."""
+    # Phase 19: responses carry prompt_id once run through the ledger; older
+    # rows fall back to the property + text join they always used.
     q = (
         db.query(AIVisibilityQuery, AIVisibilityPrompt)
         .outerjoin(
             AIVisibilityPrompt,
-            and_(
-                AIVisibilityPrompt.property_id == AIVisibilityQuery.property_id,
-                AIVisibilityPrompt.prompt_text == AIVisibilityQuery.prompt_text,
+            or_(
+                AIVisibilityPrompt.id == AIVisibilityQuery.prompt_id,
+                and_(
+                    AIVisibilityQuery.prompt_id.is_(None),
+                    AIVisibilityPrompt.property_id == AIVisibilityQuery.property_id,
+                    AIVisibilityPrompt.prompt_text == AIVisibilityQuery.prompt_text,
+                ),
             ),
         )
         .filter(AIVisibilityQuery.property_id == property_id)

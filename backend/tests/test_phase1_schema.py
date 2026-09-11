@@ -46,6 +46,9 @@ EXPECTED_TABLES = {
     "jobs",
     "app_state",
     "ai_budgets",
+    "ai_prompt_clusters",
+    "ai_prompt_embeddings",
+    "ai_prompt_assignments",
 }
 
 

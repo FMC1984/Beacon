@@ -79,7 +79,7 @@ def run_standing_prompts(
     ran, budget_hit, errors = 0, False, []
     for p in prompts:
         try:
-            run_query(db, property_id, p.prompt_text, p.platform, provider=provider, now=now)
+            run_query(db, property_id, p.prompt_text, p.platform, provider=provider, now=now, prompt_id=p.id)
             p.last_run_at = now
             db.commit()
             ran += 1
@@ -154,7 +154,7 @@ def run_due_prompts(
     ran, budget_hit, errors = 0, False, []
     for p in due:
         try:
-            run_query(db, property_id, p.prompt_text, p.platform, provider=provider, now=now)
+            run_query(db, property_id, p.prompt_text, p.platform, provider=provider, now=now, prompt_id=p.id)
             p.last_run_at = now
             db.commit()
             ran += 1

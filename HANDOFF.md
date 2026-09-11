@@ -80,6 +80,54 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 2: prompt library + clustering (2026-09-11, 728 tests)
+- Prompt scopes on `ai_visibility_prompts`: market | feature | brand |
+  sentinel, plus organization_id, market_id, cluster_id, importance (1-5),
+  funnel_stage, topic_key, provenance (generated_from JSON,
+  generation_method template | manual, approved), repeat_count,
+  prompt_hash, is_representative, variant_group. property_id is NULLABLE:
+  market/feature prompts belong to a Market and are created ONCE per market
+  (`generate_market_prompts`), never per property. Migration d3e4f5a6b7c9
+  (batch). Legacy operator prompts backfilled as scope brand.
+- Reference data: `ai_topic_taxonomy.json` (28 multifamily topics with
+  terms, funnel stage, importance, `core` flag, and a `semantic_topic` link
+  to the 17 semantic-layer keys) and `ai_prompt_templates.json` (5 market,
+  22 feature, 6 multifamily brand + 5 housing-authority brand templates,
+  one competitor-comparison template; each with wording variants).
+  Placeholders {city} {state} {name} {competitor}; a template with a missing
+  value is never emitted half-filled.
+- `services/observatory/prompt_library.py`: `generate_market_prompts`,
+  `generate_property_prompts` (brand + up to 3 competitor comparisons +
+  the market universe), `property_signal_topics` (attributes, site content
+  topics, Search Console queries as a TOPIC signal only - keyword strings
+  are never turned into fabricated questions), `upsert_prompt` idempotent
+  by (hash, scope, market, property) so re-generation keeps operator edits.
+- `clustering.py`: embeddings via the registry provider (deterministic in
+  demo/tests), cached in `ai_prompt_embeddings` by text hash + model;
+  buckets by (market|property, scope, topic, intent), greedy cosine
+  agglomeration in id order (BEACON_AI_CLUSTER_THRESHOLD=0.82), one
+  representative per cluster (highest importance, then lowest id),
+  `rotate_variant(cluster, period_index)` for wording rotation. Clusters in
+  `ai_prompt_clusters` (label, topic, centroid, variant_count).
+- `assignments.py`: `subscribe_property` assigns a property to its market's
+  market clusters, the feature clusters whose topic it has a signal for or
+  that are core, and its own brand clusters (`ai_prompt_assignments`,
+  unique assignment_key; losing a signal deactivates the auto assignment).
+  `properties_for_cluster` is the fan-out list Phase 3 scores a shared
+  market run against.
+- API `app/routers/ai_observatory.py` (`/api/ai-observatory`): GET
+  taxonomy, markets, markets/{id}, prompts (property_id | market_id,
+  scope, include_variants), POST prompts (manual, any scope), PATCH
+  prompts/{id} (active, approved, importance, repeat_count, scope,
+  topic_key), POST prompts/generate?property_id (generate + cluster +
+  subscribe, idempotent), POST prompts/cluster, GET clusters. Jobs
+  `generate_market_prompts`, `generate_property_prompts`, `cluster_prompts`.
+- Plumbing: scheduled runs now pass prompt_id into the ledger; SoV `_rows`
+  joins on prompt_id first and falls back to the text join for older rows.
+- No UI yet (Phase 4). Market/feature prompts are not executed yet: the
+  scheduler that runs a market prompt once and scores every subscribed
+  property is Phase 3/5; today only property-scope standing prompts run.
+
 ### Phase 19 slice 1b: foundation - organizations, markets, jobs runner (2026-09-11, 714 tests)
 - Tenancy-READY, not multi-tenant: `organizations` (one default row, slug
   "default"; settings JSON reserved for budgets / rotation / white-label),
@@ -834,7 +882,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **714**, all passing. Always run the full
+change (shown on `/admin`). Current: **728**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

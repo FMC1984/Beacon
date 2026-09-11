@@ -8,6 +8,7 @@ from app.config import settings
 
 from app.routers import (
     admin,
+    ai_observatory,
     ai_query_signals,
     ai_visibility,
     companies,
@@ -89,6 +90,7 @@ app.include_router(content.router, prefix="/api")
 app.include_router(content_intelligence.router, prefix="/api")
 app.include_router(ai_query_signals.router, prefix="/api")
 app.include_router(ai_visibility.router, prefix="/api")
+app.include_router(ai_observatory.router, prefix="/api")
 app.include_router(competitors.router, prefix="/api")
 app.include_router(competitor_intelligence.router, prefix="/api")
 app.include_router(opportunities.router, prefix="/api")
