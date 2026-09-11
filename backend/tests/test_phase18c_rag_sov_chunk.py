@@ -3,7 +3,7 @@ honest absence without competitor/sample data, refreshed when AI Visibility
 or Competitor data changes (the widen list), and retrievable by the hybrid
 retriever so Nora can ground Share of Voice answers."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.connectors.base import AIVisibilityQueryProvider
 from app.models import AITopic, AIVisibilityPrompt, Competitor, Property
@@ -23,7 +23,9 @@ class FR(AIVisibilityQueryProvider):
         return []
 
 
-TODAY = datetime(2026, 8, 10, 12, 0, tzinfo=timezone.utc)
+# Wall-clock anchor (two days back): share_of_voice_summary_text uses the
+# default "today", so a fixed calendar date would age out of the window.
+TODAY = (datetime.now(timezone.utc) - timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0)
 
 
 def _prop(db, name="RAG SoV Court"):

@@ -1,6 +1,12 @@
 """Query execution orchestrator: enforce cost/rate controls, run the one
 non-deterministic step, deterministically parse + store the result, and enqueue
-a RAG sync. Every execution is logged for after-the-fact cost auditing."""
+a RAG sync. Every execution is logged for after-the-fact cost auditing.
+
+Phase 19: `run_query` is a thin property-scoped wrapper over
+observatory.observe.execute_observation, which writes the run ledger (tokens,
+cost, status, including failed/discarded attempts) and the provider-reported
+citations and retrieval queries alongside the verbatim response. Signature
+and return type are unchanged for the router, the scheduler and the tests."""
 
 import logging
 from datetime import datetime, timezone
@@ -9,15 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.connectors.base import AIVisibilityQueryProvider
-from app.extensions.hooks import trigger_rag_sync
 from app.models import AIVisibilityQuery, Property
-from app.services.ai_visibility.mentions import (
-    persist_mentions_for_query,
-    resolve_property_terms,
-)
-from app.services.ai_visibility.parsing import detect_mention, extract_sources
-from app.services.ai_visibility.providers import get_ai_visibility_provider
-from app.services.ai_visibility.reference import validate_platform
+from app.services.ai_visibility.mentions import resolve_property_terms
 
 logger = logging.getLogger("beacon.ai_visibility")
 
@@ -67,56 +66,18 @@ def run_query(
     platform: str,
     provider: AIVisibilityQueryProvider | None = None,
     now: datetime | None = None,
+    prompt_id: int | None = None,
 ) -> AIVisibilityQuery:
-    prompt = (prompt or "").strip()
-    if not prompt:
-        raise ValueError("Prompt is empty.")
-    platform = validate_platform(platform)
-    prop = db.get(Property, property_id)
-    if prop is None:
-        raise ValueError("Property not found.")
+    from app.services.observatory.observe import execute_observation
 
-    now = now or datetime.now(timezone.utc)
-    used = queries_used_today(db, property_id, now)
-    limit = settings.ai_visibility_daily_limit
-    if used >= limit:
-        logger.warning(
-            "ai_visibility rate limit hit: property=%s used=%s limit=%s",
-            property_id, used, limit,
-        )
-        raise RateLimitExceeded(
-            f"Daily AI Visibility query budget reached for this property "
-            f"({used}/{limit}). Queries are paused until tomorrow (UTC) so "
-            "external-API cost stays bounded."
-        )
-
-    provider = provider or get_ai_visibility_provider()
-    # The ONLY non-deterministic step in the system.
-    raw = provider.execute_query(prompt, platform)
-    logger.info(
-        "ai_visibility query executed: property=%s platform=%s prompt_chars=%s "
-        "response_chars=%s (%s/%s today)",
-        property_id, platform, len(prompt), len(raw or ""), used + 1, limit,
-    )
-
-    # Everything below here is deterministic given `raw`.
-    brand_mentioned = detect_mention(raw, brand_terms_for(prop))
-    sources = extract_sources(raw)
-
-    row = AIVisibilityQuery(
+    outcome = execute_observation(
+        db,
         property_id=property_id,
-        platform=platform,
         prompt_text=prompt,
-        raw_response_text=raw,
-        executed_at=now,
-        brand_mentioned=brand_mentioned,
-        sources_cited=sources,
+        platform=platform,
+        prompt_id=prompt_id,
+        provider=provider,
+        now=now,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    persist_mentions_for_query(db, row)
-    trigger_rag_sync(
-        db, property_id=property_id, source="ai_visibility", reason="ai_visibility_query"
-    )
-    return row
+    assert outcome.response is not None  # success path always stores evidence
+    return outcome.response

@@ -37,6 +37,9 @@ EXPECTED_TABLES = {
     "ai_topics",
     "mentions",
     "ai_sov_snapshots",
+    "ai_runs",
+    "ai_citations",
+    "ai_search_queries",
 }
 
 

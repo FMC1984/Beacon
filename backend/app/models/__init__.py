@@ -37,6 +37,9 @@ from app.models.briefing import MonthlyBriefing
 from app.models.ai_topic import AITopic
 from app.models.mention import Mention, ENTITY_PROPERTY, ENTITY_COMPETITOR
 from app.models.ai_sov_snapshot import AIShareOfVoiceSnapshot
+from app.models.ai_runs import AIRun
+from app.models.ai_citations import AICitation
+from app.models.ai_search_queries import AISearchQuery
 
 __all__ = [
     "Company",
@@ -81,4 +84,7 @@ __all__ = [
     "ENTITY_PROPERTY",
     "ENTITY_COMPETITOR",
     "AIShareOfVoiceSnapshot",
+    "AIRun",
+    "AICitation",
+    "AISearchQuery",
 ]

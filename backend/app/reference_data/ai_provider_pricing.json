@@ -1,0 +1,25 @@
+{
+  "version": "2026-09-11-unpriced",
+  "currency": "USD",
+  "notes": "Per-model list prices used to MODEL a cost per run from provider-reported token usage and search operations. Every rate ships null until the operator pastes current vendor prices here (or sets BEACON_AI_PRICING_OVERRIDES_JSON with the same shape). A null rate means estimated_cost is UNAVAILABLE for that model; Beacon never guesses a dollar figure. Keys are provider:model. Rates: input_per_1m / cached_input_per_1m / output_per_1m are USD per one million tokens; search_call_per_1k is USD per one thousand web-search tool calls; grounded_prompt_per_1k is USD per one thousand grounded prompts (Gemini-style grounding billing).",
+  "models": {
+    "openai:gpt-5-mini": {
+      "input_per_1m": null,
+      "cached_input_per_1m": null,
+      "output_per_1m": null,
+      "search_call_per_1k": null
+    },
+    "gemini:gemini-2.5-flash": {
+      "input_per_1m": null,
+      "cached_input_per_1m": null,
+      "output_per_1m": null,
+      "grounded_prompt_per_1k": null
+    },
+    "demo:demo": {
+      "input_per_1m": 0,
+      "cached_input_per_1m": 0,
+      "output_per_1m": 0,
+      "search_call_per_1k": 0
+    }
+  }
+}

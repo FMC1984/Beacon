@@ -21,7 +21,11 @@ from app.schemas.ai_visibility import AIVisibilityQueryIn, AIVisibilityQueryOut
 from app.services.ai_visibility.analyzer import analyze_ai_visibility
 from app.services.ai_visibility.execution import RateLimitExceeded, budget_status, run_query
 from app.services.ai_visibility.hallucination import check_response_against_context
-from app.services.ai_visibility.providers import PlatformNotConnectedError, provider_name
+from app.services.ai_visibility.providers import (
+    BrowsingUnavailableError,
+    PlatformNotConnectedError,
+    provider_name,
+)
 from app.services.ai_visibility.schedule import (
     prompt_suggestions,
     run_standing_prompts,
@@ -49,10 +53,19 @@ def meta():
     """Platform vocabulary, the documented query methodology, and the active
     provider. Exposed so the methodology is visible in the product, not just in
     code (the transparency gap the spec calls out)."""
+    from app.services.ai_visibility.reference import capability_keys
+
     return {
         "platforms": platforms(),
         "methodology": methodology(),
         "provider": provider_name(),
+        "capability_keys": capability_keys(),
+        "data_labels": {
+            "OBSERVED": "Beacon directly observed this in a provider execution.",
+            "MEASURED": "Calculated from observed data.",
+            "MODELED": "Estimated from available signals; inputs are shown.",
+            "UNAVAILABLE": "The platform does not expose this; Beacon does not guess.",
+        },
     }
 
 
@@ -67,6 +80,10 @@ def execute(property_id: int, payload: AIVisibilityQueryIn, db: Session = Depend
         raise HTTPException(status_code=429, detail=str(exc))
     except PlatformNotConnectedError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    except BrowsingUnavailableError as exc:
+        # The attempt is recorded in the run ledger (with its spend) but no
+        # evidence row exists; tell the operator plainly instead of a 500.
+        raise HTTPException(status_code=409, detail=str(exc))
     except MissingAPIKeyError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except ValueError as exc:
@@ -337,6 +354,8 @@ def get_query(property_id: int, query_id: int, db: Session = Depends(get_db)):
     )
     if row is None:
         raise HTTPException(status_code=404, detail="Query not found.")
+    from app.services.observatory.observe import observation_detail
+
     context = get_property_context(db, property_id)
     return {
         "query": AIVisibilityQueryOut.model_validate(row),
@@ -345,4 +364,7 @@ def get_query(property_id: int, query_id: int, db: Session = Depends(get_db)):
         "fact_check": check_response_against_context(
             row.raw_response_text, prop, context
         ),
+        # Phase 19: the run ledger row plus provider-reported citations and
+        # retrieval queries, each labeled OBSERVED / MODELED / UNAVAILABLE.
+        "observation": observation_detail(db, row),
     }

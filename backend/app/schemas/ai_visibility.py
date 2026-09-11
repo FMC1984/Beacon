@@ -23,3 +23,9 @@ class AIVisibilityQueryOut(BaseModel):
     execution_status: str = "success"
     property_mention_count: int = 0
     competitor_mention_count: int = 0
+    # Phase 19 Observatory links; None on rows stored before the run ledger.
+    run_id: int | None = None
+    prompt_id: int | None = None
+    run_scope: str = "property"
+    provider: str | None = None
+    model: str | None = None

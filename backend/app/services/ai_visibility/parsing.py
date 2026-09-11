@@ -64,6 +64,22 @@ def _domain_of(url: str) -> str:
     return host[4:] if host.startswith("www.") else host
 
 
+def extract_urls(text: str) -> list[str]:
+    """Deterministically extract the URLs and bare domains present in a
+    response, in order of first appearance, de-duplicated. The Phase 19
+    prose-regex citation fallback for providers that report no citations."""
+    seen: list[str] = []
+    for m in _URL_RE.finditer(text or ""):
+        u = m.group(0).rstrip(".,);]\"'")
+        if u and u not in seen:
+            seen.append(u)
+    for m in _BARE_DOMAIN_RE.finditer(text or ""):
+        d = m.group(0)
+        if not any(d.lower() in s.lower() for s in seen):
+            seen.append(d)
+    return seen
+
+
 def extract_sources(text: str) -> list[str]:
     """Deterministically extract cited source domains from a response. Returns a
     sorted, de-duplicated list of hostnames (full URLs are reduced to their

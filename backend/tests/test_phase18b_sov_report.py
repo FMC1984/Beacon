@@ -2,7 +2,7 @@
 and drilldown reconciliation - the KPI number must equal the by-topic sum
 must equal the by-prompt sum must equal the underlying Mention row count."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -22,7 +22,10 @@ class FR(AIVisibilityQueryProvider):
         return []
 
 
-NOW = datetime(2026, 8, 10, 12, 0, tzinfo=timezone.utc)
+# Anchored to the wall clock (two days back, so no UTC/local day-boundary
+# ambiguity) because the endpoints under test use their default "today";
+# a fixed calendar date would drift out of the 30-day window over time.
+NOW = (datetime.now(timezone.utc) - timedelta(days=2)).replace(hour=12, minute=0, second=0, microsecond=0)
 
 
 def _prop(db, name="Reconcile Court"):

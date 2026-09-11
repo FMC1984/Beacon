@@ -22,6 +22,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     func,
@@ -36,10 +37,16 @@ class AIVisibilityQuery(Base):
     __table_args__ = (
         Index("ix_ai_visibility_property_executed", "property_id", "executed_at"),
         Index("ix_ai_visibility_property_platform", "property_id", "platform"),
+        Index("ix_ai_visibility_queries_run", "run_id"),
+        Index("ix_ai_visibility_queries_prompt_executed", "prompt_id", "executed_at"),
+        Index("ix_ai_visibility_queries_response_hash", "response_hash"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"))
+    # Nullable since Phase 19: market-scoped runs (one shared observation
+    # scored against many properties) have no owning property. Every legacy
+    # reader filters by property_id and therefore never sees those rows.
+    property_id: Mapped[int | None] = mapped_column(ForeignKey("properties.id"))
     platform: Mapped[str] = mapped_column(String(50))
     prompt_text: Mapped[str] = mapped_column(Text)
     # Verbatim external-AI response. Immutable evidence; never rewritten.
@@ -63,6 +70,23 @@ class AIVisibilityQuery(Base):
     # so Share of Voice reads never COUNT the mentions table per response.
     property_mention_count: Mapped[int] = mapped_column(Integer, default=0)
     competitor_mention_count: Mapped[int] = mapped_column(Integer, default=0)
+    # --- Phase 19 Observatory: link to the run ledger and keep the full
+    # provider evidence next to the verbatim text. ---
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("ai_runs.id"))
+    prompt_id: Mapped[int | None] = mapped_column(ForeignKey("ai_visibility_prompts.id"))
+    market_id: Mapped[int | None] = mapped_column(Integer)
+    organization_id: Mapped[int | None] = mapped_column(Integer)
+    run_scope: Mapped[str] = mapped_column(String(20), default="property")
+    provider: Mapped[str | None] = mapped_column(String(30))
+    model: Mapped[str | None] = mapped_column(String(100))
+    response_hash: Mapped[str | None] = mapped_column(String(64))
+    # Schema-versioned normalized view of the provider result (citations,
+    # retrieval queries, usage) so readers never parse raw payloads.
+    normalized_response: Mapped[dict | None] = mapped_column(JSON)
+    # Full provider payload, zlib-compressed JSON (payload_encoding says so).
+    # Kept for audit; never read on dashboard paths.
+    raw_provider_payload: Mapped[bytes | None] = mapped_column(LargeBinary)
+    payload_encoding: Mapped[str | None] = mapped_column(String(10))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

@@ -12,7 +12,52 @@ type QueryRow = {
   executed_at: string;
   brand_mentioned: boolean;
   sources_cited: string[] | null;
+  run_id?: number | null;
+  provider?: string | null;
+  model?: string | null;
 };
+
+// Phase 19: the run ledger + provider-reported evidence for one response.
+// Every block carries a data-integrity label from the backend.
+type ObservationDetail = {
+  run: {
+    status: string;
+    provider: string;
+    model: string | null;
+    latency_ms: number | null;
+    browsed: boolean | null;
+    tokens: {
+      label: string;
+      input: number | null;
+      output: number | null;
+      reasoning: number | null;
+      search_operations: number;
+    };
+    cost: { label: string; estimated_usd: number | null; pricing_version: string | null; note: string };
+  } | null;
+  citations: {
+    label: string;
+    capture: string;
+    note: string;
+    items: { url: string; domain: string; title: string | null; source_type: string; capture_method: string }[];
+  };
+  search_queries: { label: string; note: string; items: { query: string }[] };
+};
+
+const LABEL_CHIP: Record<string, string> = {
+  OBSERVED: "bg-emerald-a/15 text-emerald-a",
+  MEASURED: "bg-cyan-a/15 text-cyan-a",
+  MODELED: "bg-amber-a/15 text-amber-a",
+  UNAVAILABLE: "bg-line/60 text-muted",
+};
+
+function LabelChip({ label }: { label: string }) {
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide ${LABEL_CHIP[label] ?? LABEL_CHIP.UNAVAILABLE}`}>
+      {label}
+    </span>
+  );
+}
 
 type Budget = {
   limit_per_day: number;
@@ -94,6 +139,18 @@ export default function AIVisibilityPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [details, setDetails] = useState<Record<number, ObservationDetail | "loading" | "error">>({});
+
+  function toggleQuery(id: number) {
+    const next = openId === id ? null : id;
+    setOpenId(next);
+    if (next === null || propertyId === null || details[next]) return;
+    setDetails((d) => ({ ...d, [next]: "loading" }));
+    fetch(`${API_BASE}/ai-visibility/${propertyId}/${next}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((body) => setDetails((d) => ({ ...d, [next]: body.observation as ObservationDetail })))
+      .catch(() => setDetails((d) => ({ ...d, [next]: "error" })));
+  }
 
   useEffect(() => {
     fetchProperties()
@@ -271,7 +328,7 @@ export default function AIVisibilityPage() {
             return (
               <div key={q.id} className="rounded-2xl border border-line bg-surface">
                 <button
-                  onClick={() => setOpenId(open ? null : q.id)}
+                  onClick={() => toggleQuery(q.id)}
                   className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
@@ -320,6 +377,7 @@ export default function AIVisibilityPage() {
                         <p className="text-xs text-muted">None detected in the response.</p>
                       )}
                     </div>
+                    <ObservationEvidence detail={details[q.id]} />
                   </div>
                 )}
               </div>
@@ -332,6 +390,72 @@ export default function AIVisibilityPage() {
 
       {tab === "Standing & Trend" && propertyId !== null && (
         <StandingPanel propertyId={propertyId} />
+      )}
+    </div>
+  );
+}
+
+function ObservationEvidence({ detail }: { detail: ObservationDetail | "loading" | "error" | undefined }) {
+  if (!detail || detail === "loading") {
+    return <p className="text-xs text-muted">Loading provider evidence...</p>;
+  }
+  if (detail === "error") {
+    return <p className="text-xs text-muted">Provider evidence could not be loaded.</p>;
+  }
+  const run = detail.run;
+  return (
+    <div className="space-y-3 border-t border-line pt-3">
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-medium text-muted">
+          Provider-reported citations <LabelChip label={detail.citations.label} />
+        </p>
+        {detail.citations.items.length ? (
+          <ul className="space-y-1">
+            {detail.citations.items.map((c, i) => (
+              <li key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                <a href={c.url} target="_blank" rel="noreferrer" className="truncate text-cyan-a hover:underline" title={c.url}>
+                  {c.domain}
+                </a>
+                <span className="rounded-full border border-line px-1.5 py-0.5 text-[10px] text-muted">{c.source_type}</span>
+                <span className="text-[10px] text-muted">{c.capture_method === "prose_regex" ? "found in text" : "provider"}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="mt-1 text-[11px] text-muted">{detail.citations.note}</p>
+      </div>
+      <div>
+        <p className="mb-1 flex items-center gap-2 text-xs font-medium text-muted">
+          Observed retrieval queries <LabelChip label={detail.search_queries.label} />
+        </p>
+        {detail.search_queries.items.length ? (
+          <ul className="space-y-1 text-xs">
+            {detail.search_queries.items.map((s, i) => (
+              <li key={i} className="rounded-lg bg-surface-raised px-2 py-1">{s.query}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted">This provider reported no retrieval queries for this call.</p>
+        )}
+        <p className="mt-1 text-[11px] text-muted">{detail.search_queries.note}</p>
+      </div>
+      {run && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+          <span>
+            Run: {run.provider}{run.model ? ` / ${run.model}` : ""}
+            {run.latency_ms !== null ? ` / ${run.latency_ms} ms` : ""}
+            {run.browsed === null ? "" : run.browsed ? " / browsed" : " / did not browse"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            Tokens <LabelChip label={run.tokens.label} />
+            {run.tokens.input !== null ? `${run.tokens.input} in / ${run.tokens.output ?? 0} out` : "not reported"}
+            {run.tokens.search_operations ? ` / ${run.tokens.search_operations} search call(s)` : ""}
+          </span>
+          <span className="flex items-center gap-1.5" title={run.cost.note}>
+            Cost <LabelChip label={run.cost.label} />
+            {run.cost.estimated_usd !== null ? `$${run.cost.estimated_usd.toFixed(4)}` : "no rate configured"}
+          </span>
+        </div>
       )}
     </div>
   );

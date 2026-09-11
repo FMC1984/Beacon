@@ -10,7 +10,7 @@ bounds narrow the window; None means all available.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from sqlalchemy.orm import Session
@@ -120,6 +120,54 @@ class ContentProvider(ABC):
     def get_content(self, db: Session, property_id: int) -> list[ContentRecord]: ...
 
 
+@dataclass(frozen=True)
+class ProviderCitation:
+    """One source the provider itself reported for a response (Phase 19).
+    OBSERVED: it came from the provider payload (annotations, grounding
+    chunks), not from Beacon scraping URLs out of prose. capture_method
+    says which; "prose_regex" marks the legacy fallback."""
+
+    url: str
+    title: str | None = None
+    start_index: int | None = None
+    end_index: int | None = None
+    capture_method: str = "provider_annotation"
+
+
+@dataclass(frozen=True)
+class ProviderUsage:
+    """Token accounting as reported by the provider. None means the provider
+    did not report it (UNAVAILABLE), never zero."""
+
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    reasoning_tokens: int | None = None
+    cached_tokens: int | None = None
+
+
+@dataclass(frozen=True)
+class ProviderResult:
+    """Normalized outcome of one external-AI execution (Phase 19). `text` is
+    the verbatim answer (the evidentiary record); everything else is what
+    the provider exposed alongside it. `search_queries` are the retrieval
+    queries the provider says it issued - OBSERVED provider behavior, never
+    consumer search volume. `browsed` is None when the provider cannot say."""
+
+    text: str
+    provider: str
+    platform: str
+    model: str | None = None
+    citations: tuple[ProviderCitation, ...] = ()
+    search_queries: tuple[str, ...] = ()
+    usage: ProviderUsage = field(default_factory=ProviderUsage)
+    search_operations: int = 0
+    browsed: bool | None = None
+    latency_ms: int | None = None
+    provider_response_id: str | None = None
+    raw_payload: dict | None = None
+    location: dict | None = None
+
+
 class AIVisibilityQueryProvider(ABC):
     """Seam for querying external AI platforms and reading stored results.
 
@@ -129,10 +177,31 @@ class AIVisibilityQueryProvider(ABC):
     source extraction, scoring) is deterministic. `get_queries` is a pure,
     deterministic read of previously stored rows, property-scoped. Designed for
     multiple platform connectors from the start even though one is implemented
-    now; existing behavior stays stable when a property has no queries."""
+    now; existing behavior stays stable when a property has no queries.
+
+    Phase 19 adds `execute`, which returns the structured ProviderResult
+    (citations, retrieval queries, usage, raw payload). The default wraps
+    `execute_query` so every existing provider and test fake keeps working;
+    real connectors override `execute` and derive `execute_query` from it."""
+
+    name: str = "base"
 
     @abstractmethod
     def execute_query(self, prompt: str, platform: str) -> str: ...
+
+    def execute(
+        self,
+        prompt: str,
+        platform: str,
+        *,
+        model: str | None = None,
+        location: dict | None = None,
+    ) -> ProviderResult:
+        text = self.execute_query(prompt, platform)
+        return ProviderResult(
+            text=text, provider=self.name, platform=platform, model=model,
+            browsed=None, location=location,
+        )
 
     @abstractmethod
     def get_queries(

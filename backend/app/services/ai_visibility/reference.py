@@ -43,6 +43,29 @@ def is_live_platform(key: str) -> bool:
     return False
 
 
+def platform_config(key: str) -> dict | None:
+    for p in platforms():
+        if p["key"] == key:
+            return p
+    return None
+
+
+def capability_keys() -> list[str]:
+    return list(config().get("capability_keys", []))
+
+
+def platform_capabilities(key: str) -> dict:
+    """The capability flags for a platform (Phase 19). Unknown platform or
+    missing key reads as False: an unstated capability is UNAVAILABLE, never
+    assumed."""
+    p = platform_config(key) or {}
+    caps = {k: bool(p.get(k, False)) for k in capability_keys()}
+    caps["live"] = bool(p.get("live", False))
+    caps["connector"] = p.get("connector")
+    caps["default_model"] = p.get("default_model")
+    return caps
+
+
 def methodology() -> dict:
     return config()["query_methodology"]
 

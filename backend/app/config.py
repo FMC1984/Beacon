@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Output bills far above input; only enough response to carry citations.
     ai_visibility_max_output_tokens: int = 400
     ai_visibility_reasoning_effort: str = "low"
+    # Phase 19: JSON string with the same shape as
+    # reference_data/ai_provider_pricing.json ("models": {"provider:model":
+    # {...rates...}}) overriding the shipped (null) rates. Empty = no override;
+    # cost stays UNAVAILABLE until real prices are supplied.
+    ai_pricing_overrides_json: str = ""
     # Shared access key for hosted deployments (e.g. Render). Empty (the
     # default) means no auth - correct for local single-user use. When set,
     # every /api request except /api/health must carry it in the X-Beacon-Key

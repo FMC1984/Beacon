@@ -1,21 +1,81 @@
 {
-  "version": "2026-07-05",
-  "notes": "Vocabulary + methodology for AI Visibility (Phase 11.5 foundation). Platforms are a controlled vocabulary validated on assignment (same pattern as property_context property_types). property_type_synonyms drives the deterministic hallucination-check for property type.",
+  "version": "2026-09-11",
+  "notes": "Vocabulary + methodology for AI Visibility (Phase 11.5 foundation; Phase 19 adds per-platform capability flags). Platforms are a controlled vocabulary validated on assignment (same pattern as property_context property_types). Capability flags say what each platform's API actually exposes: a false flag means that signal is UNAVAILABLE for the platform and Beacon must never synthesize it. property_type_synonyms drives the deterministic hallucination-check for property type.",
   "query_methodology": {
     "approach": "api",
     "statement": "Beacon executes AI Visibility queries by calling AI-platform APIs directly (not by simulating a person using the consumer chat product). API results can differ from what a real user sees in the consumer app, which may use a different model version, system prompt, retrieval, or personalization. Treat all results as directional, from a stated sample size and date, never as an exact visibility percentage.",
     "known_limitations": [
       "API responses may differ from the consumer product for the same prompt.",
       "LLM outputs vary by phrasing, session, and model version, so a single query does not generalize.",
-      "Only the platforms with an implemented connector can be queried live; others are recognized but not yet executable."
+      "Only the platforms with an implemented connector can be queried live; others are recognized but not yet executable.",
+      "Retrieval queries and citations are what the provider reports for an API call (observed provider behavior), not consumer search volume or consumer-visible sources."
     ]
   },
+  "capability_keys": [
+    "supports_web_search",
+    "supports_search_query_capture",
+    "supports_citation_capture",
+    "supports_source_capture",
+    "supports_location",
+    "supports_model_selection",
+    "supports_raw_response"
+  ],
   "platforms": [
-    {"key": "chatgpt", "label": "ChatGPT", "connector": "openai", "live": true},
-    {"key": "gemini", "label": "Google Gemini", "connector": null, "live": false},
-    {"key": "perplexity", "label": "Perplexity", "connector": null, "live": false},
-    {"key": "copilot", "label": "Microsoft Copilot", "connector": null, "live": false},
-    {"key": "claude", "label": "Claude", "connector": null, "live": false}
+    {
+      "key": "chatgpt", "label": "ChatGPT", "connector": "openai", "live": true,
+      "default_model": "gpt-5-mini",
+      "supports_web_search": true,
+      "supports_search_query_capture": true,
+      "supports_citation_capture": true,
+      "supports_source_capture": true,
+      "supports_location": true,
+      "supports_model_selection": true,
+      "supports_raw_response": true
+    },
+    {
+      "key": "gemini", "label": "Google Gemini", "connector": "gemini", "live": false,
+      "default_model": "gemini-2.5-flash",
+      "supports_web_search": true,
+      "supports_search_query_capture": true,
+      "supports_citation_capture": true,
+      "supports_source_capture": true,
+      "supports_location": false,
+      "supports_model_selection": true,
+      "supports_raw_response": true
+    },
+    {
+      "key": "perplexity", "label": "Perplexity", "connector": "perplexity", "live": false,
+      "default_model": null,
+      "supports_web_search": true,
+      "supports_search_query_capture": false,
+      "supports_citation_capture": true,
+      "supports_source_capture": true,
+      "supports_location": false,
+      "supports_model_selection": true,
+      "supports_raw_response": true
+    },
+    {
+      "key": "copilot", "label": "Microsoft Copilot", "connector": null, "live": false,
+      "default_model": null,
+      "supports_web_search": false,
+      "supports_search_query_capture": false,
+      "supports_citation_capture": false,
+      "supports_source_capture": false,
+      "supports_location": false,
+      "supports_model_selection": false,
+      "supports_raw_response": false
+    },
+    {
+      "key": "claude", "label": "Claude", "connector": "anthropic", "live": false,
+      "default_model": null,
+      "supports_web_search": true,
+      "supports_search_query_capture": true,
+      "supports_citation_capture": true,
+      "supports_source_capture": true,
+      "supports_location": true,
+      "supports_model_selection": true,
+      "supports_raw_response": true
+    }
   ],
   "property_type_synonyms": {
     "affordable": ["affordable housing", "income-restricted", "income restricted", "section 8", "lihtc", "subsidized", "low-income", "low income"],

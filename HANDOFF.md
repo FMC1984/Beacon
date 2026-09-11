@@ -80,6 +80,70 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 AI Visibility Observatory, slice 1a: provider evidence capture (2026-09-11, 689 tests)
+- Plan of record for the whole Observatory (7 phases; markets, shared
+  observations, prompt clusters, rollups, competitor discovery, claims,
+  scheduler, portfolio intelligence) lives in the approved plan file; this
+  slice is the first deployable piece and changes no existing behavior.
+- Provider seam: `AIVisibilityQueryProvider.execute()` returns a
+  `ProviderResult` (text, provider-reported citations with offsets, retrieval
+  queries, usage, model as reported, latency, raw payload). `execute_query`
+  stays as a string shim so every existing fake keeps working. Per-platform
+  capability flags (`supports_*`) now live in `ai_visibility.json`; a false
+  flag means UNAVAILABLE, never synthesized.
+- OpenAI capture (`parse_openai_response`): `url_citation` annotations ->
+  citations, `web_search_call.action.query/queries` -> retrieval queries,
+  `usage` -> tokens (input/output/reasoning/cached), `response.model`/`id`,
+  `model_dump()` -> zlib-compressed raw payload. A non-browsing answer still
+  raises BrowsingUnavailableError, but the exception now carries `.result`
+  so the spend is recorded, and the router returns 409 (was a 500).
+- Ledger: new `ai_runs` (every attempt: success | failed | discarded, tokens,
+  search_operations, latency, error_class, response_hash,
+  duplicate_of_run_id, MODELED estimated_cost + pricing_version), plus
+  `ai_citations` (normalized_url, domain, root_domain, source_type via the
+  source classifier, capture_method provider_annotation | prose_regex |
+  demo) and `ai_search_queries` (OBSERVED provider retrieval queries, never
+  consumer volume). `ai_visibility_queries` gained run_id, prompt_id,
+  organization_id/market_id (plain ints until 1b), run_scope, provider,
+  model, response_hash, normalized_response, raw_provider_payload;
+  property_id is now NULLABLE for future market-scoped runs. Legacy rows
+  were backfilled (prompt_id by text match, response_hash). Migration
+  a9b8c7d6e5f4 (batch mode).
+- Pricing: `reference_data/ai_provider_pricing.json` ships with NULL rates
+  (Tina's decision), so cost reads UNAVAILABLE until real prices are pasted
+  there or into `BEACON_AI_PRICING_OVERRIDES_JSON`. Tokens are recorded
+  regardless. Demo provider is priced at zero and returns structured,
+  labeled fake citations.
+- UI: each stored query on AI Visibility > Run & Queries now expands into a
+  labeled evidence block (Provider-reported citations OBSERVED, Observed
+  retrieval queries OBSERVED, run line with tokens OBSERVED and cost
+  MODELED/UNAVAILABLE). Rows stored before this slice read UNAVAILABLE.
+  `GET /api/ai-visibility/meta` returns `capability_keys` and `data_labels`.
+- Verified live: one ChatGPT run captured a realtor.com url_citation
+  (position 474, classified directory), three retrieval queries, 8494/377
+  tokens, and a second attempt that did not browse was stored as
+  `discarded` with its 4476 input tokens - spend that was invisible before.
+- Next slices: 1b foundation (Organization, Market, jobs table + runner,
+  WAL pragmas), 2 prompt library + clustering, 3 shared market scoring +
+  metrics + rollups, 4 Observatory UI, 5 discovery/claims/alerts/scheduler,
+  6 portfolio + content gaps + Google correlation, 7 Gemini/Claude/Perplexity.
+
+### Phase 18 AI Share of Voice (2026-08-13, 659 tests)
+- Mention (per-response entity rows with the alias that matched), AITopic,
+  AIShareOfVoiceSnapshot; Property.aliases; prompt filter fields (topic_id,
+  audience, persona, location_market, priority, tags). Migrations
+  d1e2f3a4b5c6 + f4a5b6c7d8e9.
+- `reporting_share_of_voice.py`: Mention-backed SoV (property mentions /
+  property + competitor mentions), by platform/topic, topic -> prompt ->
+  response drilldown, competitive ranking with explicit ties, winners/
+  losers, percentage-POINT comparisons (`reporting.pct_point_change`,
+  `compare_points`), portfolio average gated to 2+ sibling properties.
+  Reports tab `share-of-voice` + CSV, dashboard `SovKpiCard` (first
+  dashboard-to-report link), Nora SoV gate (Supported Diagnosis only when a
+  dominant topic contributor is code-verified), RAG chunk `share_of_voice`,
+  Opportunity Engine Protect / High Priority buckets on the competitors
+  source.
+
 ### DCHP question-set import (2026-08-01, 600 tests)
 - Tina supplied dchp-beacon-queries.json (12 questions: 4 weekly + 8
   monthly, budget ~$3-5/mo, citation watchlist, must_contain criteria).
@@ -730,7 +794,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **395**, all passing. Always run the full
+change (shown on `/admin`). Current: **689**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 
