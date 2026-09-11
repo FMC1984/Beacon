@@ -33,6 +33,8 @@ from app.services.ai_visibility.mentions import persist_mentions_for_query, reso
 from app.services.ai_visibility.parsing import detect_mention, extract_sources
 from app.services.ai_visibility.reference import validate_platform
 from app.services.observatory import LABEL_OBSERVED, LABEL_UNAVAILABLE
+from app.services.observatory.budgets import record_spend
+from app.services.observatory.tenancy import property_org_id
 from app.services.observatory.citations import (
     citation_domains,
     competitor_domains_for,
@@ -149,6 +151,8 @@ def execute_observation(
     provider = provider or get_ai_visibility_provider(platform)
     provider_key = getattr(provider, "name", "unknown")
     requested_model = getattr(provider, "model", None)
+    if organization_id is None and property_id is not None:
+        organization_id = property_org_id(db, property_id)
 
     run = AIRun(
         organization_id=organization_id,
@@ -186,6 +190,7 @@ def execute_observation(
             _apply_usage(run, partial)
         if run.latency_ms is None:
             run.latency_ms = elapsed_ms
+        record_spend(db, run, run.organization_id)
         db.commit()
         log_event(
             "run.failed", run_id=run.id, provider=provider_key, platform=platform,
@@ -265,6 +270,7 @@ def execute_observation(
     )
     if duplicate is not None:
         run.duplicate_of_run_id = duplicate.id
+    record_spend(db, run, run.organization_id)
     db.commit()
 
     log_event(

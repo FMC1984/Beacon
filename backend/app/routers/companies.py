@@ -62,7 +62,9 @@ def create_company(payload: CompanyCreate, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=409, detail="A company with that name already exists."
         )
-    company = Company(name=name, slug=slug)
+    from app.services.observatory.tenancy import default_organization_id
+
+    company = Company(name=name, slug=slug, organization_id=default_organization_id(db))
     db.add(company)
     db.commit()
     db.refresh(company)

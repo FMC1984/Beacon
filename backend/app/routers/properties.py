@@ -85,11 +85,32 @@ def create_property(payload: PropertyCreate, db: Session = Depends(get_db)):
         state=payload.state,
         unit_count=payload.unit_count,
         website_url=payload.website_url,
+        address_line1=payload.address_line1,
+        zip=payload.zip,
+        lat=payload.lat,
+        lng=payload.lng,
+        submarket_id=payload.submarket_id,
+        attributes=payload.attributes,
+        management_company=payload.management_company,
+        ownership=payload.ownership,
+        known_competitor_domains=payload.known_competitor_domains,
     )
+    _derive_observatory_fields(db, prop)
     db.add(prop)
     db.commit()
     db.refresh(prop)
     return prop
+
+
+def _derive_observatory_fields(db: Session, prop: Property) -> None:
+    """Phase 19: market from city/state, owned domain from website_url.
+    Derived, never operator-entered, so they stay consistent with the
+    fields they come from."""
+    from app.services.observatory.citations import domain_of_url
+    from app.services.observatory.markets import assign_property_market
+
+    assign_property_market(db, prop)
+    prop.domain = domain_of_url(prop.website_url)
 
 
 @router.get("", response_model=list[PropertyOut])
@@ -119,6 +140,8 @@ def update_property(
         changes["property_type"] = _valid_type(changes["property_type"])
     for field, value in changes.items():
         setattr(prop, field, value)
+    if changes.keys() & {"city", "state", "website_url"}:
+        _derive_observatory_fields(db, prop)
     db.commit()
     db.refresh(prop)
     return prop
@@ -163,6 +186,41 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
         Report,
     ):
         db.query(model).filter_by(property_id=property_id).delete()
+
+    # AI Visibility / Observatory family (Phase 18-19), leaf rows first.
+    from app.models import (
+        AIBudget,
+        AICitation,
+        AIRun,
+        AISearchQuery,
+        AIShareOfVoiceSnapshot,
+        AITopic,
+        AIVisibilityPrompt,
+        AIVisibilityQuery,
+        AIVisibilityScoreHistory,
+        Competitor,
+        Mention,
+    )
+
+    response_ids = [
+        rid for (rid,) in db.query(AIVisibilityQuery.id).filter_by(property_id=property_id)
+    ]
+    if response_ids:
+        for leaf in (Mention, AICitation, AISearchQuery):
+            db.query(leaf).filter(leaf.response_id.in_(response_ids)).delete(
+                synchronize_session=False
+            )
+    for model in (
+        AIVisibilityQuery,
+        AIRun,
+        AIShareOfVoiceSnapshot,
+        AIVisibilityPrompt,
+        AITopic,
+        AIVisibilityScoreHistory,
+        Competitor,
+    ):
+        db.query(model).filter_by(property_id=property_id).delete()
+    db.query(AIBudget).filter_by(scope_type="property", scope_id=property_id).delete()
 
     db.query(PropertyProfile).filter_by(property_id=property_id).delete()
 

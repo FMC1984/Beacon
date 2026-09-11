@@ -40,6 +40,12 @@ EXPECTED_TABLES = {
     "ai_runs",
     "ai_citations",
     "ai_search_queries",
+    "organizations",
+    "markets",
+    "submarkets",
+    "jobs",
+    "app_state",
+    "ai_budgets",
 }
 
 

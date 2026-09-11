@@ -61,6 +61,11 @@ def _save_page(
     row.mapped_keyword = mapped_keyword
     row.source_url = source_url
     row.updated_at = updated_at or datetime.now(timezone.utc)
+    # Phase 19: content hash + topic tags, so unchanged pages are never
+    # re-analyzed and changed pages say which topics moved.
+    from app.services.observatory.content_change import refresh_content_hash
+
+    refresh_content_hash(db, row)
     db.commit()
     db.refresh(row)
     trigger_rag_sync(db, property_id=property_id, source="content", reason="content_edit")

@@ -80,6 +80,46 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 1b: foundation - organizations, markets, jobs runner (2026-09-11, 714 tests)
+- Tenancy-READY, not multi-tenant: `organizations` (one default row, slug
+  "default"; settings JSON reserved for budgets / rotation / white-label),
+  `companies.organization_id` (backfilled to the default org; new companies
+  join it automatically). `services/observatory/tenancy.py` is the ONLY
+  place that resolves property -> company -> organization; a future
+  principal plugs in there. No user model, no auth change.
+- Geography: `markets` (shared, slug city-state e.g. `lone-tree-co`, created
+  automatically from property city/state on create/update) and
+  `submarkets`. `properties` gained market_id, submarket_id, address_line1,
+  zip, lat, lng, domain (derived from website_url; owned-domain matching),
+  attributes JSON (amenities, pet_policy, floor_plans, rent_range, segment;
+  operator-asserted), management_company, ownership,
+  known_competitor_domains. All optional; PropertyCreate/Update/Out expose
+  them. Migration b1c2d3e4f5a7 (batch).
+- Content change detection: `property_content.content_hash` (sha256 of the
+  whitespace/case-normalized body), hashed_at, topics (semantic topic keys
+  from enrich_text), content_changed_at. Refreshed on every content save;
+  `changed_topics()` says which topics moved. First hash is not a change.
+- Durable jobs: `jobs` table (idempotency_key unique, priority, run_after,
+  lease_owner/lease_expires_at, attempts/max_attempts, backoff
+  min(30*2^n, 3600)+jitter, dead after max), `app_state` (runner heartbeat
+  under key `jobs_runner`), `ai_budgets` (monthly per scope; default org =
+  300 runs/month via BEACON_AI_ORG_MONTHLY_RUN_DEFAULT; every run attempt is
+  charged, enforcement is Phase 5). Migration c2d3e4f5a6b8.
+  `services/jobs/{queue,runner,handlers}.py`; `claim_next` is one
+  conditional UPDATE so a job is leased exactly once. Handlers: `noop`,
+  `execute_ai_run` (final outcomes like a discarded non-browsing run do NOT
+  retry; rate limits / 5xx do). Runner: in-process startup loop
+  (BEACON_JOBS_RUNNER, default ON, tick BEACON_JOBS_TICK_SECONDS=15, drains
+  in a thread under a lock) or `python -m app.cli.jobs_worker [--loop]`.
+- SQLite: `app/db.py` now sets WAL + synchronous=NORMAL + busy_timeout=5000
+  on connect (foreign_keys still OFF); admin restore checkpoints the WAL
+  before backing up. `properties` DELETE now also clears the AI Visibility
+  / Observatory family (queries, runs, citations, search queries, mentions,
+  prompts, topics, snapshots, score history, competitors, property budget).
+- Local vs hosted: the local dev DB was migrated to head; Render migrates
+  itself on deploy (start command). Backups of the local file pre-19 live in
+  the session scratchpad only.
+
 ### Phase 19 AI Visibility Observatory, slice 1a: provider evidence capture (2026-09-11, 689 tests)
 - Plan of record for the whole Observatory (7 phases; markets, shared
   observations, prompt clusters, rollups, competitor discovery, claims,
@@ -794,7 +834,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **689**, all passing. Always run the full
+change (shown on `/admin`). Current: **714**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

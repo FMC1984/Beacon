@@ -190,6 +190,34 @@ async def start_ai_visibility_autorun():
 
 
 @app.on_event("startup")
+async def start_jobs_runner():
+    """Phase 19: drain the durable `jobs` table every few seconds. Provider
+    calls run in a worker thread so the event loop never blocks; a lock
+    guarantees one drain at a time on this process. Only explicitly queued
+    work runs, so this is ON by default; BEACON_JOBS_RUNNER=0 hands the queue
+    to `python -m app.cli.jobs_worker` instead."""
+    if not settings.jobs_runner:
+        return
+    import asyncio
+
+    lock = asyncio.Lock()
+
+    async def loop():
+        from app.services.jobs.runner import drain_once
+
+        while True:
+            if not lock.locked():
+                async with lock:
+                    try:
+                        await asyncio.to_thread(drain_once)
+                    except Exception:
+                        pass  # a bad tick never kills the runner
+            await asyncio.sleep(settings.jobs_tick_seconds)
+
+    asyncio.create_task(loop())
+
+
+@app.on_event("startup")
 async def start_briefing_autosnapshot():
     """Daily month-end check: freeze a Monthly Briefing snapshot for any
     property whose previous calendar month has data but no snapshot yet.

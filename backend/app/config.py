@@ -37,6 +37,18 @@ class Settings(BaseSettings):
     # {...rates...}}) overriding the shipped (null) rates. Empty = no override;
     # cost stays UNAVAILABLE until real prices are supplied.
     ai_pricing_overrides_json: str = ""
+    # Phase 19 jobs runner: an in-process worker that drains the durable
+    # `jobs` table every jobs_tick_seconds (leased, idempotent, retried with
+    # backoff). ON by default: it only runs work that was explicitly queued.
+    # The standalone `python -m app.cli.jobs_worker` is the same runner as a
+    # separate process; turn this off when that is used.
+    jobs_runner: bool = True
+    jobs_tick_seconds: int = 15
+    jobs_batch_limit: int = 20
+    jobs_lease_seconds: int = 900
+    # Default monthly observation allowance for the default organization
+    # (Tina's decision: 300 runs/month; the per-property daily cap stays).
+    ai_org_monthly_run_default: int = 300
     # Shared access key for hosted deployments (e.g. Render). Empty (the
     # default) means no auth - correct for local single-user use. When set,
     # every /api request except /api/health must carry it in the X-Beacon-Key

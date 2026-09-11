@@ -11,6 +11,7 @@ Beacon already works with); `updated_at` is the freshness signal.
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     DateTime,
     ForeignKey,
     Integer,
@@ -42,6 +43,12 @@ class PropertyContent(Base):
     mapped_keyword: Mapped[str | None] = mapped_column(String(300))
     source_url: Mapped[str | None] = mapped_column(String(1000))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # Phase 19 change detection: sha256 of the normalized body, when it was
+    # hashed, the semantic topic keys present, and when the hash last moved.
+    content_hash: Mapped[str | None] = mapped_column(String(64))
+    hashed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    topics: Mapped[list | None] = mapped_column(JSON)
+    content_changed_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

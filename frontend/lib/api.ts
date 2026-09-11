@@ -106,6 +106,18 @@ export type Property = {
   state: string | null;
   unit_count: number | null;
   website_url: string | null;
+  // Phase 19 Observatory attributes (all optional; market/domain are derived).
+  market_id?: number | null;
+  submarket_id?: number | null;
+  domain?: string | null;
+  address_line1?: string | null;
+  zip?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  attributes?: Record<string, unknown> | null;
+  management_company?: string | null;
+  ownership?: string | null;
+  known_competitor_domains?: string[] | null;
 };
 
 export type PropertyTypeInfo = {

@@ -40,6 +40,11 @@ from app.models.ai_sov_snapshot import AIShareOfVoiceSnapshot
 from app.models.ai_runs import AIRun
 from app.models.ai_citations import AICitation
 from app.models.ai_search_queries import AISearchQuery
+from app.models.organization import Organization
+from app.models.market import Market, Submarket
+from app.models.jobs import Job
+from app.models.app_state import AppState
+from app.models.ai_budgets import AIBudget
 
 __all__ = [
     "Company",
@@ -87,4 +92,10 @@ __all__ = [
     "AIRun",
     "AICitation",
     "AISearchQuery",
+    "Organization",
+    "Market",
+    "Submarket",
+    "Job",
+    "AppState",
+    "AIBudget",
 ]

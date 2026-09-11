@@ -407,6 +407,14 @@ async def restore_db(file: UploadFile):
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup_name = None
     if live.exists():
+        # WAL mode (Phase 19): fold the write-ahead log into the main file so
+        # the backup copy is complete, then drop the sidecars below.
+        try:
+            wal_conn = sqlite3.connect(live)
+            wal_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            wal_conn.close()
+        except Exception:
+            pass
         backup_name = f"{live.stem}.backup-{stamp}.db"
         shutil.copy2(live, live.with_name(backup_name))
     engine.dispose()

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -30,6 +30,23 @@ class Property(Base):
     state: Mapped[str | None] = mapped_column(String(2))
     unit_count: Mapped[int | None] = mapped_column(Integer)
     website_url: Mapped[str | None] = mapped_column(String(1000))
+    # --- Phase 19 Observatory attributes. None of these is required. ---
+    market_id: Mapped[int | None] = mapped_column(ForeignKey("markets.id"))
+    submarket_id: Mapped[int | None] = mapped_column(ForeignKey("submarkets.id"))
+    address_line1: Mapped[str | None] = mapped_column(String(200))
+    zip: Mapped[str | None] = mapped_column(String(10))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
+    # Normalized registrable host of website_url (owned-domain matching for
+    # citations); may carry a path prefix for shared management-company sites.
+    domain: Mapped[str | None] = mapped_column(String(255))
+    # Free-form structured facts (amenities[], pet_policy{}, floor_plans[],
+    # rent_range{}, neighborhood, segment). Operator-asserted; used for
+    # prompt generation and claim verification, never inferred by Beacon.
+    attributes: Mapped[dict | None] = mapped_column(JSON)
+    management_company: Mapped[str | None] = mapped_column(String(200))
+    ownership: Mapped[str | None] = mapped_column(String(200))
+    known_competitor_domains: Mapped[list | None] = mapped_column(JSON)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
