@@ -15,6 +15,7 @@ type Opportunity = {
   gate_reason: string | null;
   corroborating_sources: string[];
   priority: number;
+  citations?: { page?: string | null; source_ref: string; evidence?: string[] }[];
 };
 
 type Analysis = {
@@ -69,6 +70,28 @@ function OppCard({ o }: { o: Opportunity }) {
       </div>
       <p className="mt-1.5 text-sm text-muted">{o.reason}</p>
       {o.gate_reason && <p className="mt-1 text-xs text-amber-a">{o.gate_reason}</p>}
+      {o.citations && o.citations.length > 0 && (
+        <details className="mt-2 text-xs text-muted">
+          <summary className="cursor-pointer select-none hover:text-foreground">
+            Evidence ({o.citations.length})
+          </summary>
+          <ul className="mt-1.5 space-y-1.5">
+            {o.citations.map((c, i) => (
+              <li key={i} className="rounded-lg bg-surface px-2.5 py-1.5">
+                <span className="font-mono text-[11px]">{c.source_ref}</span>
+                {c.page && <span className="ml-2">page: {c.page}</span>}
+                {c.evidence && c.evidence.length > 0 && (
+                  <ul className="mt-0.5 list-inside list-disc">
+                    {c.evidence.map((e, j) => (
+                      <li key={j}>{e}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }

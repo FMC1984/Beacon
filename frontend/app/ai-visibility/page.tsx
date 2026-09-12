@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchOverview, fmtRate } from "@/lib/observatory";
@@ -113,6 +114,8 @@ export default function ObservatoryOverviewPage() {
               })()}
             </Panel>
           </div>
+
+          <ImpactPanel propertyId={data.property_id} days={days} />
 
           {meta && (
             <section className="rounded-2xl border border-line bg-surface/60 p-5">

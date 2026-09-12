@@ -18,6 +18,7 @@ from app.db import get_db
 from app.models import (
     AICitation,
     AIClaim,
+    AIContentGap,
     AIMarketDaily,
     AIRunSchedule,
     AIScheduleDecision,
@@ -45,6 +46,9 @@ from app.services.jobs.queue import enqueue, utcnow
 from app.services.observatory import LABEL_MEASURED, LABEL_MODELED, LABEL_OBSERVED, LABEL_UNAVAILABLE
 from app.services.observatory.alerts import alert_out, detect_property_alerts
 from app.services.observatory.claims import backfill_claims
+from app.services.observatory.content_gaps import evaluate_gaps, gap_out
+from app.services.observatory.impact import impact_summary
+from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
 from app.services.observatory.derivation import backfill_observations
 from app.services.observatory.discovery import (
@@ -793,3 +797,73 @@ def schedule_decisions(plan_key: str | None = Query(default=None), limit: int = 
          "created_at": d.created_at.isoformat() if d.created_at else None}
         for d in rows
     ]}
+
+
+# --- Slice 6: content gaps, impact, portfolio -------------------------------
+
+
+@router.get("/recommendations")
+def recommendations(
+    property_id: int = Query(...),
+    include_closed: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    q = db.query(AIContentGap).filter(AIContentGap.property_id == property_id)
+    if not include_closed:
+        q = q.filter(AIContentGap.status == "open")
+    rows = q.all()
+    order = {"Actionable": 0, "Requires confirmation": 1, "Monitor": 2, "Insufficient data": 3, "Suppressed": 4}
+    rows.sort(key=lambda g: (order.get(g.state, 9), 0 if g.impact == "High" else 1, g.visibility or 0, g.id))
+    return {
+        "property_id": property_id,
+        "gaps": [gap_out(g) for g in rows],
+        "note": ("Each action is built from monitored AI answers where the property was absent, the sources those "
+                 "answers cited, and what the property's own pages already say. It reports what the answers did, "
+                 "not a promise of what an edit will change."),
+    }
+
+
+@router.post("/recommendations/evaluate")
+def evaluate_recommendations(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=7, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    return evaluate_gaps(db, property_id, days=days, today=_today(today))
+
+
+@router.post("/recommendations/{gap_id}/status")
+def set_gap_status(gap_id: int, payload: StatusIn, db: Session = Depends(get_db)):
+    g = db.get(AIContentGap, gap_id)
+    if g is None:
+        raise HTTPException(status_code=404, detail="Recommendation not found.")
+    if payload.status not in ("open", "dismissed", "resolved"):
+        raise HTTPException(status_code=422, detail="Status must be open, dismissed or resolved.")
+    g.status = payload.status
+    db.commit()
+    return gap_out(g)
+
+
+@router.get("/impact")
+def impact(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=7, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    return impact_summary(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/portfolio")
+def portfolio(
+    company_id: int | None = Query(default=None),
+    unassigned: bool = Query(default=False),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return portfolio_summary(db, company_id=company_id, unassigned=unassigned, days=days, today=_today(today))

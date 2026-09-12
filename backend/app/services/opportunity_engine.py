@@ -38,6 +38,7 @@ SOURCE_LABELS = {
     "ai_visibility": "AI Visibility",
     "competitors": "Competitor IQ",
     "seo": "SEO Performance",
+    "ai_observatory": "AI Observatory",
 }
 
 STATE_WEIGHT = {
@@ -178,6 +179,14 @@ def build_opportunities(
         from app.services.reporting_seo import seo_recommendations
 
         collect("seo", seo_recommendations(db, property_id, today=today))
+    except Exception:
+        pass
+
+    try:
+        # Phase 19 slice 6: open content gaps backed by monitored AI answers.
+        from app.services.observatory.content_gaps import gap_opportunities
+
+        collect("ai_observatory", gap_opportunities(db, property_id))
     except Exception:
         pass
 

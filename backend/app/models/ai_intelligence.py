@@ -156,3 +156,42 @@ class AIScheduleDecision(Base):
     job_ids: Mapped[list | None] = mapped_column(JSON)
     dry_run: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AIContentGap(Base):
+    """A question AI answers keep answering without the property (slice 6):
+    the cluster's evidence (answers, cited sources, competitors named) joined
+    with what the property's own pages already cover, and the one concrete
+    content action that follows. MODELED recommendation over OBSERVED and
+    MEASURED evidence; gated by Property Context before it is shown."""
+
+    __tablename__ = "ai_content_gaps"
+    __table_args__ = (
+        Index("uq_ai_content_gaps_key", "gap_key", unique=True),
+        Index("ix_ai_content_gaps_property_status", "property_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    organization_id: Mapped[int | None] = mapped_column(Integer)
+    property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"))
+    cluster_id: Mapped[int] = mapped_column(Integer)
+    topic_key: Mapped[str | None] = mapped_column(String(60))
+    question: Mapped[str] = mapped_column(Text)
+    gap_key: Mapped[str] = mapped_column(String(100))
+    target_page: Mapped[str | None] = mapped_column(String(50))
+    page_exists: Mapped[bool] = mapped_column(Boolean, default=False)
+    missing_terms: Mapped[list | None] = mapped_column(JSON)
+    covered_terms: Mapped[list | None] = mapped_column(JSON)
+    evidence: Mapped[dict | None] = mapped_column(JSON)
+    visibility: Mapped[float | None] = mapped_column(Float)
+    competitor_presence: Mapped[float | None] = mapped_column(Float)
+    title: Mapped[str] = mapped_column(String(300))
+    recommendation: Mapped[str] = mapped_column(Text)
+    state: Mapped[str] = mapped_column(String(30))
+    gate_reason: Mapped[str | None] = mapped_column(Text)
+    impact: Mapped[str] = mapped_column(String(10), default="Medium")
+    effort: Mapped[str] = mapped_column(String(10), default="Medium")
+    status: Mapped[str] = mapped_column(String(20), default="open")  # open | dismissed | resolved
+    first_detected: Mapped[datetime] = mapped_column(DateTime)
+    last_evaluated: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

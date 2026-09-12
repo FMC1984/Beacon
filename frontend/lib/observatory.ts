@@ -430,3 +430,102 @@ export const setAlertStatus = (alertId: number, status: Alert["status"]) =>
 export const fetchCosts = (days: number) => getJSON<CostReport>(`${BASE}/costs?${qs({ days })}`);
 
 export const previewPlan = () => postJSON<Plan>(`${BASE}/schedule/plan?dry_run=true`);
+
+// --- Slice 6: content gaps, impact, portfolio --------------------------------
+
+export type ContentGap = {
+  id: number;
+  property_id: number;
+  cluster_id: number;
+  topic_key: string | null;
+  question: string;
+  target_page: string | null;
+  page_exists: boolean;
+  missing_terms: string[];
+  covered_terms: string[];
+  evidence: {
+    absent_response_ids?: number[];
+    absent_responses?: number;
+    cited_domains?: { domain: string; source_type: string | null; citations: number }[];
+    competitors_named?: { competitor_id: number; name: string; answers: number }[];
+  };
+  visibility: number | null;
+  competitor_presence: number | null;
+  title: string;
+  recommendation: string;
+  state: string;
+  gate_reason: string | null;
+  impact: string;
+  effort: string;
+  status: string;
+  data_label: DataLabel;
+  first_detected: string | null;
+  last_evaluated: string | null;
+};
+
+export type ImpactStep = {
+  step: string;
+  label: DataLabel;
+  current: number | null;
+  previous: number | null;
+  source: string;
+  note?: string | null;
+};
+
+export type Impact = {
+  property_id: number;
+  mode: "ai_only" | "ai_plus_search";
+  window: { start: string; end: string; days: number };
+  previous_window: { start: string; end: string };
+  chain: ImpactStep[];
+  search_console: {
+    label: DataLabel;
+    current: { clicks: number; impressions: number } | null;
+    previous: { clicks: number; impressions: number } | null;
+    note: string;
+  };
+  ai_platform_mix: Record<string, number>;
+  alignment: "same_direction" | "opposite_directions" | "not_comparable";
+  alignment_text: string;
+  note: string;
+};
+
+export type PortfolioAverage = { value: number | null; properties: number; label: DataLabel; note?: string };
+
+export type Portfolio = {
+  scope: { company_id: number | null; unassigned: boolean; properties: number };
+  window: { start: string; end: string; days: number };
+  averages: Record<"ai_visibility" | "citation_rate" | "share_of_voice" | "recommendation_rate", PortfolioAverage>;
+  properties: {
+    property_id: number;
+    name: string;
+    market_id: number | null;
+    eligible_responses: number;
+    ai_visibility: number | null;
+    citation_rate: number | null;
+    share_of_voice: number | null;
+    recommendation_rate: number | null;
+  }[];
+  shared_gaps: { topic_key: string; properties: number; gaps: number; text: string }[];
+  top_sources: { domain: string; citations: number; properties: number }[];
+  note: string;
+};
+
+export const fetchGaps = (propertyId: number) =>
+  getJSON<{ gaps: ContentGap[]; note: string }>(`${BASE}/recommendations?${qs({ property_id: propertyId })}`);
+
+export const evaluateGaps = (propertyId: number, days: number) =>
+  postJSON<{ gaps_open: number; auto_resolved: number }>(
+    `${BASE}/recommendations/evaluate?${qs({ property_id: propertyId, days: Math.max(days, 7) })}`
+  );
+
+export const setGapStatus = (gapId: number, status: "open" | "dismissed" | "resolved") =>
+  postJSON<ContentGap>(`${BASE}/recommendations/${gapId}/status`, { status });
+
+export const fetchImpact = (propertyId: number, days: number) =>
+  getJSON<Impact>(`${BASE}/impact?${qs({ property_id: propertyId, days: Math.max(days, 7) })}`);
+
+export const fetchPortfolio = (scope: { companyId: number | null; unassigned: boolean }, days: number) =>
+  getJSON<Portfolio>(
+    `${BASE}/portfolio?${qs({ company_id: scope.companyId, unassigned: scope.unassigned ? "true" : null, days })}`
+  );

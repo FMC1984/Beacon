@@ -21,6 +21,7 @@ const TABS: { href: string; label: string }[] = [
   { href: "/ai-visibility/recommendations", label: "Recommendations" },
   { href: "/ai-visibility/accuracy", label: "Accuracy" },
   { href: "/ai-visibility/trends", label: "Trends" },
+  { href: "/ai-visibility/portfolio", label: "Portfolio" },
 ];
 
 function ObservatoryShell({ children }: { children: React.ReactNode }) {

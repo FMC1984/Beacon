@@ -154,6 +154,17 @@ def schedule_ai_runs_job(db: Session, job: Job) -> dict:
     return {"sync": synced, **{k: v for k, v in plan.items() if k != "decisions"}}
 
 
+@register("create_recommendations")
+def create_recommendations_job(db: Session, job: Job) -> dict:
+    """Re-evaluate AI-evidence content gaps for one property (or all active)."""
+    from app.models import Property
+    from app.services.observatory.content_gaps import evaluate_gaps
+
+    p = job.payload or {}
+    ids = [p["property_id"]] if p.get("property_id") else [pid for (pid,) in db.query(Property.id).filter(Property.is_active.is_(True))]
+    return {"results": [evaluate_gaps(db, int(pid)) for pid in ids]}
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

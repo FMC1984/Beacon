@@ -195,6 +195,7 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
         AICitation,
         AIClaim,
         AIClusterVisibilityDaily,
+        AIContentGap,
         AIEntityDecision,
         AIRunSchedule,
         AIVisibilityAlert,
@@ -217,7 +218,7 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     # Derived rows and rollups first (they reference responses and the property).
     for model in (
         AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment,
-        AIClaim, AIEntityDecision, AIVisibilityAlert, AIRunSchedule,
+        AIClaim, AIEntityDecision, AIVisibilityAlert, AIRunSchedule, AIContentGap,
     ):
         db.query(model).filter_by(property_id=property_id).delete(synchronize_session=False)
     # This property's entities inside shared market answers.

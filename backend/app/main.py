@@ -221,8 +221,9 @@ async def start_jobs_runner():
 
 @app.on_event("startup")
 async def start_observatory_daily():
-    """Phase 19 slice 5: once a day, queue alert detection (SQL over rollups,
-    zero provider cost, so always on while the jobs runner is on) and, only
+    """Phase 19 slices 5-6: once a day, queue alert detection and content-gap
+    evaluation (SQL over rollups and stored pages, zero provider cost, so
+    always on while the jobs runner is on) and, only
     when BEACON_AI_SCHEDULER_ENABLED=1, the adaptive scheduler that enqueues
     real provider runs under the organization budget. Both are idempotent per
     UTC date, so restarts never double-queue."""
@@ -241,6 +242,7 @@ async def start_observatory_daily():
                 now = datetime.now(timezone.utc)
                 day = now.date().isoformat()
                 enqueue(db, "detect_alerts", {}, idempotency_key=f"detect_alerts:{day}")
+                enqueue(db, "create_recommendations", {}, idempotency_key=f"create_recommendations:{day}")
                 if settings.ai_scheduler_enabled and now.hour >= settings.ai_scheduler_hour_utc:
                     enqueue(db, "schedule_ai_runs", {}, idempotency_key=f"schedule_ai_runs:{day}")
             except Exception:

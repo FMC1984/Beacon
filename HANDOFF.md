@@ -80,6 +80,38 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 6: content gaps, AI + Search impact, portfolio (2026-09-12, 763 tests)
+- Migration a6b7c8d9e0f3: `ai_content_gaps` (model `AIContentGap` in
+  `app/models/ai_intelligence.py`), unique `gap_key` = property:cluster.
+- `content_gaps.evaluate_gaps(db, property_id, days, today)`: per active
+  cluster assignment, needs >= 3 answers (cluster rollup), visibility <= 34%,
+  and either competitor wins or cited sources. Evidence: absent response ids,
+  non-owned cited domains, tracked competitors named. Coverage via Content IQ
+  `matched_terms` over PropertyContent title+body with the taxonomy terms;
+  target page = best-matching page, else topic -> canonical page map. No
+  content -> Insufficient data. Gate: `gate_text` suppression, then
+  price/eligibility keywords + unknown/regulated status -> Requires
+  confirmation. Gaps that stop qualifying auto-resolve. Daily job
+  `create_recommendations` (free) queued by `start_observatory_daily`.
+- Opportunity Engine: new source `ai_observatory` ("AI Observatory") from
+  `gap_opportunities`, citations `source_ref: ai_observatory: gap=, cluster=`.
+  The Opportunities page now renders every card's citations (it previously
+  dropped Content IQ and SEO evidence too).
+- `impact.impact_summary`: chain AI Visibility (MEASURED) -> generative-AI
+  impressions (always UNAVAILABLE, the GSC API does not split them) -> GA4 AI
+  referral sessions -> AI key events; a source with no rows in the period is
+  UNAVAILABLE with "latest <date>", never zero. Alignment same/opposite/not
+  comparable plus a fixed association-not-causation note. `mode` ai_only vs
+  ai_plus_search.
+- `portfolio.portfolio_summary`: scope via `metrics._resolve_scope`; averages
+  only over properties with a value (>= 2 required); shared gaps = topics
+  with open gaps on >= 2 properties; top cited domains across the portfolio.
+- Endpoints: `GET /recommendations`, `POST /recommendations/evaluate`,
+  `POST /recommendations/{id}/status`, `GET /impact`, `GET /portfolio`.
+- UI: Recommendations tab `ContentGapsPanel` (missing vs covered terms,
+  evidence with labels, Re-check, Mark done, Dismiss); Overview
+  `ImpactPanel`; new Portfolio tab (company / unassigned / all).
+
 ### Phase 19 slice 5: discovery, claims, alerts, costs, scheduler, AI Ops (2026-09-12, 757 tests)
 - Migration f5a6b7c8d9e1: `ai_entity_decisions`, `ai_claims`,
   `ai_visibility_alerts`, `ai_run_schedule`, `ai_schedule_decisions`;
@@ -1016,7 +1048,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **757**, all passing. Always run the full
+change (shown on `/admin`). Current: **763**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

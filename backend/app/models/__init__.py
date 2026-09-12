@@ -52,6 +52,7 @@ from app.models.ai_prompt_library import (
 )
 from app.models.ai_intelligence import (
     AIClaim,
+    AIContentGap,
     AIEntityDecision,
     AIRunSchedule,
     AIScheduleDecision,
@@ -130,4 +131,5 @@ __all__ = [
     "AIVisibilityAlert",
     "AIRunSchedule",
     "AIScheduleDecision",
+    "AIContentGap",
 ]

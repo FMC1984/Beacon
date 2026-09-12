@@ -59,6 +59,7 @@ EXPECTED_TABLES = {
     "ai_visibility_alerts",
     "ai_run_schedule",
     "ai_schedule_decisions",
+    "ai_content_gaps",
 }
 
 
