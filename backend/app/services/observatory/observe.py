@@ -21,7 +21,15 @@ from sqlalchemy.orm import Session
 
 from app.connectors.base import AIVisibilityQueryProvider, ProviderResult, ProviderUsage
 from app.extensions.hooks import trigger_rag_sync
-from app.models import AICitation, AIRun, AISearchQuery, AIVisibilityQuery, Competitor, Property
+from app.models import (
+    AICitation,
+    AIRun,
+    AISearchQuery,
+    AIVisibilityPrompt,
+    AIVisibilityQuery,
+    Competitor,
+    Property,
+)
 from app.models.ai_runs import (
     RUN_DISCARDED,
     RUN_FAILED,
@@ -102,6 +110,28 @@ def _apply_usage(run: AIRun, result: ProviderResult | None) -> None:
     )
 
 
+INLINE_ROLLUP_MAX_PROPERTIES = 50
+
+
+def _refresh_rollups(db: Session, response: AIVisibilityQuery, property_ids: list[int]) -> None:
+    """Keep dashboards current: small fan-outs roll up inline (a few SQL
+    statements), large ones are handed to the jobs runner."""
+    if not property_ids:
+        return
+    from app.services.observatory.rollups import update_property_rollups
+
+    if len(property_ids) <= INLINE_ROLLUP_MAX_PROPERTIES:
+        update_property_rollups(db, property_ids=property_ids)
+        return
+    from app.services.jobs.queue import enqueue
+
+    enqueue(
+        db, "update_property_rollups", {"property_ids": property_ids},
+        idempotency_key=f"rollup:response:{response.id}", market_id=response.market_id,
+        organization_id=response.organization_id,
+    )
+
+
 def execute_observation(
     db: Session,
     *,
@@ -125,6 +155,9 @@ def execute_observation(
     from app.services.ai_visibility.providers import get_ai_visibility_provider
     from app.config import settings
 
+    from app.services.observatory.budgets import budget_summary
+    from app.services.observatory.tenancy import default_organization_id
+
     prompt_text = (prompt_text or "").strip()
     if not prompt_text:
         raise ValueError("Prompt is empty.")
@@ -147,12 +180,26 @@ def execute_observation(
                 f"({used}/{limit}). Queries are paused until tomorrow (UTC) so "
                 "external-API cost stays bounded."
             )
+    elif market_id is None:
+        raise ValueError("A market run needs a market_id.")
+
+    if organization_id is None:
+        organization_id = property_org_id(db, property_id) if property_id is not None else default_organization_id(db)
+    if property_id is None:
+        # Market runs have no per-property daily cap; the organization's
+        # monthly observation budget is the stop.
+        summary = budget_summary(db, "org", organization_id)
+        if summary["exhausted"]:
+            log_event("run.org_budget_exhausted", organization_id=organization_id, **{
+                k: summary[k] for k in ("period", "allowance_runs", "spent_runs")})
+            raise RateLimitExceeded(
+                f"Monthly observation budget reached for this organization "
+                f"({summary['spent_runs']}/{summary['allowance_runs']} runs in {summary['period']})."
+            )
 
     provider = provider or get_ai_visibility_provider(platform)
     provider_key = getattr(provider, "name", "unknown")
     requested_model = getattr(provider, "model", None)
-    if organization_id is None and property_id is not None:
-        organization_id = property_org_id(db, property_id)
 
     run = AIRun(
         organization_id=organization_id,
@@ -207,9 +254,21 @@ def execute_observation(
         )
 
     raw = result.text or ""
+    from app.services.observatory.derivation import derive_observations, eligible_properties
+    from app.services.observatory.entities import (
+        detect_entity_mentions,
+        entities_for_properties,
+        persist_entity_mentions,
+    )
+
+    prompt_row = db.get(AIVisibilityPrompt, prompt_id) if prompt_id else None
+    scored = eligible_properties(db, run, prompt_row)
+    scored_props = [p for p, _ in scored]
     competitors = (
         db.query(Competitor).filter_by(property_id=property_id).all()
-        if property_id is not None else []
+        if property_id is not None
+        else db.query(Competitor).filter(Competitor.property_id.in_([p.id for p in scored_props])).all()
+        if scored_props else []
     )
     drafts = extract_citations(result, raw)
     # Legacy domain list: union of provider-reported citation domains and the
@@ -243,7 +302,7 @@ def execute_observation(
     db.commit()
     db.refresh(row)
 
-    owned = owned_domains_for(prop) if prop else set()
+    owned = owned_domains_for(prop) if prop else {d for p in scored_props for d in owned_domains_for(p)}
     persist_citations(db, row, run, drafts, owned, competitor_domains_for(competitors))
     persist_search_queries(
         db, row, run, result.search_queries,
@@ -251,7 +310,14 @@ def execute_observation(
     )
     db.commit()
     if property_id is not None:
-        persist_mentions_for_query(db, row)
+        persist_mentions_for_query(db, row)  # legacy per-property semantics, unchanged
+    else:
+        entities = entities_for_properties(db, scored_props)
+        persist_entity_mentions(db, row, run, detect_entity_mentions(raw, entities))
+        db.commit()
+    observations = derive_observations(db, row, run, scored)
+    db.commit()
+    _refresh_rollups(db, row, [o.property_id for o in observations])
 
     _apply_usage(run, result)
     run.status = RUN_SUCCESS
@@ -280,12 +346,34 @@ def execute_observation(
         tokens_out=run.token_output, search_operations=run.search_operations,
         estimated_cost=run.estimated_cost, citations=len(drafts),
         search_queries=len(result.search_queries), browsed=run.browsed,
+        market_id=market_id, properties_scored=len(observations),
     )
     if property_id is not None:
         trigger_rag_sync(
             db, property_id=property_id, source="ai_visibility", reason="ai_visibility_query"
         )
     return Observation(run=run, response=row)
+
+
+def execute_market_prompt(
+    db: Session, prompt_id: int, *, platform: str | None = None,
+    provider: AIVisibilityQueryProvider | None = None, now: datetime | None = None,
+    repeat_index: int = 0, job_id: int | None = None,
+) -> Observation:
+    """Run one shared market/feature prompt once; every property subscribed
+    to its cluster is scored from the single answer."""
+    prompt = db.get(AIVisibilityPrompt, prompt_id)
+    if prompt is None:
+        raise ValueError("Prompt not found.")
+    if prompt.property_id is not None or prompt.market_id is None:
+        raise ValueError("Not a market-scope prompt.")
+    if not prompt.active or not prompt.approved:
+        raise ValueError("Prompt is inactive or not approved.")
+    return execute_observation(
+        db, property_id=None, prompt_text=prompt.prompt_text, platform=platform or prompt.platform,
+        run_scope=prompt.scope, prompt_id=prompt.id, organization_id=prompt.organization_id,
+        market_id=prompt.market_id, repeat_index=repeat_index, provider=provider, job_id=job_id, now=now,
+    )
 
 
 def run_detail(run: AIRun | None) -> dict | None:

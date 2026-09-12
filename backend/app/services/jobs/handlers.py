@@ -57,6 +57,65 @@ def cluster_prompts_job(db: Session, job: Job) -> dict:
             "prompts_clustered": report.prompts_clustered, "embedding_model": report.embedded_model}
 
 
+@register("execute_market_run")
+def execute_market_run(db: Session, job: Job) -> dict:
+    """Run one shared market prompt; payload {prompt_id, platform?, repeat_index?}."""
+    from app.services.ai_visibility.execution import RateLimitExceeded
+    from app.services.observatory.observe import classify_error, execute_market_prompt
+
+    p = job.payload or {}
+    try:
+        outcome = execute_market_prompt(
+            db, int(p["prompt_id"]), platform=p.get("platform"),
+            repeat_index=int(p.get("repeat_index", 0)), job_id=job.id,
+        )
+    except RateLimitExceeded as exc:
+        return {"status": "skipped_budget", "detail": str(exc)}
+    except ValueError as exc:
+        return {"status": "failed", "error_class": "invalid_prompt", "detail": str(exc)[:500]}
+    except Exception as exc:
+        error_class = classify_error(exc)
+        if error_class in RETRYABLE_ERROR_CLASSES:
+            raise
+        return {"status": "failed", "error_class": error_class, "detail": str(exc)[:500]}
+    from app.models import AIPropertyObservation
+    from app.services.observatory.rollups import update_market_rollups
+
+    scored = db.query(AIPropertyObservation).filter_by(response_id=outcome.response.id).count() if outcome.response else 0
+    if outcome.run.market_id is not None:
+        update_market_rollups(db, market_ids=[outcome.run.market_id], days=1)
+    return {"status": outcome.run.status, "run_id": outcome.run.id,
+            "response_id": outcome.response.id if outcome.response else None, "properties_scored": scored}
+
+
+@register("derive_observations")
+def derive_observations_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.derivation import backfill_observations, rederive_response
+
+    p = job.payload or {}
+    if p.get("response_id"):
+        rows = rederive_response(db, int(p["response_id"]))
+        return {"response_id": p["response_id"], "observations": len(rows)}
+    return backfill_observations(db, property_id=p.get("property_id", job.property_id))
+
+
+@register("update_property_rollups")
+def update_property_rollups_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.rollups import update_property_rollups
+
+    p = job.payload or {}
+    ids = p.get("property_ids") or ([job.property_id] if job.property_id else None)
+    return update_property_rollups(db, property_ids=ids, full=bool(p.get("full")))
+
+
+@register("update_market_rollups")
+def update_market_rollups_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.rollups import update_market_rollups
+
+    p = job.payload or {}
+    return update_market_rollups(db, market_ids=p.get("market_ids"))
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

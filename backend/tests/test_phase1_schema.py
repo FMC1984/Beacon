@@ -49,6 +49,11 @@ EXPECTED_TABLES = {
     "ai_prompt_clusters",
     "ai_prompt_embeddings",
     "ai_prompt_assignments",
+    "ai_property_observations",
+    "ai_discovered_entities",
+    "ai_visibility_daily",
+    "ai_cluster_visibility_daily",
+    "ai_market_daily",
 }
 
 

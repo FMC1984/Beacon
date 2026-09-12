@@ -80,6 +80,56 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 3: shared market scoring, metrics, rollups (2026-09-12, 747 tests)
+- THE cost lever: a market/feature prompt runs once
+  (`observe.execute_market_prompt`, job `execute_market_run`, API
+  `POST /api/ai-observatory/prompts/{id}/run` enqueues) and
+  `derivation.derive_observations` writes one `ai_property_observations`
+  row per eligible property from the stored Mention + AICitation rows. No
+  provider re-run, ever. Eligibility: property run -> that property;
+  market run -> properties assigned to the prompt's cluster, else every
+  active market member. Migration e4f5a6b7c8d0 (5 new tables + 6 plain
+  columns on `mentions`).
+- Market answers have no owning property, so they never appear in legacy
+  per-property readers (property_id NULL on the response). Market mentions
+  are detected against every eligible property + their tracked competitors
+  (`entities.py`, same whole-word matcher; names of 4 chars or fewer get
+  confidence 0.5). Property runs keep the legacy `persist_mentions_for_query`.
+- Market runs have no per-property daily cap; the org monthly budget is the
+  stop (`RateLimitExceeded` when exhausted).
+- `recommendation.py` rule_v1 (MODELED): named among the first 3 entities,
+  or a recommendation cue in the SAME sentence as the mention; a negated cue
+  in that sentence forces False; None when not mentioned. `sentiment.py`
+  (MODELED): semantic-layer clause sentiment in a window around the
+  mention, neutral by default.
+- Rollups (`rollups.py`): `ai_visibility_daily` (per property x day x
+  platform incl "all"), `ai_cluster_visibility_daily`, `ai_market_daily`;
+  delete-then-insert per key, dirty keys = observations with
+  rolled_up=false, watermark in app_state
+  `rollup_watermark_observation_id`, `rebuild_rollups` for a full rebuild.
+  Inline after each run for fan-outs of 50 or fewer properties, otherwise an
+  `update_property_rollups` job.
+- `metrics.py` reads rollups only; every value is {value, numerator,
+  denominator, minimum_sample, state, formula, data_label}; formulas in
+  `METRIC_DEFINITIONS` (served by `GET /api/ai-observatory/meta`). Share of
+  Voice uses the Phase 18 gating exactly (response sample >= 3, null when
+  nobody mentioned) and a test asserts it equals `build_sov_report`.
+- `opportunity_score.py`: Beacon Prompt Opportunity Score 0-100, MODELED,
+  weights in `reference_data/ai_opportunity_weights.json` (overridable),
+  contributors competitor_presence / visibility_gap / topic_importance /
+  search_demand (GSC impressions on topic terms; UNAVAILABLE without GSC) /
+  momentum; unavailable weights are redistributed and listed. Not volume.
+- Endpoints (`/api/ai-observatory`): meta, overview, trends, sources,
+  citations (paginated, max 200), observations, clusters/{id}/opportunity,
+  markets/{id}/summary, prompts/{id}/run, rollups/rebuild.
+- Backfill: `python -m app.cli.backfill_observations` (or `--rederive`);
+  re-detects mentions for history that has none, then rebuilds rollups.
+  `rederive_response` recomputes mentions + observations after alias,
+  domain, competitor or subscription edits.
+- Property delete also removes its observations, rollups, assignments,
+  property clusters, prompt embeddings and its entities' Mention rows inside
+  shared market answers.
+
 ### Phase 19 slice 2: prompt library + clustering (2026-09-11, 728 tests)
 - Prompt scopes on `ai_visibility_prompts`: market | feature | brand |
   sentinel, plus organization_id, market_id, cluster_id, importance (1-5),
@@ -882,7 +932,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **728**, all passing. Always run the full
+change (shown on `/admin`). Current: **747**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

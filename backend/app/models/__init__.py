@@ -50,6 +50,13 @@ from app.models.ai_prompt_library import (
     AIPromptCluster,
     AIPromptEmbedding,
 )
+from app.models.ai_observations import (
+    AIClusterVisibilityDaily,
+    AIDiscoveredEntity,
+    AIMarketDaily,
+    AIPropertyObservation,
+    AIVisibilityDaily,
+)
 
 __all__ = [
     "Company",
@@ -106,4 +113,9 @@ __all__ = [
     "AIPromptCluster",
     "AIPromptEmbedding",
     "AIPromptAssignment",
+    "AIPropertyObservation",
+    "AIDiscoveredEntity",
+    "AIVisibilityDaily",
+    "AIClusterVisibilityDaily",
+    "AIMarketDaily",
 ]

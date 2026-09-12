@@ -14,7 +14,7 @@ the evidence drawer can say *why* a mention was attributed to an entity
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -47,4 +47,13 @@ class Mention(Base):
     # scoring exists yet. The column exists so a future confidence model does
     # not require a migration.
     confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    # --- Phase 19 slice 3: mention semantics for shared market scoring ---
+    run_id: Mapped[int | None] = mapped_column(Integer)
+    # named | cited | both: how the entity showed up in the answer.
+    mention_type: Mapped[str | None] = mapped_column(String(20))
+    # MODELED rule-based classification; None = not assessed.
+    recommended: Mapped[bool | None] = mapped_column(Boolean)
+    sentiment: Mapped[str | None] = mapped_column(String(10))
+    sentiment_score: Mapped[float | None] = mapped_column(Float)
+    context_excerpt: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

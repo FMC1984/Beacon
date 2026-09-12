@@ -189,24 +189,49 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
 
     # AI Visibility / Observatory family (Phase 18-19), leaf rows first.
     from app.models import (
+        ENTITY_COMPETITOR,
+        ENTITY_PROPERTY,
         AIBudget,
         AICitation,
+        AIClusterVisibilityDaily,
+        AIPromptAssignment,
+        AIPromptCluster,
+        AIPromptEmbedding,
+        AIPropertyObservation,
         AIRun,
         AISearchQuery,
         AIShareOfVoiceSnapshot,
         AITopic,
         AIVisibilityPrompt,
         AIVisibilityQuery,
+        AIVisibilityDaily,
         AIVisibilityScoreHistory,
         Competitor,
         Mention,
     )
 
+    # Derived rows and rollups first (they reference responses and the property).
+    for model in (AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment):
+        db.query(model).filter_by(property_id=property_id).delete(synchronize_session=False)
+    # This property's entities inside shared market answers.
+    competitor_ids = [cid for (cid,) in db.query(Competitor.id).filter_by(property_id=property_id)]
+    db.query(Mention).filter(Mention.entity_type == ENTITY_PROPERTY, Mention.entity_id == property_id).delete(
+        synchronize_session=False)
+    if competitor_ids:
+        db.query(Mention).filter(
+            Mention.entity_type == ENTITY_COMPETITOR, Mention.entity_id.in_(competitor_ids)
+        ).delete(synchronize_session=False)
+    prompt_ids = [pid for (pid,) in db.query(AIVisibilityPrompt.id).filter_by(property_id=property_id)]
+    if prompt_ids:
+        db.query(AIPromptEmbedding).filter(AIPromptEmbedding.prompt_id.in_(prompt_ids)).delete(
+            synchronize_session=False)
+    db.query(AIPromptCluster).filter_by(property_id=property_id).delete(synchronize_session=False)
+
     response_ids = [
         rid for (rid,) in db.query(AIVisibilityQuery.id).filter_by(property_id=property_id)
     ]
     if response_ids:
-        for leaf in (Mention, AICitation, AISearchQuery):
+        for leaf in (AIPropertyObservation, Mention, AICitation, AISearchQuery):
             db.query(leaf).filter(leaf.response_id.in_(response_ids)).delete(
                 synchronize_session=False
             )

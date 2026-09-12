@@ -1,0 +1,18 @@
+{
+  "version": "2026-09-11",
+  "notes": "Beacon Prompt Opportunity Score (0-100, MODELED). Not search volume: no AI platform exposes prompt volume, and Beacon never fabricates it. Each contributor is 0-1; the score is the weighted sum of the contributors that are AVAILABLE, with the weights of unavailable ones (for example search_demand without a Search Console connection) redistributed proportionally and listed as unavailable in the explanation. Weights are configurable here and per organization (settings.opportunity_weights).",
+  "weights": {
+    "competitor_presence": 0.25,
+    "visibility_gap": 0.25,
+    "topic_importance": 0.20,
+    "search_demand": 0.15,
+    "momentum": 0.15
+  },
+  "contributors": {
+    "competitor_presence": "Share of the cluster's responses in which a tracked competitor appears.",
+    "visibility_gap": "1 minus the property's AI Visibility in the cluster (higher gap, higher opportunity).",
+    "topic_importance": "Cluster importance 1-5 scaled to 0-1 (taxonomy plus operator edits).",
+    "search_demand": "Search Console impressions for queries matching the cluster's topic terms, scaled against the property's largest topic (UNAVAILABLE without a Search Console connection).",
+    "momentum": "Decline in the property's cluster visibility versus the previous window (a drop raises opportunity; a gain lowers it)."
+  }
+}

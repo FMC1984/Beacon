@@ -1,16 +1,29 @@
 """AI Visibility Observatory API (Phase 19).
 
 Slice 2 surface: the prompt library (generate, list, create, edit, cluster)
-and markets. Later slices add overview, citations, sources, competitors,
-recommendations, accuracy, trends, costs and schedule here.
+and markets. Slice 3: metrics meta, overview, trends, sources, citations,
+derived observations, cluster opportunity score, market summary, shared
+market runs, rollup rebuild. Later slices add competitors, recommendations,
+accuracy, costs and schedule here.
 """
+
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import AIPromptCluster, AIVisibilityPrompt, Market, Property
+from app.models import (
+    AICitation,
+    AIMarketDaily,
+    AIPromptCluster,
+    AIPropertyObservation,
+    AIVisibilityPrompt,
+    Market,
+    Property,
+)
+from app.models.ai_observations import PLATFORM_ALL
 from app.models.ai_prompt_library import PROMPT_SCOPES
 from app.services.ai_visibility.reference import InvalidPlatformError, validate_platform
 from app.services.observatory.assignments import assignments_for_property, subscribe_property
@@ -22,7 +35,21 @@ from app.services.observatory.prompt_library import (
     generate_property_prompts,
     upsert_prompt,
 )
+from app.services.jobs.queue import enqueue
+from app.services.observatory import LABEL_MEASURED, LABEL_MODELED, LABEL_OBSERVED, LABEL_UNAVAILABLE
+from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.metrics import (
+    METRIC_DEFINITIONS,
+    metrics_for_window,
+    prompt_coverage,
+    source_influence,
+    trend,
+)
+from app.services.observatory.opportunity_score import prompt_opportunity_score
+from app.services.observatory.opportunity_score import weights as opportunity_weights
+from app.services.observatory.rollups import rebuild_rollups
 from app.services.observatory.taxonomy import topics
+from app.services.reporting import compare_points, previous_window
 from app.services.observatory.tenancy import property_org_id
 
 router = APIRouter(prefix="/ai-observatory", tags=["ai-observatory"])
@@ -263,3 +290,278 @@ def list_clusters(
         rows = q.filter(AIPromptCluster.market_id == market_id, AIPromptCluster.property_id.is_(None)).all()
         out = [_cluster_out(c) for c in rows]
     return {"clusters": out, "total": len(out)}
+
+
+# --- Slice 3: shared market scoring, metrics, rollups -----------------------
+
+MAX_PAGE = 200
+
+
+def _require_property(db: Session, property_id: int) -> Property:
+    prop = db.get(Property, property_id)
+    if prop is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return prop
+
+
+def _today(today: date | None) -> date:
+    return today or datetime.now(timezone.utc).date()
+
+
+@router.get("/meta")
+def observatory_meta():
+    return {
+        "metrics": METRIC_DEFINITIONS,
+        "data_labels": [LABEL_OBSERVED, LABEL_MEASURED, LABEL_MODELED, LABEL_UNAVAILABLE],
+        "opportunity_score": {
+            "weights": opportunity_weights(),
+            "note": "Beacon Prompt Opportunity Score is MODELED (0-100). It is not prompt search volume.",
+        },
+        "limitations": [
+            "AI platforms do not publish prompt volume; Beacon never reports AI search volume.",
+            "Monitoring runs are Beacon's own API calls, not consumer impressions.",
+            "Retrieval queries are what the provider reported issuing for Beacon's call, not what renters typed.",
+            "Recommendation Rate is MODELED by a rule-based classifier.",
+        ],
+    }
+
+
+@router.get("/overview")
+def overview(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    platform: str = Query(default=PLATFORM_ALL),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    prop = _require_property(db, property_id)
+    end = _today(today)
+    start = end - timedelta(days=days - 1)
+    prev_start, prev_end = previous_window(start, end)
+    current = metrics_for_window(db, property_id, start, end, platform)
+    previous = metrics_for_window(db, property_id, prev_start, prev_end, platform)
+    keys = ["ai_visibility", "citation_rate", "citation_share", "share_of_voice",
+            "recommendation_rate", "competitor_win_rate"]
+    metrics = {k: {**current[k], "comparison": compare_points(current[k]["value"], previous[k]["value"])} for k in keys}
+    cov = prompt_coverage(db, property_id, start, end)
+    prev_cov = prompt_coverage(db, property_id, prev_start, prev_end)
+    metrics["prompt_coverage"] = {**cov, "comparison": compare_points(cov["value"], prev_cov["value"])}
+    counts = current["counts"]
+    return {
+        "property_id": prop.id,
+        "property_name": prop.name,
+        "market_id": prop.market_id,
+        "window": {"start": start.isoformat(), "end": end.isoformat(), "days": days},
+        "previous_window": {"start": prev_start.isoformat(), "end": prev_end.isoformat()},
+        "platform": platform,
+        "metrics": metrics,
+        "sentiment": {
+            "data_label": LABEL_MODELED,
+            "positive": counts["sentiment_pos"], "neutral": counts["sentiment_neu"],
+            "negative": counts["sentiment_neg"],
+        },
+        "sample": {"eligible_responses": counts["eligible_count"], "observations": counts["runs_count"]},
+        "top_sources": source_influence(db, property_id, start, end, limit=5),
+    }
+
+
+@router.get("/trends")
+def trends(
+    property_id: int = Query(...),
+    metric: str = Query(default="ai_visibility"),
+    days: int = Query(default=30, ge=1, le=365),
+    platform: str = Query(default=PLATFORM_ALL),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    if metric not in METRIC_DEFINITIONS or metric == "source_influence":
+        raise HTTPException(status_code=422, detail=f"Unknown metric '{metric}'.")
+    return trend(db, property_id, metric, days, _today(today), platform)
+
+
+@router.get("/sources")
+def sources(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=25, ge=1, le=MAX_PAGE),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    end = _today(today)
+    return source_influence(db, property_id, end - timedelta(days=days - 1), end, limit=limit)
+
+
+@router.get("/citations")
+def citations(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    domain: str | None = Query(default=None),
+    source_type: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=MAX_PAGE),
+    offset: int = Query(default=0, ge=0),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Every citation in the property's eligible responses, newest first,
+    paginated. OBSERVED: exactly what the provider (or the response text)
+    reported."""
+    prop = _require_property(db, property_id)
+    end = _today(today)
+    start_dt = datetime.combine(end - timedelta(days=days - 1), datetime.min.time())
+    end_dt = datetime.combine(end + timedelta(days=1), datetime.min.time())
+    q = (
+        db.query(AICitation, AIPropertyObservation)
+        .join(AIPropertyObservation, AIPropertyObservation.response_id == AICitation.response_id)
+        .filter(
+            AIPropertyObservation.property_id == property_id,
+            AIPropertyObservation.observed_at >= start_dt,
+            AIPropertyObservation.observed_at < end_dt,
+        )
+    )
+    if domain:
+        q = q.filter(AICitation.domain == domain.lower())
+    if source_type:
+        q = q.filter(AICitation.source_type == source_type)
+    total = q.count()
+    rows = q.order_by(AIPropertyObservation.observed_at.desc(), AICitation.citation_order).offset(offset).limit(limit).all()
+    owned = {prop.domain} if prop.domain else set()
+    return {
+        "data_label": LABEL_OBSERVED,
+        "total": total, "limit": limit, "offset": offset,
+        "items": [
+            {
+                "citation_id": c.id, "response_id": c.response_id, "run_id": c.run_id,
+                "url": c.url, "domain": c.domain, "title": c.title, "order": c.citation_order,
+                "source_type": c.source_type, "capture_method": c.capture_method,
+                "owned": c.domain in owned or any(c.domain.endswith("." + d) for d in owned),
+                "platform": o.platform, "observed_at": o.observed_at.isoformat(),
+                "prompt_id": o.prompt_id, "cluster_id": o.cluster_id,
+            }
+            for c, o in rows
+        ],
+    }
+
+
+@router.get("/observations")
+def observations(
+    property_id: int = Query(...),
+    cluster_id: int | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=MAX_PAGE),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Raw derived observations (the evidence behind every KPI), paginated."""
+    _require_property(db, property_id)
+    q = db.query(AIPropertyObservation).filter(AIPropertyObservation.property_id == property_id)
+    if cluster_id is not None:
+        q = q.filter(AIPropertyObservation.cluster_id == cluster_id)
+    total = q.count()
+    rows = q.order_by(AIPropertyObservation.observed_at.desc(), AIPropertyObservation.id.desc()).offset(offset).limit(limit).all()
+    return {"total": total, "limit": limit, "offset": offset, "items": [_observation_out(o) for o in rows]}
+
+
+def _observation_out(o: AIPropertyObservation) -> dict:
+    return {
+        "id": o.id, "response_id": o.response_id, "run_id": o.run_id, "prompt_id": o.prompt_id,
+        "cluster_id": o.cluster_id, "market_id": o.market_id, "platform": o.platform,
+        "observed_at": o.observed_at.isoformat(), "eligibility_reason": o.eligibility_reason,
+        "mentioned": o.mentioned, "mention_rank": o.mention_rank, "mention_confidence": o.mention_confidence,
+        "cited": o.cited, "citation_count": o.citation_count,
+        "recommended": o.recommended, "recommendation_method": o.recommendation_method,
+        "sentiment": o.sentiment, "context_excerpt": o.context_excerpt,
+        "competitor_mentioned_count": o.competitor_mentioned_count,
+        "competitor_cited_count": o.competitor_cited_count,
+        "total_citation_count": o.total_citation_count,
+    }
+
+
+@router.get("/clusters/{cluster_id}/opportunity")
+def cluster_opportunity(
+    cluster_id: int,
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    try:
+        return prompt_opportunity_score(db, property_id, cluster_id, days=days, today=_today(today))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/markets/{market_id}/summary")
+def market_summary(
+    market_id: int,
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Shared market view: how many observations the market's runs
+    produced and how each member property fared in them."""
+    m = db.get(Market, market_id)
+    if m is None:
+        raise HTTPException(status_code=404, detail="Market not found.")
+    end = _today(today)
+    start = end - timedelta(days=days - 1)
+    daily = db.query(AIMarketDaily).filter(
+        AIMarketDaily.market_id == market_id, AIMarketDaily.day >= start, AIMarketDaily.day <= end
+    ).all()
+    members = market_members(db, market_id)
+    leaderboard = []
+    for p in members:
+        mm = metrics_for_window(db, p.id, start, end)
+        leaderboard.append({
+            "property_id": p.id, "name": p.name,
+            "ai_visibility": mm["ai_visibility"]["value"],
+            "citation_rate": mm["citation_rate"]["value"],
+            "share_of_voice": mm["share_of_voice"]["value"],
+            "eligible_responses": mm["counts"]["eligible_count"],
+        })
+    leaderboard.sort(key=lambda r: (r["ai_visibility"] is None, -(r["ai_visibility"] or 0), r["name"]))
+    return {
+        "market": {"id": m.id, "slug": m.slug, "name": m.name},
+        "window": {"start": start.isoformat(), "end": end.isoformat(), "days": days},
+        "runs": sum(d.runs_count for d in daily),
+        "responses": sum(d.responses_count for d in daily),
+        "properties_scored": sum(d.properties_scored for d in daily),
+        "citations": sum(d.citations_count for d in daily),
+        "data_label": LABEL_MEASURED,
+        "note": "One market answer scores every subscribed property; runs are Beacon monitoring calls, not consumer impressions.",
+        "leaderboard": leaderboard,
+    }
+
+
+@router.post("/prompts/{prompt_id}/run")
+def run_market_prompt(
+    prompt_id: int,
+    platform: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Enqueue one shared market run (the jobs runner executes it)."""
+    prompt = db.get(AIVisibilityPrompt, prompt_id)
+    if prompt is None:
+        raise HTTPException(status_code=404, detail="Prompt not found.")
+    if prompt.property_id is not None or prompt.market_id is None:
+        raise HTTPException(status_code=422, detail="Only market-scope prompts run as shared market runs.")
+    try:
+        plat = validate_platform(platform or prompt.platform)
+    except InvalidPlatformError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    job, created = enqueue(
+        db, "execute_market_run", {"prompt_id": prompt.id, "platform": plat},
+        idempotency_key=f"execute_market_run:{prompt.id}:{plat}:{_today(None).isoformat()}:manual",
+        market_id=prompt.market_id, organization_id=prompt.organization_id,
+    )
+    db.commit()
+    return {"job_id": job.id, "status": job.status, "created": created}
+
+
+@router.post("/rollups/rebuild")
+def rollups_rebuild(property_id: int | None = Query(default=None), db: Session = Depends(get_db)):
+    ids = [property_id] if property_id is not None else None
+    derived = backfill_observations(db, property_id=property_id)
+    rolled = rebuild_rollups(db, property_ids=ids)
+    return {"derived": derived, "rollups": rolled}
