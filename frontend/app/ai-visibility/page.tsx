@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchOverview, fmtRate } from "@/lib/observatory";
 
@@ -37,6 +38,7 @@ export default function ObservatoryOverviewPage() {
     >
       {data && (
         <div className="space-y-6">
+          <AlertsPanel propertyId={data.property_id} />
           <p className="text-xs text-muted">
             {data.sample.eligible_responses} monitored AI response{data.sample.eligible_responses === 1 ? "" : "s"} scored
             for {data.property_name}, {data.window.start} to {data.window.end}. Compared with {data.previous_window.start} to{" "}

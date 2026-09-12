@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     # standing prompts (spends OpenAI budget) and snapshots the score. Off by
     # default because it costs money; enable deliberately.
     ai_visibility_autorun: bool = False
+    # Phase 19 slice 5: the adaptive Observatory scheduler enqueues real
+    # provider runs, so it is OFF until an operator enables it after reviewing
+    # a dry-run plan (POST /api/ai-observatory/schedule/plan?dry_run=true).
+    ai_scheduler_enabled: bool = False
+    ai_scheduler_hour_utc: int = 9
     # When on, a daily background task freezes a Monthly Briefing snapshot for
     # any property whose previous calendar month has data but no snapshot yet.
     # ON by default: composing a briefing is deterministic and costs nothing

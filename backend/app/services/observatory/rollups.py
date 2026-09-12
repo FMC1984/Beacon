@@ -101,7 +101,7 @@ def update_property_rollups(
             _accumulate(by_platform.setdefault(o.platform, _empty_counts()), o)
         db.query(AIVisibilityDaily).filter(
             AIVisibilityDaily.property_id == pid, AIVisibilityDaily.day == day
-        ).delete(synchronize_session=False)
+        ).delete(synchronize_session="fetch")
         for platform, counts in by_platform.items():
             db.add(AIVisibilityDaily(
                 day=day, organization_id=org_id, property_id=pid, platform=platform,
@@ -125,7 +125,7 @@ def update_property_rollups(
 def _update_cluster_rollups_for(db: Session, pid: int, day: date, obs: list[AIPropertyObservation]) -> None:
     db.query(AIClusterVisibilityDaily).filter(
         AIClusterVisibilityDaily.property_id == pid, AIClusterVisibilityDaily.day == day
-    ).delete(synchronize_session=False)
+    ).delete(synchronize_session="fetch")
     by_cluster: dict[int, dict] = {}
     for o in obs:
         if o.cluster_id is None or not o.eligible:
@@ -173,7 +173,7 @@ def update_market_rollups(db: Session, market_ids: list[int] | None = None, days
     touched = {(m, p, d) for (m, p, d) in keys}
     for (market_id, platform, day), c in keys.items():
         db.query(AIMarketDaily).filter_by(market_id=market_id, platform=platform, day=day).delete(
-            synchronize_session=False)
+            synchronize_session="fetch")
         db.add(AIMarketDaily(
             day=day, market_id=market_id, platform=platform, runs_count=c["runs_count"],
             responses_count=c["responses_count"], properties_scored=c["properties_scored"],

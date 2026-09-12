@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE } from "@/lib/api";
 import { fmtDateTime } from "@/lib/format";
+import { AiOpsPanel } from "@/components/observatory/AiOpsPanel";
 
 type Status = {
   version: string;
@@ -433,6 +434,8 @@ export default function AdminPage() {
               </div>
             </section>
           )}
+
+          <AiOpsPanel />
 
           <section className="rounded-2xl border border-line bg-surface p-5 text-sm">
             <h2 className="mb-3 text-sm font-medium text-muted">Nora</h2>

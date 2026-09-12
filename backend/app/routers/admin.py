@@ -19,6 +19,7 @@ from app.services.rag.embedder import get_embedder
 from app.services.rag.indexer import build_index, last_index_state
 from app.services.rag.store import get_collection
 from app.services.rag_sync_service import drain_queue
+from app.services.jobs.queue import utcnow
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -77,6 +78,68 @@ def status(db: Session = Depends(get_db)):
             else None
         ),
     }
+
+
+@router.get("/ai-ops")
+def ai_ops(db: Session = Depends(get_db)):
+    """Observatory operations at a glance (Phase 19 slice 5): queue depth by
+    status and type, recent failures, runner heartbeat, run outcomes in the
+    last 24 hours, the organization budget, rollup watermark and DB size."""
+    import os
+    from datetime import datetime, timedelta
+
+    from app.models import AIRun, AppState, Job
+    from app.services.observatory.budgets import budget_summary
+    from app.services.observatory.rollups import WATERMARK_KEY
+    from app.services.observatory.tenancy import default_organization_id
+
+    by_status = dict(db.query(Job.status, func.count(Job.id)).group_by(Job.status).all())
+    by_type = [
+        {"job_type": t, "status": st, "count": n}
+        for t, st, n in db.query(Job.job_type, Job.status, func.count(Job.id)).group_by(Job.job_type, Job.status).all()
+    ]
+    failures = (
+        db.query(Job).filter(Job.status.in_(["failed", "dead"])).order_by(Job.id.desc()).limit(20).all()
+    )
+    since = utcnow() - timedelta(hours=24)
+    runs = dict(db.query(AIRun.status, func.count(AIRun.id)).filter(AIRun.started_at >= since).group_by(AIRun.status).all())
+    errors = dict(
+        db.query(AIRun.error_class, func.count(AIRun.id))
+        .filter(AIRun.started_at >= since, AIRun.error_class.isnot(None)).group_by(AIRun.error_class).all()
+    )
+    heartbeat = db.get(AppState, "jobs_runner")
+    watermark = db.get(AppState, WATERMARK_KEY)
+    db_path = settings.database_url.replace("sqlite:///", "") if settings.database_url.startswith("sqlite:///") else None
+    size = lambda p: os.path.getsize(p) if p and os.path.exists(p) else None  # noqa: E731
+    return {
+        "jobs": {"by_status": by_status, "by_type": by_type},
+        "recent_failures": [
+            {"id": j.id, "job_type": j.job_type, "status": j.status, "attempts": j.attempts,
+             "error_class": j.error_class, "last_error": (j.last_error or "")[:300],
+             "updated_at": j.updated_at.isoformat() if getattr(j, "updated_at", None) else None}
+            for j in failures
+        ],
+        "runner_heartbeat": heartbeat.value if heartbeat else None,
+        "runs_last_24h": {"by_status": runs, "errors": errors},
+        "budget": budget_summary(db, "org", default_organization_id(db)),
+        "rollup_watermark": watermark.value if watermark else None,
+        "scheduler_enabled": settings.ai_scheduler_enabled,
+        "database": {"bytes": size(db_path), "wal_bytes": size(f"{db_path}-wal" if db_path else None)},
+    }
+
+
+@router.post("/jobs/{job_id}/retry")
+def retry_job(job_id: int, db: Session = Depends(get_db)):
+    from app.models import Job
+    from app.services.jobs.queue import requeue
+
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    if job.status in ("queued", "leased", "running"):
+        raise HTTPException(status_code=409, detail="Job is already queued or running.")
+    requeue(db, job)
+    return {"id": job.id, "status": job.status}
 
 
 def _check(name: str, status: str, detail: str) -> dict:

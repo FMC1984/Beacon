@@ -220,6 +220,39 @@ async def start_jobs_runner():
 
 
 @app.on_event("startup")
+async def start_observatory_daily():
+    """Phase 19 slice 5: once a day, queue alert detection (SQL over rollups,
+    zero provider cost, so always on while the jobs runner is on) and, only
+    when BEACON_AI_SCHEDULER_ENABLED=1, the adaptive scheduler that enqueues
+    real provider runs under the organization budget. Both are idempotent per
+    UTC date, so restarts never double-queue."""
+    if not settings.jobs_runner:
+        return
+    import asyncio
+    from datetime import datetime, timezone
+
+    async def loop():
+        from app.db import SessionLocal
+        from app.services.jobs.queue import enqueue
+
+        while True:
+            db = SessionLocal()
+            try:
+                now = datetime.now(timezone.utc)
+                day = now.date().isoformat()
+                enqueue(db, "detect_alerts", {}, idempotency_key=f"detect_alerts:{day}")
+                if settings.ai_scheduler_enabled and now.hour >= settings.ai_scheduler_hour_utc:
+                    enqueue(db, "schedule_ai_runs", {}, idempotency_key=f"schedule_ai_runs:{day}")
+            except Exception:
+                pass
+            finally:
+                db.close()
+            await asyncio.sleep(3600)
+
+    asyncio.create_task(loop())
+
+
+@app.on_event("startup")
 async def start_briefing_autosnapshot():
     """Daily month-end check: freeze a Monthly Briefing snapshot for any
     property whose previous calendar month has data but no snapshot yet.

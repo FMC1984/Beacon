@@ -3,8 +3,9 @@
 Slice 2 surface: the prompt library (generate, list, create, edit, cluster)
 and markets. Slice 3: metrics meta, overview, trends, sources, citations,
 derived observations, cluster opportunity score, market summary, shared
-market runs, rollup rebuild. Later slices add competitors, recommendations,
-accuracy, costs and schedule here.
+market runs, rollup rebuild. Slice 5: discovered competitor candidates and
+decisions, claims, alerts, costs, and the adaptive schedule (dry-run plan
+by default).
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -16,13 +17,18 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import (
     AICitation,
+    AIClaim,
     AIMarketDaily,
+    AIRunSchedule,
+    AIScheduleDecision,
+    AIVisibilityAlert,
     AIPromptCluster,
     AIPropertyObservation,
     AIVisibilityPrompt,
     Market,
     Property,
 )
+from app.models.ai_intelligence import CLAIM_STATUSES
 from app.models.ai_observations import PLATFORM_ALL
 from app.models.ai_prompt_library import PROMPT_SCOPES
 from app.services.ai_visibility.reference import InvalidPlatformError, validate_platform
@@ -35,9 +41,18 @@ from app.services.observatory.prompt_library import (
     generate_property_prompts,
     upsert_prompt,
 )
-from app.services.jobs.queue import enqueue
+from app.services.jobs.queue import enqueue, utcnow
 from app.services.observatory import LABEL_MEASURED, LABEL_MODELED, LABEL_OBSERVED, LABEL_UNAVAILABLE
+from app.services.observatory.alerts import alert_out, detect_property_alerts
+from app.services.observatory.claims import backfill_claims
+from app.services.observatory.costs import cost_report
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.discovery import (
+    DISPLAY_MIN_RESPONSES,
+    backfill_discovery,
+    candidates_for_property,
+    decide,
+)
 from app.services.observatory.metrics import (
     METRIC_DEFINITIONS,
     metrics_for_window,
@@ -48,6 +63,8 @@ from app.services.observatory.metrics import (
 from app.services.observatory.opportunity_score import prompt_opportunity_score
 from app.services.observatory.opportunity_score import weights as opportunity_weights
 from app.services.observatory.rollups import rebuild_rollups
+from app.services.observatory.scheduler import config as scheduler_config
+from app.services.observatory.scheduler import effective_tier, plan_runs, sync_schedule
 from app.services.observatory.taxonomy import topics
 from app.services.reporting import compare_points, previous_window
 from app.services.observatory.tenancy import property_org_id
@@ -565,3 +582,214 @@ def rollups_rebuild(property_id: int | None = Query(default=None), db: Session =
     derived = backfill_observations(db, property_id=property_id)
     rolled = rebuild_rollups(db, property_ids=ids)
     return {"derived": derived, "rollups": rolled}
+
+
+# --- Slice 5: discovery, claims, alerts, costs, schedule --------------------
+
+
+class DecisionIn(BaseModel):
+    property_id: int
+    decision: str
+    domain: str | None = None
+
+
+class StatusIn(BaseModel):
+    status: str
+
+
+def _claim_out(c: AIClaim) -> dict:
+    return {
+        "id": c.id, "property_id": c.property_id, "claim_type": c.claim_type, "claim_topic": c.claim_topic,
+        "claim_value": c.claim_value, "claim_text": c.claim_text, "verification_status": c.verification_status,
+        "verification_method": c.verification_method, "evidence": c.evidence, "known_value": c.known_value,
+        "severity": c.severity, "occurrence_count": c.occurrence_count, "response_ids": c.response_ids or [],
+        "platforms": c.platforms or [], "status": c.status,
+        "first_seen": c.first_seen.isoformat() if c.first_seen else None,
+        "last_seen": c.last_seen.isoformat() if c.last_seen else None,
+        "data_label": LABEL_OBSERVED,
+    }
+
+
+@router.get("/competitors/discovered")
+def discovered_competitors(
+    property_id: int = Query(...),
+    include_decided: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    prop = _require_property(db, property_id)
+    return {
+        "property_id": prop.id,
+        "market_id": prop.market_id,
+        "minimum_responses": DISPLAY_MIN_RESPONSES,
+        "candidates": candidates_for_property(db, property_id, include_decided=include_decided),
+        "note": (
+            "Names AI answers in this market keep mentioning that you do not track yet. "
+            "Nothing becomes a tracked competitor until you confirm it."
+        ),
+    }
+
+
+@router.post("/competitors/discovered/{entity_id}/decision")
+def decide_competitor(entity_id: int, payload: DecisionIn, db: Session = Depends(get_db)):
+    try:
+        row = decide(db, entity_id, payload.property_id, payload.decision, payload.domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {"entity_id": entity_id, "property_id": row.property_id, "decision": row.decision,
+            "competitor_id": row.competitor_id}
+
+
+@router.post("/competitors/discover")
+def run_discovery(market_id: int = Query(...), db: Session = Depends(get_db)):
+    if db.get(Market, market_id) is None:
+        raise HTTPException(status_code=404, detail="Market not found.")
+    return backfill_discovery(db, market_id)
+
+
+@router.get("/claims")
+def list_claims(
+    property_id: int = Query(...),
+    status: str | None = Query(default=None),
+    include_dismissed: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    q = db.query(AIClaim).filter(AIClaim.property_id == property_id)
+    if status:
+        if status not in CLAIM_STATUSES:
+            raise HTTPException(status_code=422, detail="Unknown verification status.")
+        q = q.filter(AIClaim.verification_status == status)
+    if not include_dismissed:
+        q = q.filter(AIClaim.status == "open")
+    rows = q.all()
+    order = {s: i for i, s in enumerate(["conflict_detected", "unable_to_verify", "likely_accurate", "confirmed"])}
+    rows.sort(key=lambda c: (order.get(c.verification_status, 9), -(c.occurrence_count or 0), c.id))
+    counts = {s: 0 for s in CLAIM_STATUSES}
+    for c in rows:
+        counts[c.verification_status] = counts.get(c.verification_status, 0) + 1
+    return {"property_id": property_id, "counts": counts, "claims": [_claim_out(c) for c in rows]}
+
+
+@router.post("/claims/{claim_id}/dismiss")
+def dismiss_claim(claim_id: int, db: Session = Depends(get_db)):
+    c = db.get(AIClaim, claim_id)
+    if c is None:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+    c.status = "dismissed"
+    db.commit()
+    return _claim_out(c)
+
+
+@router.post("/claims/verify")
+def verify_claims(property_id: int = Query(...), db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    return backfill_claims(db, property_id)
+
+
+@router.get("/alerts")
+def list_alerts(
+    property_id: int = Query(...),
+    status: str = Query(default="open"),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    q = db.query(AIVisibilityAlert).filter(AIVisibilityAlert.property_id == property_id)
+    if status != "all":
+        q = q.filter(AIVisibilityAlert.status == status)
+    rows = q.order_by(AIVisibilityAlert.created_at.desc(), AIVisibilityAlert.id.desc()).limit(MAX_PAGE).all()
+    return {"property_id": property_id, "alerts": [alert_out(a) for a in rows]}
+
+
+@router.post("/alerts/{alert_id}/status")
+def set_alert_status(alert_id: int, payload: StatusIn, db: Session = Depends(get_db)):
+    a = db.get(AIVisibilityAlert, alert_id)
+    if a is None:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    if payload.status not in ("open", "acknowledged", "resolved"):
+        raise HTTPException(status_code=422, detail="Status must be open, acknowledged or resolved.")
+    a.status = payload.status
+    a.updated_at = utcnow()
+    db.commit()
+    return alert_out(a)
+
+
+@router.post("/alerts/detect")
+def detect_alerts(property_id: int = Query(...), today: date | None = Query(default=None), db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    created = detect_property_alerts(db, property_id, today=_today(today))
+    return {"created": [alert_out(a) for a in created]}
+
+
+@router.get("/costs")
+def costs(
+    days: int = Query(default=30, ge=1, le=365),
+    property_id: int | None = Query(default=None),
+    market_id: int | None = Query(default=None),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return cost_report(db, days=days, today=_today(today), property_id=property_id, market_id=market_id)
+
+
+def _schedule_out(r: AIRunSchedule, now: datetime) -> dict:
+    return {
+        "id": r.id, "prompt_id": r.prompt_id, "cluster_id": r.cluster_id, "property_id": r.property_id,
+        "market_id": r.market_id, "platform": r.platform, "tier": r.tier, "effective_tier": effective_tier(r, now),
+        "tier_override": r.tier_override,
+        "escalation_until": r.escalation_until.isoformat() if r.escalation_until else None,
+        "cadence_days": r.cadence_days, "repeat_count": r.repeat_count,
+        "next_run_at": r.next_run_at.isoformat() if r.next_run_at else None,
+        "last_run_at": r.last_run_at.isoformat() if r.last_run_at else None,
+        "last_priority_score": r.last_priority_score, "priority_components": r.priority_components,
+        "status": r.status,
+    }
+
+
+@router.get("/schedule")
+def schedule(
+    property_id: int | None = Query(default=None),
+    market_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    from app.config import settings
+
+    q = db.query(AIRunSchedule).filter(AIRunSchedule.status == "active")
+    if property_id is not None:
+        prop = _require_property(db, property_id)
+        q = q.filter((AIRunSchedule.property_id == property_id)
+                     | ((AIRunSchedule.market_id == prop.market_id) & AIRunSchedule.property_id.is_(None)))
+    elif market_id is not None:
+        q = q.filter(AIRunSchedule.market_id == market_id)
+    now = utcnow()
+    rows = q.order_by(AIRunSchedule.next_run_at, AIRunSchedule.id).limit(MAX_PAGE).all()
+    return {"enabled": settings.ai_scheduler_enabled, "tiers": scheduler_config()["tiers"],
+            "priority_weights": scheduler_config()["priority_weights"], "rows": [_schedule_out(r, now) for r in rows]}
+
+
+@router.post("/schedule/sync")
+def schedule_sync(db: Session = Depends(get_db)):
+    return sync_schedule(db)
+
+
+@router.post("/schedule/plan")
+def schedule_plan(dry_run: bool = Query(default=True), db: Session = Depends(get_db)):
+    """Dry run by default: shows what the scheduler would enqueue and why,
+    without spending. dry_run=false enqueues real provider runs."""
+    sync_schedule(db)
+    return plan_runs(db, dry_run=dry_run)
+
+
+@router.get("/schedule/decisions")
+def schedule_decisions(plan_key: str | None = Query(default=None), limit: int = Query(default=100, ge=1, le=MAX_PAGE),
+                       db: Session = Depends(get_db)):
+    q = db.query(AIScheduleDecision)
+    if plan_key:
+        q = q.filter(AIScheduleDecision.plan_key == plan_key)
+    rows = q.order_by(AIScheduleDecision.id.desc()).limit(limit).all()
+    return {"decisions": [
+        {"id": d.id, "plan_key": d.plan_key, "schedule_id": d.schedule_id, "prompt_id": d.prompt_id,
+         "decision": d.decision, "reason": d.reason, "priority_score": d.priority_score,
+         "components": d.priority_components, "job_ids": d.job_ids, "dry_run": d.dry_run,
+         "created_at": d.created_at.isoformat() if d.created_at else None}
+        for d in rows
+    ]}

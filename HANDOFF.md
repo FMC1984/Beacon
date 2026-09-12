@@ -80,6 +80,59 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 5: discovery, claims, alerts, costs, scheduler, AI Ops (2026-09-12, 757 tests)
+- Migration f5a6b7c8d9e1: `ai_entity_decisions`, `ai_claims`,
+  `ai_visibility_alerts`, `ai_run_schedule`, `ai_schedule_decisions`;
+  `ai_discovered_entities` + response_count, evidence_response_ids,
+  sample_context. Models in `app/models/ai_intelligence.py`.
+- Deviation from the plan (existing contract wins): `Competitor` stays
+  operator-named, so `competitors` got NO status column. Discovered names live
+  in `ai_discovered_entities`; a per-property `AIEntityDecision` (confirmed |
+  ignored) is the only path to a Competitor row. Ignoring is per property.
+- `discovery.py`: deterministic Title Case + multifamily-suffix / "X at Y" /
+  bold extraction, strips lead verbs ("Try"), rejects generic leads
+  ("Luxury Apartments"), domains ("Apartments.com"), continued names ("Sky
+  Ridge Medical Center"), names already known in the market. Shown once 2+
+  distinct answers name it; confidence MODELED = responses / 5.
+- `claims.py`: sentences naming the property -> property_type (Property
+  Context + ai_visibility.json synonyms), state (full names), pets
+  (`attributes.pet_policy`), amenities (`attributes.amenities`, then site
+  content topics = likely_accurate), rent (`attributes.rent_range` {min,max}:
+  +/-10% likely_accurate, >25% outside conflict). Absence from a list is
+  unable_to_verify, never conflict. Upsert by (property, claim_hash), counts
+  occurrences, keeps last 20 response ids; verification recomputed each time.
+  Hooked into `execute_observation` (claims + discovery after derivation,
+  failures logged, never lose the observation).
+- `alerts.py` (thresholds `reference_data/ai_alert_thresholds.json`):
+  visibility_drop, citation_lost, competitor_surge over 7-day windows, both
+  windows >= 5 responses; claim_conflict per open conflict claim. Dedupe key
+  includes window end. `escalate` puts high-severity property schedules on the
+  watchlist tier for 21 days.
+- `costs.py`: totals/by provider-model/scope/day; cost coverage none ->
+  UNAVAILABLE, partial -> "lower bound" note, full -> MODELED; tokens
+  OBSERVED; cost per observation MODELED.
+- `scheduler.py` (config `reference_data/ai_scheduler.json`): `sync_schedule`
+  one row per representative approved prompt x live platform (shared prompts
+  only if someone is subscribed); `priority` stores components; `plan_runs`
+  reserves budget for queued/leased/running run jobs, logs every decision,
+  dry_run mutates nothing. `BEACON_AI_SCHEDULER_ENABLED` defaults OFF;
+  `start_observatory_daily` queues `detect_alerts` daily (free) and
+  `schedule_ai_runs` only when enabled (after `BEACON_AI_SCHEDULER_HOUR_UTC`).
+  Local dry run for DCHP: 32 due prompts would run on day one.
+- Jobs: discover_competitors, verify_claims, detect_alerts, schedule_ai_runs.
+- Endpoints (`/api/ai-observatory`): competitors/discovered (+ decision,
+  discover), claims (+ dismiss, verify), alerts (+ status, detect), costs,
+  schedule (+ sync, plan?dry_run=true default, decisions). Admin:
+  `GET /api/admin/ai-ops`, `POST /api/admin/jobs/{id}/retry`.
+- UI: Competitors tab candidates (Track with optional website / Ignore),
+  Accuracy tab claims with status counts and evidence, Overview alerts
+  (acknowledge/resolve), Markets tab Monitoring usage + scheduler dry-run
+  preview, admin AI Ops panel. `asUtc` in `lib/observatory.ts` renders naive
+  UTC timestamps correctly.
+- Rollup deletes now `synchronize_session="fetch"` (SQLite id reuse warning);
+  new code uses `jobs.queue.utcnow` instead of deprecated `datetime.utcnow`.
+- Property delete also removes claims, entity decisions, alerts, schedules.
+
 ### Phase 19 slice 4: Observatory UI (2026-09-12, 747 tests)
 - `/ai-visibility` is now a tabbed section (`app/ai-visibility/layout.tsx`)
   with `ObservatoryProvider` (`components/observatory/ObservatoryContext.tsx`):
@@ -963,7 +1016,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **747**, all passing. Always run the full
+change (shown on `/admin`). Current: **757**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

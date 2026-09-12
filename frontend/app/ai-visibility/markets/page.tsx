@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { UsagePanel } from "@/components/observatory/IntelligencePanels";
 import { DataLabelBadge, LoadState, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchMarkets, fetchMarketSummary, fmtRate } from "@/lib/observatory";
 
@@ -20,6 +21,7 @@ export default function MarketsPage() {
 
   return (
     <div className="space-y-6">
+      <UsagePanel days={days} />
       <LoadState
         loading={markets.loading && !markets.data}
         error={markets.error}

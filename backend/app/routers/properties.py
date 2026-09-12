@@ -193,7 +193,11 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
         ENTITY_PROPERTY,
         AIBudget,
         AICitation,
+        AIClaim,
         AIClusterVisibilityDaily,
+        AIEntityDecision,
+        AIRunSchedule,
+        AIVisibilityAlert,
         AIPromptAssignment,
         AIPromptCluster,
         AIPromptEmbedding,
@@ -211,7 +215,10 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     )
 
     # Derived rows and rollups first (they reference responses and the property).
-    for model in (AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment):
+    for model in (
+        AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment,
+        AIClaim, AIEntityDecision, AIVisibilityAlert, AIRunSchedule,
+    ):
         db.query(model).filter_by(property_id=property_id).delete(synchronize_session=False)
     # This property's entities inside shared market answers.
     competitor_ids = [cid for (cid,) in db.query(Competitor.id).filter_by(property_id=property_id)]
@@ -225,6 +232,7 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     if prompt_ids:
         db.query(AIPromptEmbedding).filter(AIPromptEmbedding.prompt_id.in_(prompt_ids)).delete(
             synchronize_session=False)
+        db.query(AIRunSchedule).filter(AIRunSchedule.prompt_id.in_(prompt_ids)).delete(synchronize_session=False)
     db.query(AIPromptCluster).filter_by(property_id=property_id).delete(synchronize_session=False)
 
     response_ids = [

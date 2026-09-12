@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { CandidatesPanel } from "@/components/observatory/IntelligencePanels";
 import { LoadState, NeedsProperty, ObsMetricCard, Panel, useLoad } from "@/components/observatory/ui";
 import { fetchOverview } from "@/lib/observatory";
 
@@ -43,11 +44,9 @@ export default function CompetitorsPage() {
             Competitive ranking report
           </Link>
         </div>
-        <p className="mt-4 text-xs text-muted">
-          Coming next: AI-discovered competitors. Names that keep appearing in this market&apos;s AI answers will be
-          listed here with their evidence so you can confirm, ignore or add them. Until then nothing is inferred.
-        </p>
       </Panel>
+
+      <CandidatesPanel propertyId={propertyId} />
     </div>
   );
 }

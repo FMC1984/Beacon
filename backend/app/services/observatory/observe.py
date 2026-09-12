@@ -132,6 +132,25 @@ def _refresh_rollups(db: Session, response: AIVisibilityQuery, property_ids: lis
     )
 
 
+def _extract_intelligence(db: Session, response: AIVisibilityQuery, run: AIRun, observations, prop) -> None:
+    """Claims about mentioned properties and competitor candidates in the
+    market: deterministic text rules over the stored answer. A failure here
+    is logged and never loses the stored observation."""
+    from app.services.observatory.claims import persist_claims_for_response
+    from app.services.observatory.discovery import discover_from_response
+
+    try:
+        mentioned = [o.property_id for o in observations if o.mentioned]
+        if mentioned:
+            persist_claims_for_response(db, response, mentioned)
+        market_id = run.market_id or (prop.market_id if prop is not None else None)
+        discover_from_response(db, response, market_id)
+        db.commit()
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        log_event("intelligence.failed", response_id=response.id, error=str(exc)[:300])
+
+
 def execute_observation(
     db: Session,
     *,
@@ -318,6 +337,7 @@ def execute_observation(
     observations = derive_observations(db, row, run, scored)
     db.commit()
     _refresh_rollups(db, row, [o.property_id for o in observations])
+    _extract_intelligence(db, row, run, observations, prop)
 
     _apply_usage(run, result)
     run.status = RUN_SUCCESS

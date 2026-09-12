@@ -106,6 +106,10 @@ class AIDiscoveredEntity(Base):
     first_seen: Mapped[datetime | None] = mapped_column(DateTime)
     last_seen: Mapped[datetime | None] = mapped_column(DateTime)
     mention_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Slice 5: distinct responses naming it, and the latest evidence response ids.
+    response_count: Mapped[int] = mapped_column(Integer, default=0)
+    evidence_response_ids: Mapped[list | None] = mapped_column(JSON)
+    sample_context: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

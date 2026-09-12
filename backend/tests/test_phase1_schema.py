@@ -54,6 +54,11 @@ EXPECTED_TABLES = {
     "ai_visibility_daily",
     "ai_cluster_visibility_daily",
     "ai_market_daily",
+    "ai_entity_decisions",
+    "ai_claims",
+    "ai_visibility_alerts",
+    "ai_run_schedule",
+    "ai_schedule_decisions",
 }
 
 

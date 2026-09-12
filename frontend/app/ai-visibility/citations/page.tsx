@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { DataLabelBadge, LoadState, NeedsProperty, Panel, useLoad } from "@/components/observatory/ui";
-import { fetchCitations } from "@/lib/observatory";
+import { asUtc, fetchCitations } from "@/lib/observatory";
 import { fmtDateTime } from "@/lib/format";
 
 const PAGE = 50;
@@ -84,7 +84,7 @@ export default function CitationsPage() {
                       <td className="py-2 pr-3 text-xs text-muted">
                         {c.capture_method === "prose_regex" ? "answer text" : c.capture_method.replace(/_/g, " ")}
                       </td>
-                      <td className="py-2 text-xs text-muted">{fmtDateTime(c.observed_at)}</td>
+                      <td className="py-2 text-xs text-muted">{fmtDateTime(asUtc(c.observed_at))}</td>
                     </tr>
                   ))}
                 </tbody>

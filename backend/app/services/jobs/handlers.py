@@ -116,6 +116,44 @@ def update_market_rollups_job(db: Session, job: Job) -> dict:
     return update_market_rollups(db, market_ids=p.get("market_ids"))
 
 
+@register("discover_competitors")
+def discover_competitors_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.discovery import backfill_discovery
+
+    return backfill_discovery(db, int((job.payload or {}).get("market_id", job.market_id)))
+
+
+@register("verify_claims")
+def verify_claims_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.claims import backfill_claims
+
+    return backfill_claims(db, int((job.payload or {}).get("property_id", job.property_id)))
+
+
+@register("detect_alerts")
+def detect_alerts_job(db: Session, job: Job) -> dict:
+    from app.models import Property
+    from app.services.observatory.alerts import detect_property_alerts, escalate
+
+    p = job.payload or {}
+    ids = [p["property_id"]] if p.get("property_id") else [pid for (pid,) in db.query(Property.id).filter(Property.is_active.is_(True))]
+    created = escalated = 0
+    for pid in ids:
+        for alert in detect_property_alerts(db, int(pid)):
+            created += 1
+            escalated += 1 if escalate(db, alert) else 0
+    return {"properties": len(ids), "alerts_created": created, "escalated": escalated}
+
+
+@register("schedule_ai_runs")
+def schedule_ai_runs_job(db: Session, job: Job) -> dict:
+    from app.services.observatory.scheduler import plan_runs, sync_schedule
+
+    synced = sync_schedule(db)
+    plan = plan_runs(db, dry_run=bool((job.payload or {}).get("dry_run", False)), organization_id=job.organization_id)
+    return {"sync": synced, **{k: v for k, v in plan.items() if k != "decisions"}}
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

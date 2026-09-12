@@ -50,6 +50,13 @@ from app.models.ai_prompt_library import (
     AIPromptCluster,
     AIPromptEmbedding,
 )
+from app.models.ai_intelligence import (
+    AIClaim,
+    AIEntityDecision,
+    AIRunSchedule,
+    AIScheduleDecision,
+    AIVisibilityAlert,
+)
 from app.models.ai_observations import (
     AIClusterVisibilityDaily,
     AIDiscoveredEntity,
@@ -118,4 +125,9 @@ __all__ = [
     "AIVisibilityDaily",
     "AIClusterVisibilityDaily",
     "AIMarketDaily",
+    "AIEntityDecision",
+    "AIClaim",
+    "AIVisibilityAlert",
+    "AIRunSchedule",
+    "AIScheduleDecision",
 ]

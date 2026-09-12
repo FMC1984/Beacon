@@ -1,0 +1,10 @@
+{
+  "version": "2026-09-12",
+  "notes": "Observatory alert rules (Phase 19 slice 5). Every rule compares two equal windows from the daily rollups and fires only when BOTH windows meet the minimum response sample, so a thin week never raises an alarm. Point thresholds are percentage points (0.15 = 15 pts). Escalation puts the property's scheduled prompts on the watchlist tier for escalation_days.",
+  "window_days": 7,
+  "min_responses_per_window": 5,
+  "visibility_drop_points": 0.15,
+  "competitor_win_rise_points": 0.20,
+  "citation_lost_min_previous_cited": 2,
+  "escalation_days": 21
+}

@@ -1,0 +1,22 @@
+{
+  "version": "2026-09-12",
+  "notes": "Adaptive Observatory scheduler (Phase 19 slice 5). One schedule row per (representative prompt, live platform), never per subscriber: a market prompt row serves every property subscribed to its cluster. Priority = 100 x the weighted sum of 0-1 components computed from rollups and stored with every decision. Weights and tiers are config, not code.",
+  "priority_weights": {
+    "importance": 0.25,
+    "volatility": 0.20,
+    "search_opportunity": 0.20,
+    "competitor_movement": 0.15,
+    "content_change": 0.10,
+    "staleness": 0.10
+  },
+  "tiers": {
+    "portfolio_market": {"cadence_days": 7, "repeat_count": 1, "label": "Market and feature prompts shared by a market"},
+    "standard_property": {"cadence_days": 30, "repeat_count": 1, "label": "Brand prompts for a property"},
+    "advanced_property": {"cadence_days": 7, "repeat_count": 3, "label": "Important brand prompts (importance 5)"},
+    "watchlist": {"cadence_days": 3, "repeat_count": 2, "label": "Escalated after an alert"},
+    "investigation": {"cadence_days": 1, "repeat_count": 3, "label": "Operator-started investigation"}
+  },
+  "scope_tiers": {"market": "portfolio_market", "feature": "portfolio_market", "brand": "standard_property", "sentinel": "advanced_property"},
+  "advanced_importance": 5,
+  "max_enqueue_per_plan": 50
+}

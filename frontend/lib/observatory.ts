@@ -292,5 +292,141 @@ export const fetchMarkets = () => getJSON<{ markets: MarketRow[] }>(`${BASE}/mar
 export const fetchMarketSummary = (marketId: number, days: number) =>
   getJSON<MarketSummary>(`${BASE}/markets/${marketId}/summary?${qs({ days })}`);
 
+/** Backend timestamps without an offset are naive UTC (SQLite convention). */
+export const asUtc = (iso: string) => (/(?:[zZ]|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`);
+
 export const fmtRate = (v: number | null | undefined) =>
   v === null || v === undefined ? "n/a" : `${Math.round(v * 100)}%`;
+
+// --- Slice 5: discovery, claims, alerts, costs, schedule ---------------------
+
+export type Candidate = {
+  id: number;
+  name: string;
+  responses: number;
+  first_seen: string | null;
+  last_seen: string | null;
+  evidence_response_ids: number[];
+  sample_context: string | null;
+  confidence: number;
+  confidence_label: DataLabel;
+  decision: "confirmed" | "ignored" | null;
+  competitor_id: number | null;
+};
+
+export type ClaimStatus = "confirmed" | "likely_accurate" | "conflict_detected" | "unable_to_verify";
+
+export type Claim = {
+  id: number;
+  property_id: number;
+  claim_type: string;
+  claim_topic: string | null;
+  claim_value: string;
+  claim_text: string;
+  verification_status: ClaimStatus;
+  verification_method: string;
+  evidence: string;
+  known_value: string | null;
+  severity: "low" | "medium" | "high";
+  occurrence_count: number;
+  response_ids: number[];
+  platforms: string[];
+  status: string;
+  first_seen: string | null;
+  last_seen: string | null;
+  data_label: DataLabel;
+};
+
+export type Alert = {
+  id: number;
+  property_id: number | null;
+  market_id: number | null;
+  alert_type: string;
+  severity: "low" | "medium" | "high";
+  title: string;
+  detail: string;
+  evidence: Record<string, unknown> | null;
+  metric_before: number | null;
+  metric_after: number | null;
+  data_label: DataLabel;
+  status: "open" | "acknowledged" | "resolved";
+  escalated: boolean;
+  created_at: string | null;
+};
+
+export type CostBlock = {
+  estimated_usd: number | null;
+  label: DataLabel;
+  coverage: "no_runs" | "none" | "partial" | "full";
+  priced_runs: number;
+  runs: number;
+  note?: string | null;
+};
+
+export type UsageSummary = {
+  runs: number;
+  by_status: Record<string, number>;
+  tokens: { label: DataLabel; input: number; output: number; reasoning: number; cached: number };
+  search_operations: number;
+  cost: CostBlock;
+};
+
+export type CostReport = {
+  window: { start: string; end: string; days: number };
+  total: UsageSummary;
+  by_provider_model: Record<string, UsageSummary>;
+  by_scope: Record<string, UsageSummary>;
+  observations_produced: number;
+  cost_per_observation: { estimated_usd: number; label: DataLabel; note: string } | null;
+  budget: { period: string; allowance_runs: number; spent_runs: number; remaining_runs: number; exhausted: boolean };
+  note: string;
+};
+
+export type PlanDecision = {
+  schedule_id: number;
+  prompt_id: number;
+  platform: string;
+  tier: string;
+  decision: string;
+  reason: string;
+  priority_score: number;
+  components: Record<string, number>;
+};
+
+export type Plan = {
+  plan_key: string;
+  dry_run: boolean;
+  due: number;
+  selected: number;
+  skipped_budget: number;
+  pending_runs_reserved: number;
+  budget_remaining_after: number;
+  decisions: PlanDecision[];
+};
+
+export const fetchCandidates = (propertyId: number) =>
+  getJSON<{ candidates: Candidate[]; minimum_responses: number; note: string }>(
+    `${BASE}/competitors/discovered?${qs({ property_id: propertyId })}`
+  );
+
+export const decideCandidate = (entityId: number, propertyId: number, decision: "confirmed" | "ignored", domain?: string) =>
+  postJSON<{ decision: string; competitor_id: number | null }>(`${BASE}/competitors/discovered/${entityId}/decision`, {
+    property_id: propertyId,
+    decision,
+    domain: domain || null,
+  });
+
+export const fetchClaims = (propertyId: number) =>
+  getJSON<{ counts: Record<ClaimStatus, number>; claims: Claim[] }>(`${BASE}/claims?${qs({ property_id: propertyId })}`);
+
+export const dismissClaim = (claimId: number) => postJSON<Claim>(`${BASE}/claims/${claimId}/dismiss`);
+
+export const fetchAlerts = (propertyId: number) =>
+  getJSON<{ alerts: Alert[] }>(`${BASE}/alerts?${qs({ property_id: propertyId })}`);
+
+export const setAlertStatus = (alertId: number, status: Alert["status"]) =>
+  postJSON<Alert>(`${BASE}/alerts/${alertId}/status`, { status });
+
+export const fetchCosts = (days: number) => getJSON<CostReport>(`${BASE}/costs?${qs({ days })}`);
+
+export const previewPlan = () => postJSON<Plan>(`${BASE}/schedule/plan?dry_run=true`);

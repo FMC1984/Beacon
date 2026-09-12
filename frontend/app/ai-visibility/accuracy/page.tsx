@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { ClaimsPanel } from "@/components/observatory/IntelligencePanels";
 import { LegacyAnalysis } from "@/components/observatory/legacy/AnalysisPanel";
 import { NeedsProperty, Panel } from "@/components/observatory/ui";
 
@@ -17,7 +18,8 @@ export default function AccuracyPage() {
   if (propertyId === null) return <NeedsProperty />;
   return (
     <div className="space-y-6">
-      <LegacyAnalysis propertyId={propertyId} only={["facts", "score"]} />
+      <ClaimsPanel propertyId={propertyId} />
+      <LegacyAnalysis propertyId={propertyId} only={["facts"]} />
       <Panel
         title="How accuracy is judged"
         subtitle="Claims AI answers make about the property are checked against Property Context. Beacon only says a claim conflicts when it has reliable evidence."
@@ -31,7 +33,7 @@ export default function AccuracyPage() {
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">
-          Per-claim tracking with these statuses arrives with the next slice. Keep{" "}
+          Absence from Beacon&apos;s records is never treated as proof a claim is false. Keep{" "}
           <Link href={`/property-context?property_id=${propertyId}`} className="text-violet-a hover:underline">
             Property Context
           </Link>{" "}
