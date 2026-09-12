@@ -172,7 +172,10 @@ def test_opportunity_score_is_modeled_and_redistributes_unavailable(db):
     p = _prop(db)
     c = AIPromptCluster(property_id=p.id, scope="feature", label="pools", topic_key="pool", importance=4)
     db.add(c)
-    db.flush()
+    db.commit()
+    unscored = prompt_opportunity_score(db, p.id, c.id, today=TODAY)
+    assert unscored["score"] is None and unscored["data_label"] == "UNAVAILABLE"
+    assert "not prompt search volume" in unscored["explanation"]
     db.add(AIClusterVisibilityDaily(day=NOW.date(), property_id=p.id, cluster_id=c.id, eligible_count=4,
                                     mentioned_count=1, competitor_win_count=2, rollup_key="o1"))
     db.commit()

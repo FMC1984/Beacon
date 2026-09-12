@@ -50,9 +50,9 @@ def _cluster_counts(db: Session, property_id: int, cluster_id: int, start: date,
 
 
 def _search_demand(db: Session, property_id: int, topic_key: str | None) -> float | None:
-    """0-1 share of the property's Search Console impressions whose queries
-    mention the topic's terms, scaled to the largest topic. None when the
-    property has no Search Console data (UNAVAILABLE)."""
+    """0-1 share of the property's total Search Console impressions whose
+    queries mention the topic's terms. None when the property has no Search
+    Console data (UNAVAILABLE)."""
     total = db.query(func.coalesce(func.sum(GSCPerformanceDaily.impressions), 0)).filter(
         GSCPerformanceDaily.property_id == property_id).scalar()
     if not total:
@@ -111,7 +111,9 @@ def prompt_opportunity_score(
     available = {k: v for k, v in w.items() if contributors[k]["available"]}
     total_w = sum(available.values())
     score = None
-    if total_w > 0:
+    # Importance and search demand alone describe the topic, not this
+    # property's position in AI answers: no observations, no score.
+    if eligible and total_w > 0:
         score = round(100 * sum(contributors[k]["value"] * (weight / total_w) for k, weight in available.items()))
     return {
         "cluster_id": cluster_id,
@@ -125,5 +127,8 @@ def prompt_opportunity_score(
         "explanation": (
             "Weighted sum of the available contributors; weights of unavailable "
             "contributors are redistributed. This is not prompt search volume."
+            if eligible else
+            "Not scored yet: this cluster has no monitored AI answers for the property in the window. "
+            "This is not prompt search volume."
         ),
     }

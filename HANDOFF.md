@@ -80,6 +80,37 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 4: Observatory UI (2026-09-12, 747 tests)
+- `/ai-visibility` is now a tabbed section (`app/ai-visibility/layout.tsx`)
+  with `ObservatoryProvider` (`components/observatory/ObservatoryContext.tsx`):
+  property in the URL (`?property_id`, last choice remembered in
+  localStorage), 7/30/90 day range, metric definitions from
+  `GET /api/ai-observatory/meta`. Tabs: Overview (root), prompts, citations,
+  competitors, sources, markets, recommendations, accuracy, trends.
+- `lib/observatory.ts` holds the types and fetchers; `components/observatory/ui.tsx`
+  holds `DataLabelBadge`, `FormulaNote` ("How is this calculated?"),
+  `ObsMetricCard` (value + "X of Y" sample + point change, or the
+  insufficient-sample state; Share of Voice gating text uses the response
+  sample), `ShareBar`, `Panel`, `useLoad`, `LoadState`, `NeedsProperty`.
+  New code has no `set-state-in-effect` lint errors (state only set from
+  promise callbacks).
+- Legacy page moved verbatim into `components/observatory/legacy/`
+  (`RunQueriesPanel` on Prompts, `StandingPanel` on Trends, `AnalysisPanel`
+  with an `only` section filter on Recommendations and Accuracy); the em
+  dashes in its copy were replaced.
+- Prompts tab: clusters grouped by scope with importance, variants and
+  subscription state; expanding a cluster lists its prompts (representative
+  marked), "Run for market" on representative market/feature prompts
+  (enqueues `execute_market_run`, idempotent per prompt/platform/day), and
+  the Opportunity Score breakdown.
+- Opportunity Score is now withheld (score null, UNAVAILABLE) until the
+  cluster has monitored answers for the property: importance and search
+  demand alone describe a topic, not the property's position.
+- Competitors and Accuracy tabs state plainly that AI-discovered
+  competitors and per-claim statuses arrive with slice 5; nothing inferred.
+- Property dashboard: `AiVisibilityBlock` (AI Visibility + Citation Rate,
+  30 days) next to the Share of Voice card.
+
 ### Phase 19 slice 3: shared market scoring, metrics, rollups (2026-09-12, 747 tests)
 - THE cost lever: a market/feature prompt runs once
   (`observe.execute_market_prompt`, job `execute_market_run`, API
