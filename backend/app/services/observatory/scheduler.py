@@ -82,7 +82,9 @@ def sync_schedule(db: Session, now: datetime | None = None) -> dict:
         if p.property_id is not None and (p.importance or 0) >= cfg["advanced_importance"]:
             tier = "advanced_property"
         t = cfg["tiers"][tier]
+        mult = cfg.get("platform_cadence_multiplier", {})
         for platform in platforms:
+            cadence = t["cadence_days"] * int(mult.get(platform, 1))
             key = f"{p.id}:{platform}"
             keep.add(key)
             row = db.query(AIRunSchedule).filter_by(schedule_key=key).one_or_none()
@@ -90,12 +92,12 @@ def sync_schedule(db: Session, now: datetime | None = None) -> dict:
                 db.add(AIRunSchedule(
                     organization_id=p.organization_id, prompt_id=p.id, cluster_id=p.cluster_id,
                     property_id=p.property_id, market_id=p.market_id, platform=platform, tier=tier,
-                    cadence_days=t["cadence_days"], repeat_count=t["repeat_count"], next_run_at=now,
+                    cadence_days=cadence, repeat_count=t["repeat_count"], next_run_at=now,
                     status="active", schedule_key=key,
                 ))
                 created += 1
-            elif row.tier != tier or row.status != "active":
-                row.tier, row.cadence_days, row.repeat_count, row.status = tier, t["cadence_days"], t["repeat_count"], "active"
+            elif row.tier != tier or row.status != "active" or row.cadence_days != cadence:
+                row.tier, row.cadence_days, row.repeat_count, row.status = tier, cadence, t["repeat_count"], "active"
                 row.updated_at = now
                 updated += 1
     paused = 0
@@ -212,7 +214,8 @@ def plan_runs(db: Session, now: datetime | None = None, dry_run: bool = True, or
                                          property_id=r.property_id, organization_id=org_id, priority=int(score))
                     job_ids.append(job.id)
                 r.last_run_at = now
-                r.next_run_at = now + timedelta(days=t["cadence_days"])
+                mult = cfg.get("platform_cadence_multiplier", {})
+                r.next_run_at = now + timedelta(days=t["cadence_days"] * int(mult.get(r.platform, 1)))
                 decision, reason = "enqueued", f"Enqueued {repeats} run(s) on {r.platform} ({tier})."
             enqueued += 1
         if not dry_run:

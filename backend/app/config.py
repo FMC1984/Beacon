@@ -7,6 +7,16 @@ class Settings(BaseSettings):
     # Raw uploaded files are retained here (RAG readiness: raw source payload).
     data_dir: str = "data"
     openai_api_key: str = ""
+    # Phase 19 slice 7: extra AI Visibility connectors. Each platform stays
+    # not-live (no request is ever made) until its key is set.
+    gemini_api_key: str = ""
+    anthropic_api_key: str = ""
+    perplexity_api_key: str = ""
+    ai_gemini_model: str = "gemini-2.5-flash"
+    ai_claude_model: str = "claude-opus-5"
+    ai_claude_max_tokens: int = 4000
+    ai_perplexity_model: str = "sonar"
+    ai_web_search_max_uses: int = 5
     nora_model: str = "gpt-5-mini"
     # Demo mode: deterministic local embeddings + a labeled, template-composed
     # Nora. No OpenAI calls anywhere. For showing the product without billing;

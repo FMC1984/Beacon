@@ -17,6 +17,7 @@ type AiOps = {
   budget: { period: string; allowance_runs: number; spent_runs: number; remaining_runs: number };
   rollup_watermark: { observation_id: number; updated_at: string } | null;
   scheduler_enabled: boolean;
+  connectors?: { platform: string; label: string; live: boolean; key_setting: string | null }[];
   database: { bytes: number | null; wal_bytes: number | null };
 };
 
@@ -68,6 +69,12 @@ export function AiOpsPanel() {
             value={`${ops.budget.spent_runs} of ${ops.budget.allowance_runs} runs (${ops.budget.remaining_runs} left)`}
           />
           <Line label="Scheduler" value={ops.scheduler_enabled ? "enabled" : "off (BEACON_AI_SCHEDULER_ENABLED)"} />
+          <Line
+            label="AI platforms"
+            value={(ops.connectors ?? [])
+              .map((c) => `${c.label}: ${c.live ? "connected" : c.key_setting ? `needs ${c.key_setting}` : "no API"}`)
+              .join(" · ")}
+          />
           <Line
             label="Rollups through observation"
             value={ops.rollup_watermark ? `#${ops.rollup_watermark.observation_id}, ${fmtDateTime(asUtc(ops.rollup_watermark.updated_at))}` : "not run yet"}

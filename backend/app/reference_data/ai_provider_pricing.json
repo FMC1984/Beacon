@@ -20,6 +20,18 @@
       "cached_input_per_1m": 0,
       "output_per_1m": 0,
       "search_call_per_1k": 0
+    },
+    "anthropic:claude-opus-5": {
+      "input_per_1m": null,
+      "cached_input_per_1m": null,
+      "output_per_1m": null,
+      "search_call_per_1k": null
+    },
+    "perplexity:sonar": {
+      "input_per_1m": null,
+      "cached_input_per_1m": null,
+      "output_per_1m": null,
+      "search_call_per_1k": null
     }
   }
 }

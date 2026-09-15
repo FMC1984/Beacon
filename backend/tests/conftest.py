@@ -21,6 +21,8 @@ def _isolate_settings(monkeypatch):
 
     monkeypatch.setattr(settings, "demo_mode", False)
     monkeypatch.setattr(settings, "openai_api_key", "")
+    for attr in ("gemini_api_key", "anthropic_api_key", "perplexity_api_key"):
+        monkeypatch.setattr(settings, attr, "")
 
 
 @pytest.fixture()

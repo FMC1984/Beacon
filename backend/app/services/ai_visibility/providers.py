@@ -224,7 +224,9 @@ class OpenAIVisibilityProvider(_StoredReader):
         self.model = model
 
     def execute(self, prompt: str, platform: str, *, model=None, location=None) -> ProviderResult:
-        if not is_live_platform(platform):
+        from app.services.ai_visibility.reference import platform_config
+
+        if not is_live_platform(platform) or (platform_config(platform) or {}).get("connector") != "openai":
             raise PlatformNotConnectedError(
                 f"No live connector for {platform_label(platform)} yet. Only "
                 "platforms marked live in ai_visibility.json can be queried."
@@ -275,11 +277,38 @@ class OpenAIVisibilityProvider(_StoredReader):
 
 
 def get_ai_visibility_provider(platform: str | None = None) -> AIVisibilityQueryProvider:
-    """Provider for a platform. Every live platform routes through OpenAI
-    today; `platform` is accepted so later connectors (Gemini, Claude,
-    Perplexity) can be selected here without touching callers."""
+    """Provider for a platform, chosen by its connector in ai_visibility.json:
+    openai (ChatGPT), gemini, anthropic (Claude), perplexity. A connector
+    without its API key raises PlatformNotConnectedError; nothing is called."""
     if settings.demo_mode:
         return DemoVisibilityProvider()
+    from app.services.ai_visibility.reference import platform_config
+
+    connector = (platform_config(platform) or {}).get("connector") if platform else "openai"
+    if connector == "gemini":
+        if not settings.gemini_api_key:
+            raise PlatformNotConnectedError("Google Gemini is not connected. Add BEACON_GEMINI_API_KEY to enable it.")
+        from app.services.ai_visibility.providers_gemini import GeminiVisibilityProvider
+
+        return GeminiVisibilityProvider(settings.gemini_api_key)
+    if connector == "anthropic":
+        if not settings.anthropic_api_key:
+            raise PlatformNotConnectedError("Claude is not connected. Add BEACON_ANTHROPIC_API_KEY to enable it.")
+        from app.services.ai_visibility.providers_anthropic import ClaudeVisibilityProvider
+
+        return ClaudeVisibilityProvider(settings.anthropic_api_key)
+    if connector == "perplexity":
+        if not settings.perplexity_api_key:
+            raise PlatformNotConnectedError("Perplexity is not connected. Add BEACON_PERPLEXITY_API_KEY to enable it.")
+        from app.services.ai_visibility.providers_perplexity import PerplexityVisibilityProvider
+
+        return PerplexityVisibilityProvider(settings.perplexity_api_key)
+    if connector not in (None, "openai"):
+        raise PlatformNotConnectedError(f"No connector is available for {platform}.")
+    if platform and connector is None:
+        raise PlatformNotConnectedError(
+            f"No live connector for {platform_label(platform)}: the platform offers no API Beacon can query."
+        )
     if not settings.openai_api_key:
         raise MissingAPIKeyError(
             "No OpenAI API key configured for live AI Visibility queries. Add "

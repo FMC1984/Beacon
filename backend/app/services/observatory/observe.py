@@ -84,9 +84,15 @@ def classify_error(exc: BaseException) -> str:
         return "browsing_unavailable"
     if name == "PlatformNotConnectedError":
         return "platform_not_connected"
+    if name == "ProviderRefusalError":
+        return "provider_refusal"
     if name in _RETRYABLE_CLASSES:
         return "provider_unavailable"
     status = getattr(exc, "status_code", None)
+    if status is None and getattr(exc, "response", None) is not None:
+        status = getattr(exc.response, "status_code", None)  # httpx.HTTPStatusError
+    if status == 429:
+        return "rate_limit"
     if isinstance(status, int):
         return "provider_error_5xx" if status >= 500 else "provider_error_4xx"
     return "provider_error"

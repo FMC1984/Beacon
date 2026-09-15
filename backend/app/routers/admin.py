@@ -89,6 +89,7 @@ def ai_ops(db: Session = Depends(get_db)):
     from datetime import datetime, timedelta
 
     from app.models import AIRun, AppState, Job
+    from app.services.ai_visibility.reference import platform_capabilities, platforms
     from app.services.observatory.budgets import budget_summary
     from app.services.observatory.rollups import WATERMARK_KEY
     from app.services.observatory.tenancy import default_organization_id
@@ -124,6 +125,11 @@ def ai_ops(db: Session = Depends(get_db)):
         "budget": budget_summary(db, "org", default_organization_id(db)),
         "rollup_watermark": watermark.value if watermark else None,
         "scheduler_enabled": settings.ai_scheduler_enabled,
+        "connectors": [
+            {"platform": pl["key"], "label": pl["label"], "live": platform_capabilities(pl["key"])["live"],
+             "key_setting": platform_capabilities(pl["key"])["key_setting"]}
+            for pl in platforms()
+        ],
         "database": {"bytes": size(db_path), "wal_bytes": size(f"{db_path}-wal" if db_path else None)},
     }
 

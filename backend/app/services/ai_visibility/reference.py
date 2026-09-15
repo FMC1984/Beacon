@@ -36,10 +36,22 @@ def platform_label(key: str) -> str:
     return key
 
 
+# Connectors that go live only when their API key is configured (Phase 19
+# slice 7). The platform's static "live" flag still governs everything else.
+KEYED_CONNECTORS = {"gemini": "gemini_api_key", "anthropic": "anthropic_api_key", "perplexity": "perplexity_api_key"}
+
+
+def connector_configured(connector: str | None) -> bool:
+    from app.config import settings
+
+    attr = KEYED_CONNECTORS.get(connector or "")
+    return bool(attr and getattr(settings, attr, "")) and not settings.demo_mode
+
+
 def is_live_platform(key: str) -> bool:
     for p in platforms():
         if p["key"] == key:
-            return bool(p.get("live"))
+            return bool(p.get("live")) or connector_configured(p.get("connector"))
     return False
 
 
@@ -60,7 +72,10 @@ def platform_capabilities(key: str) -> dict:
     assumed."""
     p = platform_config(key) or {}
     caps = {k: bool(p.get(k, False)) for k in capability_keys()}
-    caps["live"] = bool(p.get("live", False))
+    caps["live"] = is_live_platform(key) if p else False
+    caps["key_setting"] = (
+        f"BEACON_{KEYED_CONNECTORS[p.get('connector')].upper()}" if p.get("connector") in KEYED_CONNECTORS else None
+    )
     caps["connector"] = p.get("connector")
     caps["default_model"] = p.get("default_model")
     return caps

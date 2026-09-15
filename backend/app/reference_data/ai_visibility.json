@@ -22,7 +22,10 @@
   ],
   "platforms": [
     {
-      "key": "chatgpt", "label": "ChatGPT", "connector": "openai", "live": true,
+      "key": "chatgpt",
+      "label": "ChatGPT",
+      "connector": "openai",
+      "live": true,
       "default_model": "gpt-5-mini",
       "supports_web_search": true,
       "supports_search_query_capture": true,
@@ -33,7 +36,10 @@
       "supports_raw_response": true
     },
     {
-      "key": "gemini", "label": "Google Gemini", "connector": "gemini", "live": false,
+      "key": "gemini",
+      "label": "Google Gemini",
+      "connector": "gemini",
+      "live": false,
       "default_model": "gemini-2.5-flash",
       "supports_web_search": true,
       "supports_search_query_capture": true,
@@ -44,8 +50,11 @@
       "supports_raw_response": true
     },
     {
-      "key": "perplexity", "label": "Perplexity", "connector": "perplexity", "live": false,
-      "default_model": null,
+      "key": "perplexity",
+      "label": "Perplexity",
+      "connector": "perplexity",
+      "live": false,
+      "default_model": "sonar",
       "supports_web_search": true,
       "supports_search_query_capture": false,
       "supports_citation_capture": true,
@@ -55,7 +64,10 @@
       "supports_raw_response": true
     },
     {
-      "key": "copilot", "label": "Microsoft Copilot", "connector": null, "live": false,
+      "key": "copilot",
+      "label": "Microsoft Copilot",
+      "connector": null,
+      "live": false,
       "default_model": null,
       "supports_web_search": false,
       "supports_search_query_capture": false,
@@ -66,8 +78,11 @@
       "supports_raw_response": false
     },
     {
-      "key": "claude", "label": "Claude", "connector": "anthropic", "live": false,
-      "default_model": null,
+      "key": "claude",
+      "label": "Claude",
+      "connector": "anthropic",
+      "live": false,
+      "default_model": "claude-opus-5",
       "supports_web_search": true,
       "supports_search_query_capture": true,
       "supports_citation_capture": true,
@@ -78,11 +93,40 @@
     }
   ],
   "property_type_synonyms": {
-    "affordable": ["affordable housing", "income-restricted", "income restricted", "section 8", "lihtc", "subsidized", "low-income", "low income"],
-    "conventional": ["market-rate", "market rate", "conventional"],
-    "luxury": ["luxury", "high-end", "upscale"],
-    "senior": ["senior living", "senior apartments", "55+", "active adult", "retirement community"],
-    "student": ["student housing", "student apartments", "off-campus"],
-    "military": ["military housing"]
+    "affordable": [
+      "affordable housing",
+      "income-restricted",
+      "income restricted",
+      "section 8",
+      "lihtc",
+      "subsidized",
+      "low-income",
+      "low income"
+    ],
+    "conventional": [
+      "market-rate",
+      "market rate",
+      "conventional"
+    ],
+    "luxury": [
+      "luxury",
+      "high-end",
+      "upscale"
+    ],
+    "senior": [
+      "senior living",
+      "senior apartments",
+      "55+",
+      "active adult",
+      "retirement community"
+    ],
+    "student": [
+      "student housing",
+      "student apartments",
+      "off-campus"
+    ],
+    "military": [
+      "military housing"
+    ]
   }
 }

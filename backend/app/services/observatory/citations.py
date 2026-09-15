@@ -42,6 +42,9 @@ class CitationDraft:
     capture_method: str
 
 
+_REDIRECT_HOSTS = {"vertexaisearch.cloud.google.com"}
+
+
 def normalize_url(url: str) -> tuple[str, str, str, str]:
     """(normalized_url, domain, root_domain, path). Lowercases the host,
     strips www., fragments, tracking params and a trailing slash. A bare
@@ -111,6 +114,12 @@ def extract_citations(result: ProviderResult, fallback_text: str) -> list[Citati
     if result.citations:
         for c in result.citations:
             normalized, host, root, path = normalize_url(c.url)
+            if host in _REDIRECT_HOSTS and c.title:
+                # Gemini grounding chunks link through a Google redirect; the
+                # chunk title is the source domain Gemini reports.
+                _, t_host, t_root, _ = normalize_url(c.title)
+                if t_host and "." in t_host:
+                    host, root, path = t_host, t_root, None
             if not host or normalized in seen:
                 continue
             seen.add(normalized)

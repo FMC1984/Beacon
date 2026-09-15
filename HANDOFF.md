@@ -80,6 +80,40 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Phase 19 slice 7: Gemini, Claude, Perplexity connectors, dormant (2026-09-15, 770 tests)
+- No keys are configured; nothing calls these providers. A keyed connector is
+  live only when its key is set and demo mode is off
+  (`reference.connector_configured`, `KEYED_CONNECTORS`):
+  `BEACON_GEMINI_API_KEY`, `BEACON_ANTHROPIC_API_KEY`,
+  `BEACON_PERPLEXITY_API_KEY`. Models: `BEACON_AI_GEMINI_MODEL`
+  (gemini-2.5-flash), `BEACON_AI_CLAUDE_MODEL` (claude-opus-5; change to
+  claude-haiku-4-5 for cheaper high-volume monitoring),
+  `BEACON_AI_PERPLEXITY_MODEL` (sonar). Pricing entries ship null (cost
+  UNAVAILABLE) like the rest.
+- `get_ai_visibility_provider(platform)` routes by the platform's connector;
+  a connector without its key (or Copilot, which has no API) raises
+  PlatformNotConnectedError before any run row is written. The OpenAI
+  provider now refuses non-openai platforms.
+- `providers_gemini.py` (httpx REST, generateContent + `google_search` tool):
+  webSearchQueries -> retrieval queries, groundingChunks -> citations
+  (`grounding_chunk`), groundingSupports -> offsets, one search operation per
+  grounded prompt. Redirect links (vertexaisearch.cloud.google.com) take the
+  chunk title as the source domain in `citations.extract_citations`; the
+  redirect URL itself is kept. Ungrounded answers are discarded with spend.
+- `providers_anthropic.py` (official `anthropic` SDK, added to
+  requirements): `client.beta.messages.create` with `web_search_20260209`
+  (max_uses, user_location), `fallbacks="default"` +
+  `server-side-fallback-2026-07-01`, resumes `pause_turn` up to 3 times,
+  refusal -> ProviderRefusalError (error_class provider_refusal, final).
+- `providers_perplexity.py` (httpx REST): search_results (titles) or citations
+  -> citations; retrieval queries not exposed, left empty (UNAVAILABLE).
+- `classify_error` reads httpx status codes; 429 -> rate_limit (retried).
+- Scheduler rotation: `platform_cadence_multiplier` in ai_scheduler.json
+  (ChatGPT 1x weekly primary, others 4x as validation). A platform only gets
+  schedule rows once live.
+- Admin AI Ops lists each platform as connected / needs <KEY> / no API.
+  `tests/conftest.py` blanks the new keys for every test.
+
 ### Phase 19 slice 6: content gaps, AI + Search impact, portfolio (2026-09-12, 763 tests)
 - Migration a6b7c8d9e0f3: `ai_content_gaps` (model `AIContentGap` in
   `app/models/ai_intelligence.py`), unique `gap_key` = property:cluster.
@@ -1048,7 +1082,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **763**, all passing. Always run the full
+change (shown on `/admin`). Current: **770**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 
