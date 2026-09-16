@@ -26,7 +26,7 @@ const TABS: { href: string; label: string }[] = [
 
 function ObservatoryShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { companies, properties, propertyId, setPropertyId, days, setDays, loaded, loadError, reload, withScope } =
+  const { companies, properties, propertyId, setPropertyId, days, setDays, loaded, loadError, reload, withScope, isSample } =
     useObservatory();
 
   return (
@@ -76,6 +76,19 @@ function ObservatoryShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
+
+      {isSample && (
+        <div
+          role="note"
+          className="rounded-2xl border border-amber-a/40 bg-amber-a/10 px-4 py-3 text-sm text-amber-a"
+        >
+          <span className="font-semibold">Sample data.</span>{" "}
+          <span className="text-foreground/80">
+            This property belongs to the Sample Portfolio: fictional communities and scripted AI answers that show what
+            the Observatory looks like once monitoring is running. Nothing on this page is a real measurement.
+          </span>
+        </div>
+      )}
 
       {loadError ? (
         <ErrorState message={loadError} onRetry={reload} />

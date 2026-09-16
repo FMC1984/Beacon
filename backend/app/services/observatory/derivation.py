@@ -43,7 +43,11 @@ def eligible_properties(
 ) -> list[tuple[Property, str]]:
     """Who a response can be scored for. A property run scores its own
     property. A market run scores the properties subscribed to the prompt's
-    cluster; with no cluster yet, every active property in the market."""
+    cluster; with no cluster yet, every active property in the market.
+
+    Markets are shared geography, so a market run is always confined to the
+    organization that paid for it: another organization's property in the
+    same city is never scored from it."""
     if run.property_id is not None:
         prop = db.get(Property, run.property_id)
         return [(prop, ELIGIBLE_PROPERTY_RUN)] if prop is not None else []
@@ -53,8 +57,14 @@ def eligible_properties(
         ids = properties_for_cluster(db, prompt.cluster_id)
         if ids:
             props = db.query(Property).filter(Property.id.in_(ids), Property.is_active.is_(True)).all()
+            props = [p for p in props if _same_org(db, p, run.organization_id)]
             return [(p, ELIGIBLE_CLUSTER_ASSIGNMENT) for p in sorted(props, key=lambda p: p.id)]
-    return [(p, ELIGIBLE_MARKET_MEMBER) for p in market_members(db, run.market_id)]
+    members = market_members(db, run.market_id, organization_id=run.organization_id)
+    return [(p, ELIGIBLE_MARKET_MEMBER) for p in members]
+
+
+def _same_org(db: Session, prop: Property, organization_id: int | None) -> bool:
+    return organization_id is None or property_org_id(db, prop.id) == organization_id
 
 
 def _domain_matches(domain: str, owned: set[str]) -> bool:

@@ -90,6 +90,7 @@ def ai_ops(db: Session = Depends(get_db)):
 
     from app.models import AIRun, AppState, Job
     from app.services.ai_visibility.reference import platform_capabilities, platforms
+    from app.services.observatory.demo_seed import sample_status
     from app.services.observatory.budgets import budget_summary
     from app.services.observatory.rollups import WATERMARK_KEY
     from app.services.observatory.tenancy import default_organization_id
@@ -125,6 +126,7 @@ def ai_ops(db: Session = Depends(get_db)):
         "budget": budget_summary(db, "org", default_organization_id(db)),
         "rollup_watermark": watermark.value if watermark else None,
         "scheduler_enabled": settings.ai_scheduler_enabled,
+        "sample_portfolio": sample_status(db),
         "connectors": [
             {"platform": pl["key"], "label": pl["label"], "live": platform_capabilities(pl["key"])["live"],
              "key_setting": platform_capabilities(pl["key"])["key_setting"]}
@@ -146,6 +148,32 @@ def retry_job(job_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Job is already queued or running.")
     requeue(db, job)
     return {"id": job.id, "status": job.status}
+
+
+@router.get("/sample-portfolio")
+def sample_portfolio_status(db: Session = Depends(get_db)):
+    from app.services.observatory.demo_seed import sample_status
+
+    return sample_status(db)
+
+
+@router.post("/sample-portfolio")
+def create_sample_portfolio(confirm: bool = False, db: Session = Depends(get_db)):
+    """Build the labeled demo portfolio (fictional organization, company,
+    markets, properties and scripted AI answers). Rebuilds from scratch if one
+    already exists, and never touches another organization's data."""
+    if not confirm:
+        raise HTTPException(status_code=422, detail="Pass confirm=true to create the sample portfolio.")
+    from app.services.observatory.demo_seed import build_sample_portfolio
+
+    return build_sample_portfolio(db)
+
+
+@router.delete("/sample-portfolio")
+def delete_sample_portfolio(db: Session = Depends(get_db)):
+    from app.services.observatory.demo_seed import remove_sample_portfolio
+
+    return remove_sample_portfolio(db)
 
 
 def _check(name: str, status: str, detail: str) -> dict:

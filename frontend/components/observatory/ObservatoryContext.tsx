@@ -26,6 +26,8 @@ type Ctx = {
   companies: Company[];
   properties: Property[];
   property: Property | null;
+  /** True when the selected property belongs to the labeled Sample Portfolio. */
+  isSample: boolean;
   propertyId: number | null;
   setPropertyId: (id: number | null) => void;
   days: ObsDays;
@@ -118,6 +120,7 @@ export function ObservatoryProvider({ children }: { children: ReactNode }) {
         companies,
         properties,
         property,
+        isSample: property?.attributes?.sample_data === true,
         propertyId,
         setPropertyId,
         days,

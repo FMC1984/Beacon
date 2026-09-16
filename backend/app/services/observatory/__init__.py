@@ -15,3 +15,12 @@ LABEL_OBSERVED = "OBSERVED"
 LABEL_MEASURED = "MEASURED"
 LABEL_MODELED = "MODELED"
 LABEL_UNAVAILABLE = "UNAVAILABLE"
+
+
+def utc_today():
+    """Calendar date in UTC. Observatory timestamps are naive UTC, so every
+    window default must be a UTC date too; the machine's local date drifts by
+    a day around midnight UTC."""
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).date()

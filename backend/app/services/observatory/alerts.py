@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AIClaim, AIVisibilityAlert, Property
 from app.models.ai_intelligence import ALERT_OPEN, CLAIM_CONFLICT
-from app.services.observatory import LABEL_MEASURED, LABEL_OBSERVED
+from app.services.observatory import LABEL_MEASURED, LABEL_OBSERVED, utc_today
 from app.services.observatory.metrics import metrics_for_window
 from app.services.observatory.tenancy import property_org_id
 from app.services.jobs.queue import utcnow
@@ -51,7 +51,7 @@ def _pct(v: float | None) -> str:
 
 def detect_property_alerts(db: Session, property_id: int, today: date | None = None) -> list[AIVisibilityAlert]:
     cfg = thresholds()
-    today = today or date.today()
+    today = today or utc_today()
     days = int(cfg["window_days"])
     cur_start, cur_end = today - timedelta(days=days - 1), today
     prev_end = cur_start - timedelta(days=1)

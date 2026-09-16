@@ -48,8 +48,9 @@ def market_members(
 ) -> list[Property]:
     q = db.query(Property).filter(Property.market_id == market_id, Property.is_active.is_(True))
     if organization_id is not None:
-        company_ids = [
-            c.id for c in db.query(Company.id).filter(Company.organization_id == organization_id)
-        ]
-        q = q.filter(Property.company_id.in_(company_ids))
+        # Same rule as org_property_ids: unassigned properties belong to the
+        # default organization, so scoping a market never silently drops them.
+        from app.services.observatory.tenancy import org_property_ids
+
+        q = q.filter(Property.id.in_(org_property_ids(db, organization_id) or [-1]))
     return q.order_by(Property.name).all()

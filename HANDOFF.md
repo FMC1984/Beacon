@@ -80,6 +80,51 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Sample Portfolio + tenant-confined market runs (2026-09-16, 774 tests)
+- `services/observatory/demo_seed.py`: `build_sample_portfolio(db)` creates
+  organization `sample-portfolio` (settings.sample_data = true), company
+  "Sample Portfolio (demo data)", two fictional markets (Lakemont, CO and
+  Harbor Bend, TX), eight fictional properties (attributes.sample_data =
+  true, amenities, pet_policy, rent_range, Property Context, site pages,
+  tracked fictional competitors), prompts and clusters built directly (no
+  embedding calls), then 13 weeks of scripted answers pushed through the REAL
+  `execute_market_prompt` / `execute_observation` with a `ScriptedSampleProvider`
+  (provider "demo", zero cost). Shares are paced exactly (an accumulator, not
+  a coin flip) so scripted trends are the trends the rollups show; two
+  properties have a late cliff so alerts fire for the intended reason; one
+  property is scripted "pet friendly" against a not_allowed policy so
+  Accuracy shows a conflict; two untracked names recur so Competitors shows
+  candidates. Then gaps and alerts are evaluated. ~290 runs, ~1,070
+  observations, under 5 seconds. `remove_sample_portfolio(db)` deletes every
+  row (markets only if empty). Rebuild is idempotent.
+- Admin: `GET/POST(?confirm=true)/DELETE /api/admin/sample-portfolio`;
+  AI Ops panel gains Add / Rebuild / Remove buttons with a confirm dialog;
+  `/api/admin/ai-ops` reports `sample_portfolio`.
+- UI: Observatory layout shows an amber "Sample data" banner whenever the
+  selected property has attributes.sample_data; ScopeSelect suffixes
+  "(sample)"; `useObservatory().isSample`.
+- Tenant isolation fix (real bug): `derivation.eligible_properties` now
+  confines a market run to `run.organization_id` (markets are shared
+  geography, so another organization's property in the same city was being
+  scored from it). `markets.market_members(organization_id=...)` now uses
+  `org_property_ids`, so unassigned properties still count for the default
+  organization.
+- Per-viewer citation types: `metrics.source_influence` and the citations
+  endpoint relabel "owned" relative to the viewing property (another scored
+  property's site is `property_site`); a shared answer is classified once
+  against every property it scored, which had shown a sibling's site as owned.
+- `/api/ai-observatory/costs?property_id=` now scopes to that property's
+  organization, so a real organization's usage panel never blends in sample
+  runs. `observatory.utc_today()` replaces `date.today()` defaults in
+  alerts, costs, content_gaps, impact, portfolio and opportunity_score
+  (naive-UTC timestamps vs a local calendar date drifted a day around
+  midnight UTC, which a cost test caught).
+- Known demo quirk: the Phase 18 Share of Voice dashboard card counts only
+  property-owned answers, so a sample property shows "below the visibility
+  sample minimum" there while the AI Observatory card beside it is
+  populated from shared answers. Not changed: the Phase 18 definition is
+  tested as is.
+
 ### Phase 19 slice 7: Gemini, Claude, Perplexity connectors, dormant (2026-09-15, 770 tests)
 - No keys are configured; nothing calls these providers. A keyed connector is
   live only when its key is set and demo mode is off
@@ -1082,7 +1127,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **770**, all passing. Always run the full
+change (shown on `/admin`). Current: **774**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

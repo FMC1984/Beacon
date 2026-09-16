@@ -427,7 +427,8 @@ export const fetchAlerts = (propertyId: number) =>
 export const setAlertStatus = (alertId: number, status: Alert["status"]) =>
   postJSON<Alert>(`${BASE}/alerts/${alertId}/status`, { status });
 
-export const fetchCosts = (days: number) => getJSON<CostReport>(`${BASE}/costs?${qs({ days })}`);
+export const fetchCosts = (days: number, propertyId: number | null = null) =>
+  getJSON<CostReport>(`${BASE}/costs?${qs({ days, property_id: propertyId })}`);
 
 export const previewPlan = () => postJSON<Plan>(`${BASE}/schedule/plan?dry_run=true`);
 

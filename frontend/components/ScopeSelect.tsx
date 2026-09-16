@@ -102,6 +102,7 @@ export function ScopeSelect({
         {filtered.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
+            {p.attributes?.sample_data === true ? " (sample)" : ""}
           </option>
         ))}
         {!allowAll && filtered.length === 0 && (

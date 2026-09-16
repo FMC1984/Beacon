@@ -13,7 +13,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import AIPropertyObservation, AIRun
-from app.services.observatory import LABEL_MODELED, LABEL_OBSERVED, LABEL_UNAVAILABLE
+from app.services.observatory import LABEL_MODELED, LABEL_OBSERVED, LABEL_UNAVAILABLE, utc_today
 from app.services.observatory.budgets import budget_summary
 from app.services.observatory.tenancy import default_organization_id
 
@@ -37,7 +37,7 @@ def cost_report(
     db: Session, days: int = 30, today: date | None = None, property_id: int | None = None,
     market_id: int | None = None, organization_id: int | None = None,
 ) -> dict:
-    today = today or date.today()
+    today = today or utc_today()
     start = datetime.combine(today - timedelta(days=days - 1), datetime.min.time())
     end = datetime.combine(today + timedelta(days=1), datetime.min.time())
     q = db.query(AIRun).filter(AIRun.started_at >= start, AIRun.started_at < end)

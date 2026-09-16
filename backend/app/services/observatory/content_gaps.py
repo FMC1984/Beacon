@@ -37,6 +37,7 @@ from app.models import (
 from app.services.ai_visibility.reference import MIN_QUERIES_FOR_VISIBILITY
 from app.services.content_intelligence.matching import matched_terms
 from app.services.jobs.queue import utcnow
+from app.services.observatory import utc_today
 from app.services.observatory.citations import domain_of_url
 from app.services.observatory.taxonomy import topic as taxonomy_topic
 from app.services.property_context import (
@@ -128,7 +129,7 @@ def _evidence(db: Session, property_id: int, cluster_id: int, start: datetime, e
 
 
 def evaluate_gaps(db: Session, property_id: int, days: int = 30, today: date | None = None) -> dict:
-    today = today or date.today()
+    today = today or utc_today()
     prop = db.get(Property, property_id)
     if prop is None:
         raise ValueError("Property not found.")

@@ -21,7 +21,7 @@ export default function MarketsPage() {
 
   return (
     <div className="space-y-6">
-      <UsagePanel days={days} />
+      <UsagePanel days={days} propertyId={property?.id ?? null} />
       <LoadState
         loading={markets.loading && !markets.data}
         error={markets.error}

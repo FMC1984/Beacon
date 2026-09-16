@@ -11,7 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import AIClusterVisibilityDaily, AIPromptCluster, GSCPerformanceDaily
-from app.services.observatory import LABEL_MODELED, LABEL_UNAVAILABLE
+from app.services.observatory import LABEL_MODELED, LABEL_UNAVAILABLE, utc_today
 from app.services.observatory.taxonomy import topic as taxonomy_topic
 from app.services.reporting import previous_window
 
@@ -72,7 +72,7 @@ def prompt_opportunity_score(
     db: Session, property_id: int, cluster_id: int, days: int = 30, today: date | None = None,
     weight_overrides: dict | None = None,
 ) -> dict:
-    today = today or date.today()
+    today = today or utc_today()
     start, end = today - timedelta(days=max(days, 1) - 1), today
     prev_start, prev_end = previous_window(start, end)
     cluster = db.get(AIPromptCluster, cluster_id)

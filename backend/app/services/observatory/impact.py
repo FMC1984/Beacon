@@ -19,7 +19,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import GA4SessionsDaily, GSCPerformanceDaily, Property
-from app.services.observatory import LABEL_MEASURED, LABEL_UNAVAILABLE
+from app.services.observatory import LABEL_MEASURED, LABEL_UNAVAILABLE, utc_today
 from app.services.observatory.metrics import metrics_for_window
 from app.services.reporting import compare, compare_points, previous_window
 
@@ -84,7 +84,7 @@ def _direction(delta: float | None) -> str | None:
 
 
 def impact_summary(db: Session, property_id: int, days: int = 30, today: date | None = None) -> dict:
-    today = today or date.today()
+    today = today or utc_today()
     prop = db.get(Property, property_id)
     if prop is None:
         raise ValueError("Property not found.")

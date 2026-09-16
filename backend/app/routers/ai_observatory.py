@@ -455,8 +455,12 @@ def citations(
             {
                 "citation_id": c.id, "response_id": c.response_id, "run_id": c.run_id,
                 "url": c.url, "domain": c.domain, "title": c.title, "order": c.citation_order,
-                "source_type": c.source_type, "capture_method": c.capture_method,
+                "capture_method": c.capture_method,
                 "owned": c.domain in owned or any(c.domain.endswith("." + d) for d in owned),
+                "source_type": (
+                    "owned" if c.domain in owned or any(c.domain.endswith("." + d) for d in owned)
+                    else "property_site" if c.source_type == "owned" else c.source_type
+                ),
                 "platform": o.platform, "observed_at": o.observed_at.isoformat(),
                 "prompt_id": o.prompt_id, "cluster_id": o.cluster_id,
             }
@@ -732,7 +736,10 @@ def costs(
     today: date | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    return cost_report(db, days=days, today=_today(today), property_id=property_id, market_id=market_id)
+    # Usage is an organization figure: a property selects its organization
+    # rather than filtering to its own runs (shared market runs have none).
+    organization_id = property_org_id(db, property_id) if property_id is not None else None
+    return cost_report(db, days=days, today=_today(today), market_id=market_id, organization_id=organization_id)
 
 
 def _schedule_out(r: AIRunSchedule, now: datetime) -> dict:

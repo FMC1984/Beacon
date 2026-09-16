@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from app.models import (
     AICitation,
     AIClusterVisibilityDaily,
+    Competitor,
+    Property,
     AIPromptAssignment,
     AIPromptCluster,
     AIPropertyObservation,
@@ -20,6 +22,7 @@ from app.models import (
 from app.models.ai_observations import PLATFORM_ALL
 from app.services.ai_visibility.reference import MIN_QUERIES_FOR_VISIBILITY
 from app.services.observatory import LABEL_MEASURED, LABEL_MODELED
+from app.services.observatory.citations import competitor_domains_for, owned_domains_for
 from app.services.reporting import DataState, compare_points, previous_window, rate
 
 PRIORITY_CLUSTER_MIN_IMPORTANCE = 3
@@ -196,11 +199,35 @@ def source_influence(db: Session, property_id: int, start: date, end: date, limi
         .order_by(func.count(AICitation.id).desc(), AICitation.domain)
         .all()
     )
-    total = sum(c for _, _, c, _ in rows)
+    # A shared market answer was classified against every property it scored,
+    # so "owned" there can mean another property's site. Relabel for the
+    # property being viewed: its own domain is owned, its tracked
+    # competitors' domains are competitor, any other scored property's site
+    # is property_site.
+    prop = db.get(Property, property_id)
+    owned = owned_domains_for(prop) if prop else set()
+    comps = db.query(Competitor).filter_by(property_id=property_id).all()
+    comp_domains = competitor_domains_for(comps)
+
+    def relabel(domain: str, stored: str | None) -> str | None:
+        if any(domain == o or domain.endswith("." + o) for o in owned):
+            return "owned"
+        if any(domain == c or domain.endswith("." + c) for c in comp_domains):
+            return "competitor"
+        return "property_site" if stored in ("owned", "competitor") else stored
+
+    merged: dict[tuple[str, str | None], list[int]] = {}
+    for d, st, c, r in rows:
+        key = (d, relabel(d, st))
+        agg = merged.setdefault(key, [0, 0])
+        agg[0] += c
+        agg[1] += r
+    ordered = sorted(merged.items(), key=lambda kv: (-kv[1][0], kv[0][0]))
+    total = sum(c for _, (c, _) in ordered)
     domains = [
         {"domain": d, "source_type": st, "citations": c, "responses": r,
          "share": round(c / total, 4) if total else None}
-        for d, st, c, r in rows[:limit]
+        for (d, st), (c, r) in ordered[:limit]
     ]
     return {"total_citations": total, "domains": domains, "data_label": LABEL_MEASURED,
             "formula": METRIC_DEFINITIONS["source_influence"]["formula"]}

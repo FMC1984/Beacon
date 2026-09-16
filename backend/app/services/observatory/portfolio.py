@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AICitation, AIContentGap, AIPropertyObservation, Property
 from app.services.metrics import _resolve_scope
-from app.services.observatory import LABEL_MEASURED, LABEL_MODELED
+from app.services.observatory import LABEL_MEASURED, LABEL_MODELED, utc_today
 from app.services.observatory.metrics import metrics_for_window
 
 MIN_PROPERTIES_FOR_AVERAGE = 2
@@ -24,7 +24,7 @@ MIN_PROPERTIES_FOR_PATTERN = 2
 def portfolio_summary(
     db: Session, company_id: int | None = None, unassigned: bool = False, days: int = 30, today: date | None = None
 ) -> dict:
-    today = today or date.today()
+    today = today or utc_today()
     start, end = today - timedelta(days=days - 1), today
     ids = _resolve_scope(db, None, company_id, unassigned)
     q = db.query(Property).filter(Property.is_active.is_(True))

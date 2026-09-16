@@ -18,6 +18,7 @@ type AiOps = {
   rollup_watermark: { observation_id: number; updated_at: string } | null;
   scheduler_enabled: boolean;
   connectors?: { platform: string; label: string; live: boolean; key_setting: string | null }[];
+  sample_portfolio?: { present: boolean; properties: number; runs?: number; observations?: number };
   database: { bytes: number | null; wal_bytes: number | null };
 };
 
@@ -40,6 +41,37 @@ export function AiOpsPanel() {
       cancelled = true;
     };
   }, [nonce]);
+
+  const [sampleBusy, setSampleBusy] = useState(false);
+  const [sampleNote, setSampleNote] = useState<string | null>(null);
+
+  async function sampleAction(create: boolean) {
+    const confirmed = window.confirm(
+      create
+        ? "Build the Sample Portfolio? It adds a clearly labeled demo organization with 8 fictional properties and scripted AI answers. No real data is touched and no provider is called."
+        : "Remove the Sample Portfolio and every row it created?"
+    );
+    if (!confirmed) return;
+    setSampleBusy(true);
+    setSampleNote(null);
+    try {
+      const res = await fetch(`${API_BASE}/admin/sample-portfolio${create ? "?confirm=true" : ""}`, {
+        method: create ? "POST" : "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail ?? `Request failed (${res.status}).`);
+      setSampleNote(
+        create
+          ? `Sample Portfolio ready: ${body.properties} properties, ${body.runs_created} scripted runs, ${body.content_gaps} content gaps, ${body.alerts} alerts.`
+          : "Sample Portfolio removed."
+      );
+      reload();
+    } catch (e) {
+      setSampleNote((e as Error).message);
+    } finally {
+      setSampleBusy(false);
+    }
+  }
 
   async function retry(id: number) {
     await fetch(`${API_BASE}/admin/jobs/${id}/retry`, { method: "POST" });
@@ -80,6 +112,35 @@ export function AiOpsPanel() {
             value={ops.rollup_watermark ? `#${ops.rollup_watermark.observation_id}, ${fmtDateTime(asUtc(ops.rollup_watermark.updated_at))}` : "not run yet"}
           />
           <Line label="Database" value={`${mb(ops.database.bytes)} (WAL ${mb(ops.database.wal_bytes)})`} />
+          <div className="flex flex-wrap items-center justify-between gap-3 py-2">
+            <div>
+              <p className="text-muted">Sample Portfolio</p>
+              <p className="text-xs text-muted">
+                {ops.sample_portfolio?.present
+                  ? `Present: ${ops.sample_portfolio.properties} fictional properties, ${ops.sample_portfolio.runs ?? 0} scripted runs. Labeled sample data, zero provider cost.`
+                  : "Not present. Adds a labeled demo organization so every Observatory tab can be shown populated."}
+              </p>
+              {sampleNote && <p className="mt-1 text-xs text-foreground">{sampleNote}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => sampleAction(true)}
+                disabled={sampleBusy}
+                className="rounded-lg border border-line px-2.5 py-1 text-xs hover:bg-surface-raised disabled:opacity-50"
+              >
+                {sampleBusy ? "Working..." : ops.sample_portfolio?.present ? "Rebuild sample" : "Add sample portfolio"}
+              </button>
+              {ops.sample_portfolio?.present && (
+                <button
+                  onClick={() => sampleAction(false)}
+                  disabled={sampleBusy}
+                  className="rounded-lg border border-pink-a/40 px-2.5 py-1 text-xs text-pink-a hover:bg-pink-a/10 disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
           {ops.recent_failures.length > 0 && (
             <div className="pt-3">
               <p className="mb-1 text-xs font-medium text-muted">Failed and dead jobs</p>
