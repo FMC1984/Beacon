@@ -80,6 +80,54 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Semantic Intelligence report + Observatory scale rollups (2026-09-16, 793 tests)
+**Semantic Intelligence (the last "planned" Reports tab) is built.**
+- Why it was unblocked rather than waiting: it was deferred with Phase 15c,
+  whose blocker was SIMILARITY CLUSTERING. This report needs none: it uses
+  the fixed 17-topic taxonomy that already tags every RAG chunk. 15c's
+  clustering stays honestly deferred, and the report says so in `deferred`.
+- `services/reporting_semantic.py` puts four sources side by side per topic:
+  site content, reviews (clause sentiment), monitored AI answers, and Search
+  Console queries. `GET /api/reports/semantic`, component
+  `components/reports/SemanticReport.tsx`.
+- Gap types: `demand_gap`, `content_gap`, `mismatch` (site markets what
+  reviews dislike), `ai_gap`. A gap is only raised when BOTH compared sources
+  exist for the property, so a property with no reviews never produces
+  "residents talk about X".
+- Two honesty fixes found by looking at real output:
+  - A search gap now needs a query genuinely ABOUT the topic (a multi-word
+    phrase, or two topic terms). "apartments for rent" contains the pricing
+    term "rent" but is generic discovery; it is still counted and shown, it
+    just cannot raise a gap. Matching is whole-word, so "coffee" no longer
+    hits "fee".
+  - `lean` is null when the lexicon matched no sentiment either way. It
+    previously said "mixed", which implies both directions were found; plenty
+    of real complaints use words the lexicon does not know. `sentiment_detected`
+    carries the distinction.
+
+**Observatory scale rollups.** `ai_source_domains`, `ai_run_costs_daily`,
+`ai_competitor_stats` (migration b7c8d9e0f1a2, models `ai_rollups.py`,
+service `scale_rollups.py`, job `rebuild_scale_rollups`, daily in
+`start_observatory_daily`).
+- They are a CACHE, not a second opinion: each builder calls the same
+  function the live readers call (`source_influence`, `cost_report`, the
+  derived observations), so the cache cannot drift into its own arithmetic.
+  `tests/test_obs_scale_rollups.py` holds cached == live for all three.
+- Readers (`source_influence_cached`, `cost_summary_cached`,
+  `competitor_stats`) fall back to computing live when no rollup matches, so
+  nothing ever waits on a job having run; `from_rollup` says which path ran.
+- New `GET /api/ai-observatory/competitors/standings`: per tracked
+  competitor, shared answers, who was named, who was cited, rates null below
+  the minimum sample.
+- Fixed while testing: rollups survived property deletion. Now pruned by
+  `prune_orphans`, by the property-delete cascade, and by sample removal.
+- Two test premises of mine were wrong, and the code was right: demo runs
+  carry a real configured rate of ZERO, so cost reads MODELED $0.00, not
+  UNAVAILABLE.
+
+**Stale copy fixed.** The legacy AI Visibility panel listed competitor share
+of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
+
 ### Sample Portfolio: first-party data for the Reports tabs (2026-09-16, 775 tests)
 - `demo_seed._seed_first_party` adds 90 days per sample property: GA4
   sessions (5 non-AI source/medium splits + 3 AI referral sources classified
@@ -1146,8 +1194,9 @@ regulated properties.
 ## Known gaps / deliberately deferred
 
 - **15c** (similarity clustering, KB consolidation onto the shared taxonomy) —
-  deferred until there's more data volume to cluster meaningfully (currently
-  ~1 property, ~10 RAG chunks).
+  still deferred until there's more data volume to cluster meaningfully. Note
+  the Semantic Intelligence REPORT no longer waits on this: it runs on the
+  fixed taxonomy. What 15c would add is grouping near-duplicate phrasings.
 - **GBP (Google Business Profile) API** — discussed, decided NOT to build
   (requires Google approval process, lower strategic fit than GA4/GSC, manual
   CSV upload already works). Revisit only if a client leans heavily on Maps
@@ -1164,7 +1213,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **775**, all passing. Always run the full
+change (shown on `/admin`). Current: **793**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

@@ -67,6 +67,11 @@ from app.services.observatory.metrics import (
 from app.services.observatory.opportunity_score import prompt_opportunity_score
 from app.services.observatory.opportunity_score import weights as opportunity_weights
 from app.services.observatory.rollups import rebuild_rollups
+from app.services.observatory.scale_rollups import (
+    competitor_stats,
+    rebuild_all as rebuild_scale_rollups,
+    source_influence_cached,
+)
 from app.services.observatory.scheduler import config as scheduler_config
 from app.services.observatory.scheduler import effective_tier, plan_runs, sync_schedule
 from app.services.observatory.taxonomy import topics
@@ -410,8 +415,7 @@ def sources(
     db: Session = Depends(get_db),
 ):
     _require_property(db, property_id)
-    end = _today(today)
-    return source_influence(db, property_id, end - timedelta(days=days - 1), end, limit=limit)
+    return source_influence_cached(db, property_id, days, today=_today(today), limit=limit)
 
 
 @router.get("/citations")
@@ -584,12 +588,26 @@ def run_market_prompt(
     return {"job_id": job.id, "status": job.status, "created": created}
 
 
+@router.get("/competitors/standings")
+def competitor_standings(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """How each tracked competitor stood against this property: shared
+    answers, who was named, who was cited."""
+    _require_property(db, property_id)
+    return competitor_stats(db, property_id, days=days, today=_today(today))
+
+
 @router.post("/rollups/rebuild")
 def rollups_rebuild(property_id: int | None = Query(default=None), db: Session = Depends(get_db)):
     ids = [property_id] if property_id is not None else None
     derived = backfill_observations(db, property_id=property_id)
     rolled = rebuild_rollups(db, property_ids=ids)
-    return {"derived": derived, "rollups": rolled}
+    scale = rebuild_scale_rollups(db)
+    return {"derived": derived, "rollups": rolled, "scale_rollups": scale}
 
 
 # --- Slice 5: discovery, claims, alerts, costs, schedule --------------------

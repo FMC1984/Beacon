@@ -48,13 +48,14 @@ SENSITIVE_KEYWORDS = (
     "young professional", "exclusive",
 )
 
+# Still genuinely not measured. Competitor share of voice used to be listed
+# here; it shipped in Phase 18 and now has its own report, so claiming it is
+# unbuilt would be its own small dishonesty.
 DEFERRED = [
     "Prompt-volume / demand estimation (how many real users ask this) - needs a "
     "data partnership Beacon does not have.",
     "Source-authority cross-referencing (whether cited sources rank in Google) - "
     "needs external ranking infrastructure.",
-    "Competitor share-of-voice (your mentions vs competitors') - needs the "
-    "Competitor Intelligence phase.",
 ]
 
 WEIGHTS = {"mention": 0.6, "fact_consistency": 0.4}

@@ -60,6 +60,9 @@ EXPECTED_TABLES = {
     "ai_run_schedule",
     "ai_schedule_decisions",
     "ai_content_gaps",
+    "ai_source_domains",
+    "ai_run_costs_daily",
+    "ai_competitor_stats",
 }
 
 

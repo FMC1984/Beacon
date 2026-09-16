@@ -165,6 +165,15 @@ def create_recommendations_job(db: Session, job: Job) -> dict:
     return {"results": [evaluate_gaps(db, int(pid)) for pid in ids]}
 
 
+@register("rebuild_scale_rollups")
+def rebuild_scale_rollups_job(db: Session, job: Job) -> dict:
+    """Refresh the source-domain, run-cost and competitor-standing caches."""
+    from app.services.observatory.scale_rollups import rebuild_all
+
+    p = job.payload or {}
+    return rebuild_all(db, organization_id=p.get("organization_id", job.organization_id))
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

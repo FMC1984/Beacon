@@ -243,6 +243,7 @@ async def start_observatory_daily():
                 day = now.date().isoformat()
                 enqueue(db, "detect_alerts", {}, idempotency_key=f"detect_alerts:{day}")
                 enqueue(db, "create_recommendations", {}, idempotency_key=f"create_recommendations:{day}")
+                enqueue(db, "rebuild_scale_rollups", {}, idempotency_key=f"rebuild_scale_rollups:{day}")
                 if settings.ai_scheduler_enabled and now.hour >= settings.ai_scheduler_hour_utc:
                     enqueue(db, "schedule_ai_runs", {}, idempotency_key=f"schedule_ai_runs:{day}")
             except Exception:

@@ -45,7 +45,10 @@ from app.models import (
     AIPropertyObservation,
     AIRun,
     AIRunSchedule,
+    AIRunCostDaily,
     AISearchQuery,
+    AISourceDomainRollup,
+    AICompetitorStat,
     AIVisibilityAlert,
     AIVisibilityDaily,
     AIVisibilityPrompt,
@@ -739,7 +742,8 @@ def remove_sample_portfolio(db: Session) -> dict:
                       AIClaim, AIContentGap, AIVisibilityAlert, AIRunSchedule, AIEntityDecision,
                       PropertyContent, PropertyProfile, Competitor,
                       GA4SessionsDaily, GA4EventsDaily, GSCPerformanceDaily, GBPMetricsDaily,
-                      CRMLead, PropertyReview, ContentChange, Upload):
+                      CRMLead, PropertyReview, ContentChange, Upload,
+                      AISourceDomainRollup, AICompetitorStat):
             db.query(model).filter(model.property_id.in_(prop_ids)).delete(synchronize_session=False)
     prompt_ids = [pid for (pid,) in db.query(AIVisibilityPrompt.id).filter_by(organization_id=org.id)]
     if prompt_ids:
@@ -751,6 +755,7 @@ def remove_sample_portfolio(db: Session) -> dict:
         db.query(AIDiscoveredEntity).filter(AIDiscoveredEntity.market_id.in_(market_ids)).delete(synchronize_session=False)
         db.query(AIMarketDaily).filter(AIMarketDaily.market_id.in_(market_ids)).delete(synchronize_session=False)
     db.query(AIBudget).filter_by(scope_type="org", scope_id=org.id).delete(synchronize_session=False)
+    db.query(AIRunCostDaily).filter_by(organization_id=org.id).delete(synchronize_session=False)
     for prop in props:
         db.delete(prop)
     db.query(Company).filter_by(organization_id=org.id).delete(synchronize_session=False)

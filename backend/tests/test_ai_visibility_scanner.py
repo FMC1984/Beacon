@@ -42,7 +42,10 @@ def test_empty_state(db):
     assert a["has_queries"] is False
     assert a["score"] is None
     assert a["recommendations"] == []
-    assert len(a["deferred"]) == 3  # deferrals are declared, not built
+    # Deferrals are declared, not built, and shrink as phases land: competitor
+    # share of voice moved out of this list when Phase 18 shipped it.
+    assert len(a["deferred"]) == 2
+    assert not any("share-of-voice" in d.lower() for d in a["deferred"])
 
 
 def test_insufficient_sample_gates_score_and_recommends_more(db):

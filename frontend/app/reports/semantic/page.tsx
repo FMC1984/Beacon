@@ -1,5 +1,5 @@
-import { ReportTabPage } from "@/components/reports/ReportTabPage";
+import { SemanticReport } from "@/components/reports/SemanticReport";
 
 export default function SemanticIntelligenceReport() {
-  return <ReportTabPage tabKey="semantic" />;
+  return <SemanticReport />;
 }

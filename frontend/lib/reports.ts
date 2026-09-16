@@ -974,3 +974,74 @@ export type AITopic = {
 
 export const fetchAiTopics = (propertyId: number) =>
   getJSON<{ topics: AITopic[] }>(`/ai-visibility/${propertyId}/topics`);
+
+// --- Semantic Intelligence (Phase 15a report) --------------------------------
+
+export type SemanticSourceKey = "content" | "reviews" | "ai_answers" | "search";
+
+export type SemanticTopic = {
+  key: string;
+  label: string;
+  content: { present: boolean; pages: string[]; mentions: number; matched_terms: string[] };
+  reviews: {
+    present: boolean;
+    mentions: number;
+    sentiment: { positive: number; negative: number; mixed: number; neutral: number };
+    lean: "positive" | "negative" | "mixed" | null;
+    sentiment_detected: boolean;
+    sample_quote: string | null;
+    state: DataStateKey;
+    minimum_sample: number;
+  };
+  ai_answers: { present: boolean; responses: number; of_responses: number };
+  search: {
+    present: boolean;
+    impressions: number;
+    clicks: number;
+    is_demand: boolean;
+    top_queries: { query: string; impressions: number; clicks: number }[];
+    minimum_impressions: number;
+  };
+  signal_sources: SemanticSourceKey[];
+  signal_count: number;
+  coverage_state: "covered" | "site_only" | "gap" | "not_discussed";
+};
+
+export type SemanticGap = {
+  type: "demand_gap" | "content_gap" | "mismatch" | "ai_gap";
+  topic: string;
+  topic_label: string;
+  headline: string;
+  evidence: string[];
+  state: DataStateKey;
+};
+
+export type SemanticReport =
+  | { scope_required: true; message: string }
+  | {
+      scope_required: false;
+      property_id: number;
+      property_name: string;
+      generated_on: string;
+      window: { start: string; end: string; days: number };
+      taxonomy_version: string;
+      sources: { key: SemanticSourceKey; label: string; documents: number; state: DataStateKey; note: string }[];
+      has_data: boolean;
+      summary: {
+        topics_total: number;
+        topics_discussed: number;
+        topics_covered_on_site: number;
+        sources_available: number;
+        gaps: number;
+      };
+      topics: SemanticTopic[];
+      gaps: SemanticGap[];
+      limitations: string[];
+      deferred: string[];
+    };
+
+export const fetchSemanticReport = (propertyId: number | null) => {
+  const params = new URLSearchParams();
+  if (propertyId !== null) params.set("property_id", String(propertyId));
+  return getJSON<SemanticReport>(`/reports/semantic?${params}`);
+};

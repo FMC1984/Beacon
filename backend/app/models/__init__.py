@@ -58,6 +58,11 @@ from app.models.ai_intelligence import (
     AIScheduleDecision,
     AIVisibilityAlert,
 )
+from app.models.ai_rollups import (
+    AICompetitorStat,
+    AIRunCostDaily,
+    AISourceDomainRollup,
+)
 from app.models.ai_observations import (
     AIClusterVisibilityDaily,
     AIDiscoveredEntity,
@@ -132,4 +137,7 @@ __all__ = [
     "AIRunSchedule",
     "AIScheduleDecision",
     "AIContentGap",
+    "AISourceDomainRollup",
+    "AIRunCostDaily",
+    "AICompetitorStat",
 ]

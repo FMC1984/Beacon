@@ -27,6 +27,7 @@ from app.services.reporting_csv import (
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report, matrix_cell_evidence
 from app.services.reporting_seo import build_seo_report
+from app.services.reporting_semantic import build_semantic_report
 from app.services.reporting_share_of_voice import (
     build_sov_report,
     competitive_ranking,
@@ -80,9 +81,9 @@ REPORT_TABS = [
     {
         "key": "semantic",
         "label": "Semantic Intelligence",
-        "status": "planned",
-        "planned_phase": "deferred",
-        "summary": "Topic coverage across sources. Deferred with Phase 15c until there is enough indexed data to cluster meaningfully.",
+        "status": "available",
+        "planned_phase": "15a",
+        "summary": "Topic coverage across site content, reviews, AI answers and search, and the gaps between them.",
     },
     {
         "key": "content-impact",
@@ -159,6 +160,16 @@ def aeo_report(
     if property_id is not None and db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return build_aeo_report(db, property_id)
+
+
+@router.get("/semantic")
+def semantic_report(
+    property_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    if property_id is not None and db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return build_semantic_report(db, property_id)
 
 
 @router.get("/content-impact")
