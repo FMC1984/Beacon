@@ -20,7 +20,7 @@ Honesty rules this obeys:
 
 import random
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -50,15 +50,27 @@ from app.models import (
     AIVisibilityDaily,
     AIVisibilityPrompt,
     AIVisibilityQuery,
+    ChangeType,
     Company,
     Competitor,
+    ContentChange,
+    CRMLead,
+    GA4EventsDaily,
+    GA4SessionsDaily,
+    GBPMetricsDaily,
+    GSCPerformanceDaily,
     Job,
+    LeadStatus,
     Market,
     Mention,
     Organization,
     Property,
     PropertyContent,
     PropertyProfile,
+    PropertyReview,
+    SourceType,
+    Upload,
+    UploadStatus,
 )
 from app.services.jobs.queue import utcnow
 from app.services.observatory.markets import ensure_market
@@ -281,9 +293,253 @@ def _brand_answer(rng: random.Random, sample: SampleProperty, progress: float) -
     if "rent" in sample.claims:
         lines.append(f"Rent at {sample.name} starts near ${rng.randrange(sample.rent_min, sample.rent_max, 25):,}.")
     lines.append(f"Residents mention the location in {sample.city} and the management team.")
-    citations = [(f"https://www.{sample.domain}/", sample.name)] if sample.cited else []
+    # Real answers to a brand question often reach for a comparison, which is
+    # what gives Share of Voice a denominator. Without this the property is
+    # always the only brand named and every SoV reads a meaningless 100%.
+    rivals = [c for c in sample.competitors if rng.random() < 0.45]
+    if rivals:
+        lines.append(
+            f"Renters comparing {sample.name} often also look at {' and '.join(rivals[:2])}."
+        )
+    # A brand question nearly always names the property, but whether the answer
+    # reaches for the property's OWN site varies: a flat 100% citation rate
+    # would be the kind of too-clean number nobody should believe.
+    citations = []
+    if sample.cited and rng.random() < 0.65:
+        citations.append((f"https://www.{sample.domain}/", sample.name))
+    elif not sample.cited and rng.random() < 0.1:
+        citations.append((f"https://www.{sample.domain}/", sample.name))
     citations.append((f"https://www.{rng.choice(DIRECTORIES)}/{sample.domain.split('.')[0]}", "listing"))
     return " ".join(lines), citations, [f"{sample.name} reviews", f"{sample.name} apartments"]
+
+
+# --- First-party data (GA4, Search Console, Business Profile, CRM, reviews) --
+# Same honesty rules: every row hangs off a labeled sample Upload, and the
+# shapes mirror what the real connectors write so the Reports tabs exercise
+# the real report code rather than a special demo path.
+
+GA4_SOURCES = (
+    # (source, medium, share of sessions)
+    ("google", "organic", 0.34),
+    ("(direct)", "(none)", 0.20),
+    ("google", "cpc", 0.12),
+    ("apartments.com", "referral", 0.10),
+    ("bing", "organic", 0.05),
+)
+AI_SOURCES = (("chatgpt.com", "referral"), ("perplexity.ai", "referral"), ("gemini.google.com", "referral"))
+# Visitors come from around the property, not the other end of the country.
+GEO_BY_STATE = {
+    "CO": (("Lakemont", "Colorado"), ("Denver", "Colorado"), ("Castle Rock", "Colorado"),
+           ("Littleton", "Colorado"), ("Colorado Springs", "Colorado")),
+    "TX": (("Harbor Bend", "Texas"), ("Houston", "Texas"), ("Galveston", "Texas"),
+           ("Pearland", "Texas"), ("Austin", "Texas")),
+}
+# Nearer cities carry more of the traffic than the far end of the list.
+GEO_WEIGHTS = (0.34, 0.27, 0.18, 0.12, 0.09)
+EVENT_MIX = (("page_view", 3.1), ("session_start", 1.0), ("scroll", 1.6), ("user_engagement", 2.2),
+             ("click", 0.5), ("form_start", 0.09), ("schedule_tour", 0.04))
+KEY_EVENTS = {"schedule_tour", "form_start"}
+# (query, share of impressions, average position, click-through rate).
+# Brand queries are few but convert; discovery queries are many and rarely
+# clicked. The weights are set so total GSC clicks land near GA4 organic
+# sessions: a demo whose own numbers contradict each other teaches nothing.
+GSC_QUERY_TEMPLATES = (
+    ("{name}", 0.35, 1.4, 0.34),
+    ("{name} apartments", 0.22, 2.2, 0.27),
+    ("{name} floor plans", 0.14, 3.1, 0.22),
+    ("{name} {city}", 0.12, 2.8, 0.19),
+    ("{name} reviews", 0.12, 5.2, 0.12),
+    ("apartments in {city} {state}", 3.4, 12.4, 0.012),
+    ("{city} apartments for rent", 2.9, 14.1, 0.009),
+    ("pet friendly apartments {city}", 1.6, 18.6, 0.006),
+)
+GSC_PAGES = ("/", "/floorplans", "/amenities", "/neighborhood", "/contact")
+LEAD_SOURCES = (("Website form", "website"), ("Apartments.com", "ils"), ("Google", "organic"),
+                ("ChatGPT", "ai_assistant"), ("Walk-in", "walk_in"), ("Phone", "phone"))
+REVIEW_TEXTS = (
+    (5, "The team was responsive and the grounds are always clean. Maintenance fixed our sink the same day."),
+    (4, "Good value for the location. Parking can be tight in the evening but the staff is friendly."),
+    (5, "Love the pool and the fitness center. Move in was smooth and the office answered every question."),
+    (3, "Nice apartment homes, though the walls are thin and the elevator was out for a week."),
+    (2, "Rent went up more than I expected at renewal and it took days to get a call back."),
+    (5, "Quiet community close to everything. The dog park is a big plus for us."),
+    (4, "Application process was easy and the tour was informative. Wish the gym had more equipment."),
+)
+
+
+# Placed 35 to 55 days back so the default 30-day before AND after windows
+# both sit inside the seeded data; otherwise every comparison reads
+# "partial period" and the report cannot show what it is for.
+CONTENT_CHANGES = (
+    ("Rewrote the amenities page around resident questions", ChangeType.EXPANDED_CONTENT, "/amenities", 55),
+    ("Added a pet policy FAQ", ChangeType.FAQ_UPDATE, "/faq", 45),
+    ("New neighborhood and commute page", ChangeType.NEW_PAGE, "/neighborhood", 35),
+)
+
+
+def _sample_upload(db: Session, prop_id: int, source: SourceType, now: datetime, lo: date, hi: date, rows: int) -> Upload:
+    """Every first-party row needs provenance; a labeled sample upload gives
+    the demo data the same audit trail a real import has."""
+    up = Upload(
+        source_type=source, property_id=prop_id, filename=f"sample-{source.value.lower()}.csv",
+        status=UploadStatus.PROCESSED, row_count=rows, date_start=lo, date_end=hi,
+        source_account="Sample Portfolio (demo data)", uploaded_at=now,
+    )
+    db.add(up)
+    db.flush()
+    return up
+
+
+def _seed_first_party(db: Session, created: list, now: datetime, days: int = 90) -> dict:
+    """GA4 sessions and events, Search Console, Business Profile, CRM leads and
+    reviews for each sample property. AI referral sessions follow the same
+    scripted curve as that property's AI visibility, so the AI + Search panel
+    has a real (and honestly labeled as association-only) story to show."""
+    from app.services.classifier import get_classifier
+
+    rng = random.Random(4242)
+    classifier = get_classifier()
+    end = now.date()
+    start = end - timedelta(days=days - 1)
+    counts = {"ga4": 0, "events": 0, "gsc": 0, "gbp": 0, "leads": 0, "reviews": 0, "changes": 0}
+
+    for sample, prop in created:
+        scale = max(sample.unit_count / 200, 0.4)
+        geo = GEO_BY_STATE.get(sample.state, GEO_BY_STATE["CO"])
+
+        def pick_geo() -> tuple[str, str]:
+            roll, acc = rng.random(), 0.0
+            for city_region, weight in zip(geo, GEO_WEIGHTS):
+                acc += weight
+                if roll <= acc:
+                    return city_region
+            return geo[0]
+
+        ga4_up = _sample_upload(db, prop.id, SourceType.GA4, now, start, end, days)
+        gsc_up = _sample_upload(db, prop.id, SourceType.GSC, now, start, end, days)
+        gbp_up = _sample_upload(db, prop.id, SourceType.GBP, now, start, end, days)
+        crm_up = _sample_upload(db, prop.id, SourceType.CRM, now, start, end, 0)
+        rows: list = []
+
+        for d in range(days):
+            day = start + timedelta(days=d)
+            progress = d / max(days - 1, 1)
+            weekend = day.weekday() >= 5
+            # Mild growth across the window so trend lines move and
+            # before/after comparisons are not uniformly negative. This is a
+            # site-wide trend, not a lift attributed to any one change.
+            growth = 0.86 + 0.28 * progress
+            daily = int(rng.gauss(70, 9) * scale * growth * (0.72 if weekend else 1.0))
+            daily = max(daily, 8)
+
+            for source, medium, share in GA4_SOURCES:
+                sessions = max(int(daily * share * rng.uniform(0.85, 1.15)), 1)
+                city, region = pick_geo()
+                rows.append(GA4SessionsDaily(
+                    property_id=prop.id, upload_id=ga4_up.id, date=day, session_source=source,
+                    session_medium=medium, session_campaign="brand" if medium == "cpc" else None,
+                    landing_page=GSC_PAGES[rng.randrange(len(GSC_PAGES))], city=city, region=region,
+                    sessions=sessions, engaged_sessions=int(sessions * rng.uniform(0.55, 0.78)),
+                    total_users=int(sessions * rng.uniform(0.85, 0.97)),
+                    key_events=int(sessions * rng.uniform(0.02, 0.06)),
+                    is_ai_referral=False, ai_platform=None,
+                ))
+            # AI referral sessions track the property's scripted visibility.
+            ai_total = max(int(daily * 0.09 * _share(sample, progress) * 2 * rng.uniform(0.7, 1.3)), 0)
+            for i, (source, medium) in enumerate(AI_SOURCES):
+                portion = (0.6, 0.25, 0.15)[i]
+                sessions = int(ai_total * portion)
+                if sessions <= 0:
+                    continue
+                city, region = pick_geo()
+                rows.append(GA4SessionsDaily(
+                    property_id=prop.id, upload_id=ga4_up.id, date=day, session_source=source,
+                    session_medium=medium, landing_page=GSC_PAGES[rng.randrange(len(GSC_PAGES))],
+                    city=city, region=region, sessions=sessions,
+                    engaged_sessions=int(sessions * rng.uniform(0.62, 0.86)),
+                    total_users=int(sessions * rng.uniform(0.88, 1.0)),
+                    key_events=int(sessions * rng.uniform(0.04, 0.10)),
+                    is_ai_referral=True, ai_platform=classifier.classify(source),
+                ))
+            for name, per_session in EVENT_MIX:
+                rows.append(GA4EventsDaily(
+                    property_id=prop.id, upload_id=ga4_up.id, date=day, event_name=name,
+                    event_count=max(int(daily * per_session * rng.uniform(0.9, 1.1)), 1),
+                    total_users=max(int(daily * rng.uniform(0.8, 0.95)), 1),
+                ))
+            for template, impression_w, position, ctr in GSC_QUERY_TEMPLATES:
+                query = template.format(name=sample.name, city=sample.city, state=sample.state).lower()
+                impressions = max(int(daily * impression_w * rng.uniform(0.8, 1.3)), 2)
+                clicks = min(int(impressions * ctr * rng.uniform(0.75, 1.25)), impressions)
+                rows.append(GSCPerformanceDaily(
+                    property_id=prop.id, upload_id=gsc_up.id, date=day, query=query,
+                    page=f"https://www.{sample.domain}{GSC_PAGES[rng.randrange(len(GSC_PAGES))]}",
+                    clicks=clicks, impressions=impressions,
+                    ctr=round(clicks / impressions, 4) if impressions else 0.0,
+                    position=round(position * rng.uniform(0.85, 1.15), 1),
+                ))
+            rows.append(GBPMetricsDaily(
+                property_id=prop.id, upload_id=gbp_up.id, date=day,
+                search_impressions=max(int(daily * 2.4 * rng.uniform(0.8, 1.2)), 5),
+                maps_impressions=max(int(daily * 1.7 * rng.uniform(0.8, 1.2)), 4),
+                website_clicks=max(int(daily * 0.22 * rng.uniform(0.7, 1.3)), 1),
+                calls=max(int(daily * 0.06 * rng.uniform(0.5, 1.5)), 0),
+                direction_requests=max(int(daily * 0.11 * rng.uniform(0.6, 1.4)), 0),
+            ))
+        counts["ga4"] += sum(1 for r in rows if isinstance(r, GA4SessionsDaily))
+        counts["events"] += sum(1 for r in rows if isinstance(r, GA4EventsDaily))
+        counts["gsc"] += sum(1 for r in rows if isinstance(r, GSCPerformanceDaily))
+        counts["gbp"] += sum(1 for r in rows if isinstance(r, GBPMetricsDaily))
+        db.add_all(rows)
+
+        # CRM funnel: a lead becomes a tour, application and lease at
+        # decreasing rates, so the funnel and lease-source views populate.
+        for i in range(int(46 * scale)):
+            first = start + timedelta(days=rng.randrange(days))
+            label, normalized = LEAD_SOURCES[rng.randrange(len(LEAD_SOURCES))]
+            roll = rng.random()
+            status, tour, app, lease = LeadStatus.LEAD, None, None, None
+            if roll < 0.62:
+                status, tour = LeadStatus.TOUR, first + timedelta(days=rng.randrange(1, 6))
+            if roll < 0.38:
+                status, app = LeadStatus.APPLICATION, tour + timedelta(days=rng.randrange(1, 5))
+            if roll < 0.19:
+                status, lease = LeadStatus.LEASE, app + timedelta(days=rng.randrange(1, 8))
+            elif roll > 0.88:
+                status = LeadStatus.LOST
+            db.add(CRMLead(
+                property_id=prop.id, upload_id=crm_up.id, external_lead_id=f"sample-{prop.id}-{i}",
+                lead_source_raw=label, lead_source_normalized=normalized, status=status,
+                first_contact_date=first, tour_date=tour, application_date=app, lease_signed_date=lease,
+                move_in_date=(lease + timedelta(days=rng.randrange(5, 30))) if lease else None,
+            ))
+            counts["leads"] += 1
+
+        # Logged content edits, placed far enough inside the window that the
+        # before/after comparison has data on both sides.
+        for title, ctype, page, offset in CONTENT_CHANGES:
+            db.add(ContentChange(
+                property_id=prop.id, company_id=prop.company_id,
+                page_url=f"https://www.{sample.domain}{page}", change_title=title,
+                change_type=ctype, date_implemented=end - timedelta(days=offset),
+                notes="Logged in the sample portfolio to show before and after comparison.",
+                created_by="Sample Portfolio",
+            ))
+            counts["changes"] += 1
+
+        for i in range(rng.randrange(9, 15)):
+            rating, body = REVIEW_TEXTS[rng.randrange(len(REVIEW_TEXTS))]
+            reviewed = end - timedelta(days=rng.randrange(days))
+            db.add(PropertyReview(
+                property_id=prop.id, provider="google", external_review_id=f"sample-{prop.id}-{i}",
+                author_name=f"Resident {i + 1}", rating=float(rating), body=body, review_date=reviewed,
+                response_text="Thank you for the feedback." if rating <= 3 and rng.random() < 0.6 else None,
+                response_date=(reviewed + timedelta(days=2)) if rating <= 3 and rng.random() < 0.6 else None,
+            ))
+            counts["reviews"] += 1
+        db.flush()
+    db.commit()
+    return counts
 
 
 def sample_organization(db: Session) -> Organization | None:
@@ -430,7 +686,7 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
                     execute_market_prompt(db, prompt_id, provider=ScriptedSampleProvider(script),
                                           now=when + timedelta(hours=6 * repeat), repeat_index=repeat)
                     runs += 1
-        if week % 4 == 0:  # brand prompts run monthly
+        if week % 2 == 0:  # brand prompts run every other week
             for s, prop in created:
                 brand = db.query(AIVisibilityPrompt).filter_by(property_id=prop.id, scope="brand").first()
                 script = lambda _p, _plat, sp=s, pr=progress: _brand_answer(rng, sp, pr)
@@ -440,6 +696,8 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
                     provider=ScriptedSampleProvider(script), now=when,
                 )
                 runs += 1
+
+    first_party = _seed_first_party(db, created, now)
 
     from app.services.observatory.alerts import detect_property_alerts
     from app.services.observatory.content_gaps import evaluate_gaps
@@ -456,6 +714,7 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
     status = sample_status(db)
     log_event("sample_portfolio.built", organization_id=org.id, runs=runs, gaps=gaps, alerts=alerts)
     return {**status, "runs_created": runs, "content_gaps": gaps, "alerts": alerts,
+            "first_party": first_party,
             "markets": [f"{c}, {s}" for c, s in markets],
             "note": "Sample data only. Every property is flagged sample_data and runs are recorded at zero cost."}
 
@@ -478,7 +737,9 @@ def remove_sample_portfolio(db: Session) -> dict:
     if prop_ids:
         for model in (AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment,
                       AIClaim, AIContentGap, AIVisibilityAlert, AIRunSchedule, AIEntityDecision,
-                      PropertyContent, PropertyProfile, Competitor):
+                      PropertyContent, PropertyProfile, Competitor,
+                      GA4SessionsDaily, GA4EventsDaily, GSCPerformanceDaily, GBPMetricsDaily,
+                      CRMLead, PropertyReview, ContentChange, Upload):
             db.query(model).filter(model.property_id.in_(prop_ids)).delete(synchronize_session=False)
     prompt_ids = [pid for (pid,) in db.query(AIVisibilityPrompt.id).filter_by(organization_id=org.id)]
     if prompt_ids:

@@ -80,6 +80,43 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Sample Portfolio: first-party data for the Reports tabs (2026-09-16, 775 tests)
+- `demo_seed._seed_first_party` adds 90 days per sample property: GA4
+  sessions (5 non-AI source/medium splits + 3 AI referral sources classified
+  through the real `get_classifier`), GA4 events, Search Console rows,
+  Business Profile metrics, ~46 CRM leads walking a lead/tour/application/
+  lease funnel, 9 to 14 reviews, and 3 logged content changes. Every row
+  hangs off a labeled sample `Upload` so the provenance CHECK constraint is
+  satisfied the same way a real import satisfies it.
+- Numbers are built to cohere, because a demo that contradicts itself is
+  worse than an empty one. Locked in by
+  `test_sample_first_party_data_is_coherent_and_local`:
+  - GSC queries carry an explicit (impression share, position, CTR) instead
+    of deriving clicks from position. Total Search Console clicks now land
+    within 0.4x to 1.6x of Google organic sessions; the first draft showed
+    5,238 clicks against 892 organic sessions.
+  - Visitor cities come from `GEO_BY_STATE` weighted toward the property's
+    own metro, so a Texas property no longer draws Denver traffic.
+  - AI referral sessions follow the same scripted curve as that property's
+    AI visibility, giving the AI + Search panel a real (association-only)
+    story.
+  - A mild site-wide growth curve (0.86 to 1.14 across the window) so trend
+    lines move and before/after comparisons are not uniformly negative. It
+    is a site trend, not a lift attributed to any change.
+  - Content changes sit 35 to 55 days back so the default 30-day before AND
+    after windows both land inside seeded data (they read "partial period"
+    otherwise).
+  - Brand answers now cite the property's own site ~65% of the time rather
+    than always, and name a tracked competitor ~45% of the time. Without the
+    latter the property was the only brand named and every legacy Share of
+    Voice read a meaningless 100% at rank "#1 of 1"; it now reads 54 to 64%.
+- Covered: Executive, Audience, SEO Performance, GEO Visibility, AEO
+  Readiness, Content Impact, AI Share of Voice, plus Content IQ, Review IQ
+  and the Opportunity Engine. Semantic Intelligence stays "planned /
+  deferred" in `/api/reports/meta`: that report is not built, which is a
+  product gap, not a data gap, and the tab says so.
+- `remove_sample_portfolio` deletes all of it, asserted row-by-row.
+
 ### Sample Portfolio + tenant-confined market runs (2026-09-16, 774 tests)
 - `services/observatory/demo_seed.py`: `build_sample_portfolio(db)` creates
   organization `sample-portfolio` (settings.sample_data = true), company
@@ -1127,7 +1164,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **774**, all passing. Always run the full
+change (shown on `/admin`). Current: **775**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

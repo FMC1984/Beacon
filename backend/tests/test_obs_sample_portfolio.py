@@ -5,6 +5,8 @@ sample data, and removes cleanly."""
 
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import func
+
 from app.models import (
     AIBudget,
     AIClaim,
@@ -71,6 +73,63 @@ def test_sample_portfolio_populates_every_surface(db):
     assert all((r.estimated_cost or 0) == 0 for r in runs)
 
 
+def test_sample_first_party_data_is_coherent_and_local(db):
+    """The Reports tabs read GA4, Search Console, Business Profile, CRM and
+    reviews. Sample numbers must hang together: a demo whose Search Console
+    clicks contradict its GA4 sessions teaches the room the wrong thing."""
+    from app.models import (
+        CRMLead,
+        ContentChange,
+        GA4EventsDaily,
+        GA4SessionsDaily,
+        GBPMetricsDaily,
+        GSCPerformanceDaily,
+        PropertyReview,
+    )
+
+    build_sample_portfolio(db, now=NOW, weeks=4)
+    org = db.query(Organization).filter_by(slug=SAMPLE_ORG_SLUG).one()
+    props = db.query(Property).join(Company).filter(Company.organization_id == org.id).all()
+    maple = next(p for p in props if p.name == "Maple Ridge Flats")
+    bayside = next(p for p in props if p.name == "Bayside Lofts")
+    window = NOW.date() - timedelta(days=29)
+
+    for model in (GA4SessionsDaily, GA4EventsDaily, GSCPerformanceDaily, GBPMetricsDaily, CRMLead):
+        rows = db.query(model).filter(model.property_id == maple.id).all()
+        assert rows, f"{model.__name__} has no sample rows"
+        # Provenance is a CHECK constraint; assert it is a real upload, not null.
+        assert all(r.upload_id is not None for r in rows)
+    assert db.query(PropertyReview).filter_by(property_id=maple.id).count() >= 9
+    assert db.query(ContentChange).filter_by(property_id=maple.id).count() == 3
+
+    def total(model, col, **extra):
+        q = db.query(func.coalesce(func.sum(col), 0)).filter(
+            model.property_id == maple.id, model.date >= window
+        )
+        for k, v in extra.items():
+            q = q.filter(getattr(model, k) == v)
+        return int(q.scalar())
+
+    clicks = total(GSCPerformanceDaily, GSCPerformanceDaily.clicks)
+    impressions = total(GSCPerformanceDaily, GSCPerformanceDaily.impressions)
+    google_organic = total(GA4SessionsDaily, GA4SessionsDaily.sessions,
+                           session_source="google", session_medium="organic")
+    # Search clicks and Google organic sessions measure nearly the same thing,
+    # so they must be the same order of magnitude (they never match exactly).
+    assert 0.4 <= clicks / google_organic <= 1.6, f"{clicks} clicks vs {google_organic} sessions"
+    assert 0.005 <= clicks / impressions <= 0.15, "site-wide CTR is implausible"
+
+    ai = db.query(GA4SessionsDaily).filter(
+        GA4SessionsDaily.property_id == maple.id, GA4SessionsDaily.is_ai_referral.is_(True)
+    ).all()
+    assert ai and {r.ai_platform for r in ai} == {"chatgpt", "perplexity", "gemini"}
+
+    # Visitors come from near the property, not the other end of the country.
+    for prop, expected in ((maple, "Colorado"), (bayside, "Texas")):
+        regions = {r for (r,) in db.query(GA4SessionsDaily.region).filter_by(property_id=prop.id).distinct()}
+        assert regions == {expected}, f"{prop.name} drew visitors from {regions}"
+
+
 def test_sample_portfolio_never_scores_another_organizations_property(db):
     """A market is shared geography: a real property in the same city must
     never be scored by the sample organization's market runs."""
@@ -99,8 +158,21 @@ def test_sample_portfolio_rebuild_is_idempotent_and_removal_is_clean(db):
     removed = remove_sample_portfolio(db)
     assert removed["removed"] and removed["properties"] == 8
     assert sample_status(db) == {"present": False, "properties": 0, "responses": 0}
-    for model in (AIRun, AIVisibilityQuery, AIPropertyObservation, AIClaim, AIContentGap, AIDiscoveredEntity):
-        assert db.query(model).count() == 0
+    from app.models import (
+        CRMLead,
+        ContentChange,
+        GA4EventsDaily,
+        GA4SessionsDaily,
+        GBPMetricsDaily,
+        GSCPerformanceDaily,
+        PropertyReview,
+        Upload,
+    )
+
+    for model in (AIRun, AIVisibilityQuery, AIPropertyObservation, AIClaim, AIContentGap, AIDiscoveredEntity,
+                  GA4SessionsDaily, GA4EventsDaily, GSCPerformanceDaily, GBPMetricsDaily, CRMLead,
+                  PropertyReview, ContentChange, Upload):
+        assert db.query(model).count() == 0, f"{model.__name__} rows survived removal"
     assert db.query(Property).count() == 0 and db.query(Company).count() == 0
     assert db.query(Market).filter(Market.slug.in_(["lakemont-co", "harbor-bend-tx"])).count() == 0
     assert remove_sample_portfolio(db)["removed"] is False
