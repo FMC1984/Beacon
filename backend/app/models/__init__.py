@@ -58,6 +58,7 @@ from app.models.ai_intelligence import (
     AIScheduleDecision,
     AIVisibilityAlert,
 )
+from app.models.ai_cited_pages import AICitedPage
 from app.models.ai_rollups import (
     AICompetitorStat,
     AIRunCostDaily,
@@ -140,4 +141,5 @@ __all__ = [
     "AISourceDomainRollup",
     "AIRunCostDaily",
     "AICompetitorStat",
+    "AICitedPage",
 ]

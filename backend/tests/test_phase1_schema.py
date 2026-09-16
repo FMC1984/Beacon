@@ -63,6 +63,7 @@ EXPECTED_TABLES = {
     "ai_source_domains",
     "ai_run_costs_daily",
     "ai_competitor_stats",
+    "ai_cited_pages",
 }
 
 

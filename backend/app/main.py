@@ -244,6 +244,8 @@ async def start_observatory_daily():
                 enqueue(db, "detect_alerts", {}, idempotency_key=f"detect_alerts:{day}")
                 enqueue(db, "create_recommendations", {}, idempotency_key=f"create_recommendations:{day}")
                 enqueue(db, "rebuild_scale_rollups", {}, idempotency_key=f"rebuild_scale_rollups:{day}")
+                # One batch a day of "mentioned on page" fetches for the most-cited unchecked pages.
+                enqueue(db, "check_cited_pages", {}, idempotency_key=f"check_cited_pages:{day}")
                 if settings.ai_scheduler_enabled and now.hour >= settings.ai_scheduler_hour_utc:
                     enqueue(db, "schedule_ai_runs", {}, idempotency_key=f"schedule_ai_runs:{day}")
             except Exception:

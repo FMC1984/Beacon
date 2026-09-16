@@ -80,6 +80,45 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Top citation pages with "mentioned on page" + visibility rankings by topic (2026-09-16, 812 tests)
+**Two more Profound-style views, both from evidence Beacon holds.**
+- `ai_cited_pages` (migration `c8d9e0f1a2b3`): a per-URL cache of fetched
+  page text (status ok | unreachable | blocked | not_html, error, title,
+  body, `source` fetch | sample). One row per URL, shared across properties;
+  the mention check is a `find_mention` text match over the stored body and
+  costs no request.
+- `services/observatory/citation_pages.py`: `top_citation_pages` groups the
+  property's eligible observations' citations by normalized URL (citations,
+  answers, share, per-viewer source type) and reports `mentioned_on_page`
+  as one of four states. Only a page fetched OK can be "not mentioned"; an
+  unfetched page is "unchecked" and a failed fetch is "unreachable" with the
+  reason. `check_cited_pages` fetches the most-cited unchecked or stale
+  (14 days) pages, `CHECK_BATCH=25` per run, via `content_fetch`; it skips
+  sample properties (their listing URLs are fictional paths on real hosts).
+  Job `check_cited_pages` runs one batch daily from the startup loop and on
+  demand from `POST /api/ai-observatory/citations/pages/check` (idempotent
+  per property per day). `GET /citations/pages` reads.
+- `services/observatory/topic_rankings.py`: per prompt cluster, ranks the
+  property and its tracked competitors by how many of that cluster's
+  answers named each (`Mention` rows joined to the property's observations),
+  ties share a rank (copied from `competitive_ranking`), `property_rank` is
+  null below `MIN_QUERIES_FOR_VISIBILITY`, `needs_work` when sufficient and
+  ranked 4th or worse or unranked. Untracked names never enter a ranking.
+  `GET /api/ai-observatory/rankings`.
+- UI: `components/observatory/RankingPanels.tsx`. `TopCitationPagesPanel`
+  on the Sources tab (state chips, table, "Check unchecked pages" button
+  disabled at zero) and `TopicRankingsGrid` on the Competitors tab (#1..#10
+  columns, property highlighted, "Needs work" and "Small sample" badges).
+- Sample Portfolio stocks the page cache with labeled `source="sample"`
+  rows (own pages name the property, market directory pages name about
+  half, listing pages name it, one blocked) so every state shows without a
+  network call; removal deletes only sample rows.
+- Tests: `tests/test_obs_citation_pages.py` (10): reconciliation to raw
+  citations, unreachable never reads as not mentioned, batch limit and
+  failed-fetch storage, successful fetch matched, sample skip, sample
+  removal, tie ranks, rankings reconcile to Mention rows, endpoints,
+  tracked-only ranking.
+
 ### Drilldown everywhere + query fanouts, average position, sentiment reasons (2026-09-16, 802 tests)
 **Every number opens the rows behind it.**
 - Reports: `ReportMetricCard` takes an optional `drill={propertyId, card, days}`
@@ -1256,7 +1295,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **802**, all passing. Always run the full
+change (shown on `/admin`). Current: **812**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

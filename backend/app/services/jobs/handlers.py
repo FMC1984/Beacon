@@ -174,6 +174,15 @@ def rebuild_scale_rollups_job(db: Session, job: Job) -> dict:
     return rebuild_all(db, organization_id=p.get("organization_id", job.organization_id))
 
 
+@register("check_cited_pages")
+def check_cited_pages_job(db: Session, job: Job) -> dict:
+    """Fetch a batch of the most-cited unchecked pages. Real network calls."""
+    from app.services.observatory.citation_pages import check_cited_pages
+
+    p = job.payload or {}
+    return check_cited_pages(db, property_id=p.get("property_id", job.property_id), days=int(p.get("days", 30)))
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

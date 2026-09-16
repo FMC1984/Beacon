@@ -647,3 +647,79 @@ export const fetchEvidence = (
       offset: opts.offset ?? 0,
     })}`
   );
+
+// --- Top citation pages + topic rankings -----------------------------------
+
+export type MentionOnPage = "mentioned" | "not_mentioned" | "unchecked" | "unreachable";
+
+export type CitationPage = {
+  url: string;
+  normalized_url: string;
+  domain: string;
+  title: string | null;
+  source_type: string | null;
+  citations: number;
+  responses: number;
+  share: number | null;
+  mentioned_on_page: MentionOnPage;
+  mention_detail: string | null;
+  checked_at: string | null;
+};
+
+export type CitationPages = {
+  property_id: number;
+  data_label: DataLabel;
+  mention_check_label?: DataLabel;
+  window_days?: number;
+  total_citations: number;
+  distinct_pages?: number;
+  pages: CitationPage[];
+  check: Record<MentionOnPage, number>;
+  note?: string;
+};
+
+export type RankedEntity = {
+  entity_id: number;
+  name: string;
+  is_property: boolean;
+  mentions: number;
+  share: number | null;
+  rank: number;
+};
+
+export type TopicRanking = {
+  cluster_id: number;
+  prompt: string;
+  topic_key: string | null;
+  importance: number;
+  answers: number;
+  sufficient: boolean;
+  state: DataStateKey;
+  property_rank: number | null;
+  property_mentions: number;
+  needs_work: boolean;
+  leader: string | null;
+  ranked: RankedEntity[];
+};
+
+export type TopicRankings = {
+  property_id: number;
+  data_label: DataLabel;
+  window: { start: string; end: string; days: number };
+  minimum_sample: number;
+  tracked_competitors: number;
+  topics: TopicRanking[];
+  summary: { topics: number; leading: number; needs_work: number };
+  note: string;
+};
+
+export const fetchCitationPages = (propertyId: number, days: number, limit = 50) =>
+  getJSON<CitationPages>(`${BASE}/citations/pages?${qs({ property_id: propertyId, days, limit })}`);
+
+export const requestCitationPageCheck = (propertyId: number, days: number) =>
+  postJSON<{ job_id: number; status: string; created: boolean }>(
+    `${BASE}/citations/pages/check?${qs({ property_id: propertyId, days })}`
+  );
+
+export const fetchTopicRankings = (propertyId: number, days: number) =>
+  getJSON<TopicRankings>(`${BASE}/rankings?${qs({ property_id: propertyId, days })}`);

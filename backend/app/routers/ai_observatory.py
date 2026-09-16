@@ -50,7 +50,9 @@ from app.services.observatory.content_gaps import evaluate_gaps, gap_out
 from app.services.observatory.impact import impact_summary
 from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
+from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.topic_rankings import topic_rankings
 from app.services.observatory.drilldown import (
     EVIDENCE_FILTERS,
     average_position,
@@ -965,3 +967,46 @@ def metric_evidence(
         raise HTTPException(status_code=422, detail=f"Unknown metric '{metric}'.")
     return evidence(db, property_id, metric, days=days, today=_today(today), cluster_id=cluster_id,
                     only_counting=only_counting, limit=limit, offset=offset)
+
+
+# --- Top citation pages + topic rankings -------------------------------------
+
+
+@router.get("/citations/pages")
+def citation_pages(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=50, ge=1, le=MAX_PAGE),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """The specific pages AI answers cite, ranked by share, with whether
+    each page names the property (mentioned / not / unchecked / unreachable)."""
+    _require_property(db, property_id)
+    return top_citation_pages(db, property_id, days=days, today=_today(today), limit=limit)
+
+
+@router.post("/citations/pages/check")
+def citation_pages_check(property_id: int = Query(...), days: int = Query(default=30, ge=1, le=365),
+                         db: Session = Depends(get_db)):
+    """Queue a fetch of the most-cited unchecked pages (the jobs runner does
+    the network calls, in batches, so this returns at once)."""
+    prop = _require_property(db, property_id)
+    job, created = enqueue(
+        db, "check_cited_pages", {"property_id": property_id, "days": days},
+        idempotency_key=f"check_cited_pages:{property_id}:{_today(None).isoformat()}",
+        property_id=property_id, organization_id=property_org_id(db, prop.id),
+    )
+    db.commit()
+    return {"job_id": job.id, "status": job.status, "created": created}
+
+
+@router.get("/rankings")
+def rankings(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    return topic_rankings(db, property_id, days=days, today=_today(today))

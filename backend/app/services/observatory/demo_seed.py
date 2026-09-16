@@ -33,6 +33,7 @@ from app.connectors.base import (
 from app.models import (
     AIBudget,
     AICitation,
+    AICitedPage,
     AIClaim,
     AIClusterVisibilityDaily,
     AIContentGap,
@@ -545,6 +546,53 @@ def _seed_first_party(db: Session, created: list, now: datetime, days: int = 90)
     return counts
 
 
+def _seed_cited_pages(db: Session, created: list, now: datetime) -> int:
+    """The sample domains cannot be fetched, and the sample listing pages are
+    fictional paths on real directory hosts, so the page cache is stocked with
+    labeled sample rows instead: each property's own pages name it, market
+    directory pages name roughly half the properties they are cited for,
+    per-property listing pages name it, and one listing is stored as blocked
+    so every state the panel can show is visible without a network call."""
+    from app.services.observatory.citations import normalize_url
+
+    rng = random.Random(777)
+    rows: list[AICitedPage] = []
+
+    def page(url: str, **kw) -> None:
+        nurl, dom, _r, _p = normalize_url(url)
+        rows.append(AICitedPage(normalized_url=nurl, url=url, domain=dom, fetched_at=now, source="sample", **kw))
+
+    market_props: dict[int, list] = {}
+    for sample, prop in created:
+        market_props.setdefault(prop.market_id, []).append(sample)
+        for path in ("/", "/pets", "/amenities", "/floorplans"):
+            page(f"https://www.{sample.domain}{path}", status="ok", http_status=200,
+                 title=f"{sample.name} {path.strip('/') or 'Home'}".strip(),
+                 body=f"{sample.name} apartment homes in {sample.city}, {sample.state}. "
+                      f"Amenities include {', '.join(sample.amenities).lower()}.", char_count=120)
+        for i, directory in enumerate(DIRECTORIES):
+            url = f"https://www.{directory}/{sample.domain.split('.')[0]}"
+            if sample is created[0][0] and i == 0:
+                page(url, status="blocked", http_status=403, error="HTTP 403: the site refused the request", char_count=0)
+            else:
+                page(url, status="ok", http_status=200, title=f"{sample.name} | {directory}",
+                     body=f"{sample.name} in {sample.city}, {sample.state}: photos, floor plans and pricing.", char_count=90)
+    for samples in market_props.values():
+        city, state = samples[0].city, samples[0].state
+        slug = f"{city.lower().replace(' ', '-')}-{state.lower()}"
+        for directory in DIRECTORIES:
+            named = [s.name for s in samples if rng.random() < 0.5]
+            page(f"https://www.{directory}/{slug}", status="ok", http_status=200,
+                 title=f"Apartments for rent in {city}, {state} | {directory}",
+                 body=f"Browse apartments in {city}, {state}. Featured communities: {', '.join(named) or 'none listed'}.",
+                 char_count=140)
+    urls = [r.normalized_url for r in rows]
+    db.query(AICitedPage).filter(AICitedPage.normalized_url.in_(urls)).delete(synchronize_session=False)
+    db.add_all(rows)
+    db.commit()
+    return len(rows)
+
+
 def sample_organization(db: Session) -> Organization | None:
     return db.query(Organization).filter_by(slug=SAMPLE_ORG_SLUG).one_or_none()
 
@@ -701,6 +749,7 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
                 runs += 1
 
     first_party = _seed_first_party(db, created, now)
+    _seed_cited_pages(db, created, now)
 
     from app.services.observatory.alerts import detect_property_alerts
     from app.services.observatory.content_gaps import evaluate_gaps
@@ -756,6 +805,7 @@ def remove_sample_portfolio(db: Session) -> dict:
         db.query(AIMarketDaily).filter(AIMarketDaily.market_id.in_(market_ids)).delete(synchronize_session=False)
     db.query(AIBudget).filter_by(scope_type="org", scope_id=org.id).delete(synchronize_session=False)
     db.query(AIRunCostDaily).filter_by(organization_id=org.id).delete(synchronize_session=False)
+    db.query(AICitedPage).filter_by(source="sample").delete(synchronize_session=False)
     for prop in props:
         db.delete(prop)
     db.query(Company).filter_by(organization_id=org.id).delete(synchronize_session=False)
