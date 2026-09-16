@@ -530,3 +530,120 @@ export const fetchPortfolio = (scope: { companyId: number | null; unassigned: bo
   getJSON<Portfolio>(
     `${BASE}/portfolio?${qs({ company_id: scope.companyId, unassigned: scope.unassigned ? "true" : null, days })}`
   );
+
+// --- Drilldown: fanouts, position, sentiment reasons, evidence ---------------
+
+export type FanoutVariation = { query: string; count: number; share: number | null };
+export type FanoutPrompt = {
+  cluster_id: number | null;
+  prompt: string;
+  executions: number;
+  executions_with_queries: number;
+  query_count: number;
+  distinct_queries: number;
+  avg_queries_per_execution: number | null;
+  variations: FanoutVariation[];
+};
+export type Fanouts = {
+  data_label: DataLabel;
+  note: string;
+  window_days: number;
+  responses: number;
+  responses_with_queries: number;
+  coverage: number | null;
+  prompts: FanoutPrompt[];
+  state: DataStateKey;
+};
+
+export type PositionStats = {
+  eligible: number;
+  mentioned: number;
+  ranked: number;
+  average_position: number | null;
+  first_named: number;
+  first_named_rate: number | null;
+  distribution: Record<string, number>;
+};
+export type Position = {
+  data_label: DataLabel;
+  note: string;
+  window: { start: string; end: string; days: number };
+  current: PositionStats;
+  previous: PositionStats;
+  change: number | null;
+  lower_is_better: true;
+  state: DataStateKey;
+  minimum_sample: number;
+  first_named_comparison: PointComparison;
+  by_prompt: (PositionStats & { cluster_id: number | null; prompt: string; state: DataStateKey })[];
+};
+
+export type SentimentReason = { topic: string; label: string; answers: number; quotes: string[] };
+export type SentimentReasons = {
+  data_label: DataLabel;
+  note: string;
+  window_days: number;
+  mentions: number;
+  counts: { positive: number; neutral: number; negative: number };
+  positive_share: number | null;
+  neutral_share: number | null;
+  positive_reasons: SentimentReason[];
+  negative_reasons: SentimentReason[];
+  state: DataStateKey;
+  minimum_sample: number;
+};
+
+export type EvidenceItem = {
+  observation_id: number;
+  response_id: number;
+  counts: boolean;
+  observed_at: string;
+  platform: string;
+  prompt: string;
+  cluster: string | null;
+  mentioned: boolean;
+  mention_rank: number | null;
+  cited: boolean;
+  recommended: boolean | null;
+  sentiment: string | null;
+  competitors_named: number;
+  excerpt: string | null;
+  answer: string;
+  citations: { url: string; domain: string; source_type: string | null }[];
+};
+export type Evidence = {
+  metric: string;
+  description: string;
+  window_days: number;
+  numerator: number;
+  denominator: number;
+  showing: "counting" | "all";
+  total: number;
+  limit: number;
+  offset: number;
+  items: EvidenceItem[];
+};
+
+export const fetchFanouts = (propertyId: number, days: number) =>
+  getJSON<Fanouts>(`${BASE}/fanouts?${qs({ property_id: propertyId, days })}`);
+export const fetchPosition = (propertyId: number, days: number) =>
+  getJSON<Position>(`${BASE}/position?${qs({ property_id: propertyId, days })}`);
+export const fetchSentimentReasons = (propertyId: number, days: number) =>
+  getJSON<SentimentReasons>(`${BASE}/sentiment?${qs({ property_id: propertyId, days })}`);
+export const fetchEvidence = (
+  propertyId: number,
+  metric: string,
+  days: number,
+  opts: { clusterId?: number | null; onlyCounting?: boolean; limit?: number; offset?: number } = {}
+) =>
+  getJSON<Evidence>(
+    `${BASE}/evidence?${qs({
+      property_id: propertyId,
+      metric,
+      days,
+      cluster_id: opts.clusterId ?? null,
+      only_counting: opts.onlyCounting === false ? "false" : null,
+      limit: opts.limit ?? 50,
+      offset: opts.offset ?? 0,
+    })}`
+  );

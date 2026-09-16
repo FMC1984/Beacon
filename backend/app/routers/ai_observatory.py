@@ -51,6 +51,13 @@ from app.services.observatory.impact import impact_summary
 from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.drilldown import (
+    EVIDENCE_FILTERS,
+    average_position,
+    evidence,
+    query_fanouts,
+    sentiment_reasons,
+)
 from app.services.observatory.discovery import (
     DISPLAY_MIN_RESPONSES,
     backfill_discovery,
@@ -372,6 +379,7 @@ def overview(
     cov = prompt_coverage(db, property_id, start, end)
     prev_cov = prompt_coverage(db, property_id, prev_start, prev_end)
     metrics["prompt_coverage"] = {**cov, "comparison": compare_points(cov["value"], prev_cov["value"])}
+    pos = average_position(db, property_id, days=days, today=end)
     counts = current["counts"]
     return {
         "property_id": prop.id,
@@ -387,6 +395,12 @@ def overview(
             "negative": counts["sentiment_neg"],
         },
         "sample": {"eligible_responses": counts["eligible_count"], "observations": counts["runs_count"]},
+        "position": {
+            "average": pos["current"]["average_position"], "previous": pos["previous"]["average_position"],
+            "change": pos["change"], "first_named_rate": pos["current"]["first_named_rate"],
+            "ranked": pos["current"]["ranked"], "state": pos["state"], "data_label": pos["data_label"],
+            "note": pos["note"],
+        },
         "top_sources": source_influence(db, property_id, start, end, limit=5),
     }
 
@@ -892,3 +906,62 @@ def portfolio(
     db: Session = Depends(get_db),
 ):
     return portfolio_summary(db, company_id=company_id, unassigned=unassigned, days=days, today=_today(today))
+
+
+# --- Drilldown: fanouts, position, sentiment reasons, generic evidence --------
+
+
+@router.get("/fanouts")
+def fanouts(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """The retrieval queries providers reported running, grouped per prompt.
+    Observed provider behavior, never consumer search volume."""
+    _require_property(db, property_id)
+    return query_fanouts(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/position")
+def position(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    return average_position(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/sentiment")
+def sentiment(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    return sentiment_reasons(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/evidence")
+def metric_evidence(
+    property_id: int = Query(...),
+    metric: str = Query(default="all"),
+    days: int = Query(default=30, ge=1, le=365),
+    cluster_id: int | None = Query(default=None),
+    only_counting: bool = Query(default=True),
+    limit: int = Query(default=50, ge=1, le=MAX_PAGE),
+    offset: int = Query(default=0, ge=0),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """The observations behind any metric: exactly the rows in its numerator
+    (or the full denominator with only_counting=false)."""
+    _require_property(db, property_id)
+    if metric not in EVIDENCE_FILTERS:
+        raise HTTPException(status_code=422, detail=f"Unknown metric '{metric}'.")
+    return evidence(db, property_id, metric, days=days, today=_today(today), cluster_id=cluster_id,
+                    only_counting=only_counting, limit=limit, offset=offset)

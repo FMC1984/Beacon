@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
+import { EvidenceDrawer, PositionPanel, SentimentPanel, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchOverview, fmtRate } from "@/lib/observatory";
 
@@ -19,6 +20,7 @@ const ORDER = [
 
 export default function ObservatoryOverviewPage() {
   const { propertyId, days, meta, withScope } = useObservatory();
+  const drawer = useEvidenceDrawer();
   const { data, error, loading, retry } = useLoad(
     propertyId === null ? null : () => fetchOverview(propertyId, days),
     [propertyId, days]
@@ -48,7 +50,7 @@ export default function ObservatoryOverviewPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {ORDER.map((k) => (
-              <ObsMetricCard key={k} metric={data.metrics[k]} />
+              <ObsMetricCard key={k} metric={data.metrics[k]} onDrill={k === "prompt_coverage" ? undefined : drawer.open} />
             ))}
           </div>
 
@@ -115,6 +117,11 @@ export default function ObservatoryOverviewPage() {
             </Panel>
           </div>
 
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <PositionPanel propertyId={data.property_id} days={days} onDrill={drawer.open} />
+            <SentimentPanel propertyId={data.property_id} days={days} onDrill={drawer.open} />
+          </div>
+
           <ImpactPanel propertyId={data.property_id} days={days} />
 
           {meta && (
@@ -133,6 +140,9 @@ export default function ObservatoryOverviewPage() {
             </section>
           )}
         </div>
+      )}
+      {drawer.drill && propertyId !== null && (
+        <EvidenceDrawer propertyId={propertyId} metric={drawer.drill.metric} days={days} clusterId={drawer.drill.clusterId} onClose={drawer.close} />
       )}
     </LoadState>
   );

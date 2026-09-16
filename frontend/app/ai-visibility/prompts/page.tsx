@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { RunQueriesPanel } from "@/components/observatory/legacy/RunQueriesPanel";
+import { QueryFanoutsPanel } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, Panel, useLoad } from "@/components/observatory/ui";
 import {
   fetchClusters,
@@ -231,6 +232,8 @@ export default function PromptsPage() {
           </div>
         </LoadState>
       </Panel>
+
+      <QueryFanoutsPanel propertyId={propertyId} days={days} />
 
       <Panel
         title="One-off property query"

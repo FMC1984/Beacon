@@ -63,8 +63,9 @@ function unit(key: string, n: number) {
   return n === 1 ? u.replace(/s$/, "").replace("responses", "response") : u;
 }
 
-export function ObsMetricCard({ metric }: { metric: ObsMetric }) {
+export function ObsMetricCard({ metric, onDrill }: { metric: ObsMetric; onDrill?: (metric: string) => void }) {
   const complete = metric.state === "complete" && metric.value !== null;
+  const clickable = Boolean(onDrill) && complete;
   const cmp = metric.comparison;
   const pts = complete && cmp && cmp.point_change !== null ? Math.round(cmp.point_change * 100) : null;
   const higherIsBetter = metric.key !== "competitor_win_rate";
@@ -74,11 +75,20 @@ export function ObsMetricCard({ metric }: { metric: ObsMetric }) {
       : (pts > 0) === higherIsBetter
       ? "text-emerald-a"
       : "text-pink-a";
+  const Wrapper = clickable ? "button" : "div";
   return (
-    <div className="flex flex-col rounded-2xl border border-line bg-surface p-5">
+    <Wrapper
+      {...(clickable ? { type: "button" as const, onClick: () => onDrill?.(metric.key), "aria-haspopup": "dialog" as const } : {})}
+      className={`flex w-full flex-col rounded-2xl border border-line bg-surface p-5 text-left ${
+        clickable ? "cursor-pointer transition-colors hover:border-violet-a/50 hover:bg-surface-raised" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm text-muted">{metric.label}</p>
-        {complete ? <DataLabelBadge label={metric.data_label} /> : <StateBadge state={metric.state} />}
+        <span className="flex items-center gap-1.5">
+          {clickable && <span className="text-[11px] text-muted" aria-hidden>details ›</span>}
+          {complete ? <DataLabelBadge label={metric.data_label} /> : <StateBadge state={metric.state} />}
+        </span>
       </div>
       {complete ? (
         <>
@@ -105,10 +115,10 @@ export function ObsMetricCard({ metric }: { metric: ObsMetric }) {
             : "No value is shown because the data is not available."}
         </p>
       )}
-      <div className="mt-auto">
+      <div className="mt-auto" onClick={(e) => e.stopPropagation()}>
         <FormulaNote formula={metric.formula} note={metric.note} />
       </div>
-    </div>
+    </Wrapper>
   );
 }
 

@@ -27,6 +27,7 @@ from app.services.reporting_csv import (
 from app.services.reporting_executive import build_executive_report
 from app.services.reporting_geo import build_geo_report, matrix_cell_evidence
 from app.services.reporting_seo import build_seo_report
+from app.services.reporting_drilldown import RESOLVERS, report_drilldown
 from app.services.reporting_semantic import build_semantic_report
 from app.services.reporting_share_of_voice import (
     build_sov_report,
@@ -170,6 +171,27 @@ def semantic_report(
     if property_id is not None and db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return build_semantic_report(db, property_id)
+
+
+@router.get("/drilldown")
+def drilldown(
+    property_id: int = Query(...),
+    card: str = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    compare: bool = Query(default=False),
+    db: Session = Depends(get_db),
+):
+    """The rows behind any Reports summary card, over the card's own window.
+    A card without a resolver answers available=false with a reason rather
+    than an empty list."""
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return report_drilldown(db, property_id, card, days=days, compare_previous=compare)
+
+
+@router.get("/drilldown/cards")
+def drilldown_cards():
+    return {"cards": sorted(RESOLVERS)}
 
 
 @router.get("/content-impact")

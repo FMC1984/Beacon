@@ -5,8 +5,10 @@
  * zero. Comparison figures render only when the backend declared the periods
  * comparable (a null comparison means "not compared", not "no change"). */
 
+import { useState } from "react";
 import type { Comparison, DataStateKey, PointComparison } from "@/lib/reports";
 import { FreshnessFooter, StateBadge } from "./DataStates";
+import { DrilldownDrawer } from "./DrilldownDrawer";
 
 function Arrow({ direction }: { direction: "up" | "down" | "flat" }) {
   const d =
@@ -44,8 +46,12 @@ export function ReportMetricCard({
   lastDataDate,
   sample,
   subText,
+  drill,
 }: {
   label: string;
+  /** When set, the card is clickable and opens the rows behind its number:
+   * the same window and source, grouped for inspection. */
+  drill?: { propertyId: number; card: string; days: number };
   state: DataStateKey;
   /** Short explanation shown when state is not "complete". */
   stateDetail?: string;
@@ -68,6 +74,7 @@ export function ReportMetricCard({
    * exceed one per session). */
   subText?: string;
 }) {
+  const [open, setOpen] = useState(false);
   const fmt = formatValue ?? ((n: number) => String(n));
   const complete = state === "complete";
   const pointComparison = changeMode === "points" ? (comparison as PointComparison | null) : null;
@@ -96,11 +103,23 @@ export function ReportMetricCard({
   const previous = comparison?.previous ?? null;
   const notComparable = complete && comparison != null && changeText === null;
 
+  const clickable = Boolean(drill) && complete;
+  const Wrapper = clickable ? "button" : "div";
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5">
+    <>
+    <Wrapper
+      {...(clickable ? { type: "button" as const, onClick: () => setOpen(true), "aria-haspopup": "dialog" as const } : {})}
+      className={`block w-full rounded-2xl border border-line bg-surface p-5 text-left ${
+        clickable ? "cursor-pointer transition-colors hover:border-violet-a/50 hover:bg-surface-raised" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm text-muted">{label}</p>
-        {!complete && <StateBadge state={state} />}
+        {!complete ? (
+          <StateBadge state={state} />
+        ) : clickable ? (
+          <span className="text-[11px] text-muted" aria-hidden>details ›</span>
+        ) : null}
       </div>
 
       {complete ? (
@@ -138,6 +157,16 @@ export function ReportMetricCard({
       {source && (
         <FreshnessFooter source={source} lastDataDate={lastDataDate ?? null} />
       )}
-    </div>
+    </Wrapper>
+    {open && drill && (
+      <DrilldownDrawer
+        propertyId={drill.propertyId}
+        card={drill.card}
+        label={label}
+        days={drill.days}
+        onClose={() => setOpen(false)}
+      />
+    )}
+    </>
   );
 }

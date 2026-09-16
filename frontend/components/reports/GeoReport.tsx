@@ -52,6 +52,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
 }
 
 function SummaryCards({ report }: { report: Extract<GeoReportData, { has_queries: true }> }) {
+  const { scope, days } = useReportContext();
   const s = report.summary;
   const last = s.last_run;
   const rateCard = (
@@ -71,12 +72,15 @@ function SummaryCards({ report }: { report: Extract<GeoReportData, { has_queries
   );
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <ReportMetricCard label="Queries completed" state="complete" value={fmtNum(s.queries_completed)} source="AI Visibility" lastDataDate={last} />
+      <ReportMetricCard label="Queries completed" state="complete" value={fmtNum(s.queries_completed)} source="AI Visibility" lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "queries_completed", days: days } : undefined} />
       <ReportMetricCard label="Platforms tested" state="complete" value={fmtNum(s.platforms_tested.length)} source="AI Visibility" lastDataDate={last} stateDetail={s.platforms_tested.map((p) => p.label).join(", ")} />
       {rateCard("Mention rate", s.mention_rate, "responses")}
       {rateCard("Citation rate", s.citation_rate, "responses")}
-      <ReportMetricCard label="Mention count" state="complete" value={fmtNum(s.mention_count)} source="AI Visibility" lastDataDate={last} />
-      <ReportMetricCard label="Owned-domain citations" state="complete" value={fmtNum(s.owned_domain_citations)} source="AI Visibility" lastDataDate={last} />
+      <ReportMetricCard label="Mention count" state="complete" value={fmtNum(s.mention_count)} source="AI Visibility" lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "mention_count", days: days } : undefined} />
+      <ReportMetricCard label="Owned-domain citations" state="complete" value={fmtNum(s.owned_domain_citations)} source="AI Visibility" lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "owned_domain_citations", days: days } : undefined} />
       <ReportMetricCard label="Competitor appearances" state="complete" value={fmtNum(s.competitor_appearances)} source="AI Visibility" lastDataDate={last} />
       <ReportMetricCard
         label="AI referral sessions"

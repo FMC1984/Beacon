@@ -235,6 +235,9 @@ export function SeoReport() {
                   )} sessions. Key events reflect this GA4 property's configuration and can fire more than once per session.`
                 : undefined
             }
+            drill={
+              scope.propertyId !== null ? { propertyId: scope.propertyId, card: c.key, days } : undefined
+            }
           />
         ))}
       </div>

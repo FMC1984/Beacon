@@ -51,6 +51,7 @@ function Overview({
   report: Extract<SovReportData, { has_competitors: true }>;
   onOpenRanking: () => void;
 }) {
+  const { scope, days } = useReportContext();
   const ov = report.overview;
   const rankLabel = ov.rank !== null ? `#${ov.rank} of ${ov.rank_of}${ov.tied ? " (tied)" : ""}` : undefined;
   const pa = report.portfolio_average;
@@ -71,6 +72,7 @@ function Overview({
           lastDataDate={report.generated_on}
           sample={{ numerator: ov.property_mentions, denominator: ov.total_mentions, unit: "of all mentions" }}
           subText={portfolioNote}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "share_of_voice", days: days } : undefined}
         />
       </div>
       <button onClick={onOpenRanking} className="text-left">
@@ -90,6 +92,7 @@ function Overview({
         value={fmtNum(ov.property_mentions)}
         source="AI Share of Voice"
         lastDataDate={report.generated_on}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "share_of_voice", days: days } : undefined}
       />
       <ReportMetricCard
         label="Eligible tested responses"

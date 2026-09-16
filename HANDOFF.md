@@ -80,6 +80,49 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Drilldown everywhere + query fanouts, average position, sentiment reasons (2026-09-16, 802 tests)
+**Every number opens the rows behind it.**
+- Reports: `ReportMetricCard` takes an optional `drill={propertyId, card, days}`
+  and becomes a button; `components/reports/DrilldownDrawer.tsx` fetches
+  `GET /api/reports/drilldown?card=` and renders rows plus totals, so 740
+  clicks on the card is 740 in the drawer. Wired on Executive, SEO,
+  Audience, GEO and Share of Voice cards (the sub-components that render
+  cards now call `useReportContext()` for scope and days).
+- `services/reporting_drilldown.py`: one registry (`RESOLVERS`) mapping each
+  card key to the rows it came from: Search Console by query, GA4 by
+  source/medium, city or landing page, Content IQ score components,
+  Opportunity Engine actions, AI Visibility via the Observatory evidence.
+  An unknown card returns `available: false` with a reason instead of an
+  empty list that would imply nothing happened.
+  `GET /api/reports/drilldown/cards` lists what can be expanded.
+- Observatory: `ObsMetricCard` takes `onDrill`; `EvidenceDrawer` in
+  `components/observatory/DrilldownPanels.tsx` reads
+  `GET /api/ai-observatory/evidence?metric=` which returns exactly the
+  observations in a metric's numerator (`only_counting=false` for the full
+  denominator, flagged per row), with the answer text and citations.
+  `EVIDENCE_FILTERS` in `drilldown.py` is the single definition of what
+  "counts" for each metric, so the drawer and the KPI cannot disagree
+  (`test_evidence_matches_the_metric_it_explains`).
+
+**Three Profound-style views the data already supported** (`services/observatory/drilldown.py`):
+- Query fanouts (`/fanouts`, Prompts tab): the retrieval searches the
+  provider reported per prompt cluster, with count and share. OBSERVED, and
+  labeled as what the AI searched, not what people typed; coverage is
+  stated because some providers and runs report none.
+- Average position (`/position`, Overview): mean `mention_rank` among named
+  brands, first-named rate, a 1 to 5+ distribution, per-prompt breakdown,
+  previous-window change with lower-is-better. Also folded into
+  `/overview` as `position`. Sample-gated at 3 named answers.
+- Sentiment reasons (`/sentiment`, Overview): positive share of answers
+  that carried any sentiment, neutral share, and the topics attached to
+  positive and negative mentions with counts and two quotes each. Built
+  from `enrich_text(...)["sentiment_by_topic"]` on the stored excerpt, so
+  "positive because of amenities and pets" is a count of answers, not a
+  model's summary. MODELED.
+- Not built, on purpose: Prompt Volumes (fabricated AI search volume, which
+  the spec forbids; the Opportunity Score is the honest stand-in) and
+  model-written outreach pitches.
+
 ### Semantic Intelligence report + Observatory scale rollups (2026-09-16, 793 tests)
 **Semantic Intelligence (the last "planned" Reports tab) is built.**
 - Why it was unblocked rather than waiting: it was deferred with Phase 15c,
@@ -1213,7 +1256,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **793**, all passing. Always run the full
+change (shown on `/admin`). Current: **802**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

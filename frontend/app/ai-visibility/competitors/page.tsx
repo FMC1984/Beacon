@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { CandidatesPanel } from "@/components/observatory/IntelligencePanels";
+import { EvidenceDrawer, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { LoadState, NeedsProperty, ObsMetricCard, Panel, useLoad } from "@/components/observatory/ui";
 import { fetchOverview } from "@/lib/observatory";
 
 export default function CompetitorsPage() {
   const { propertyId, days } = useObservatory();
+  const drawer = useEvidenceDrawer();
   const { data, error, loading, retry } = useLoad(
     propertyId === null ? null : () => fetchOverview(propertyId, days),
     [propertyId, days]
@@ -19,9 +21,9 @@ export default function CompetitorsPage() {
       <LoadState loading={loading && !data} error={error} retry={retry}>
         {data && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <ObsMetricCard metric={data.metrics.share_of_voice} />
-            <ObsMetricCard metric={data.metrics.competitor_win_rate} />
-            <ObsMetricCard metric={data.metrics.citation_share} />
+            <ObsMetricCard metric={data.metrics.share_of_voice} onDrill={drawer.open} />
+            <ObsMetricCard metric={data.metrics.competitor_win_rate} onDrill={drawer.open} />
+            <ObsMetricCard metric={data.metrics.citation_share} onDrill={drawer.open} />
           </div>
         )}
       </LoadState>
@@ -47,6 +49,9 @@ export default function CompetitorsPage() {
       </Panel>
 
       <CandidatesPanel propertyId={propertyId} />
+      {drawer.drill && (
+        <EvidenceDrawer propertyId={propertyId} metric={drawer.drill.metric} days={days} onClose={drawer.close} />
+      )}
     </div>
   );
 }

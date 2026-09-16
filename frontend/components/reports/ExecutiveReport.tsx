@@ -236,6 +236,9 @@ export function ExecutiveReport() {
             higherIsBetter={c.higher_is_better}
             source={c.source}
             lastDataDate={c.last_data_date}
+            drill={
+              scope.propertyId !== null ? { propertyId: scope.propertyId, card: c.key, days } : undefined
+            }
           />
         ))}
       </div>

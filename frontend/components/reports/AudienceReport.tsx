@@ -36,11 +36,13 @@ function cityLabel(city: string, region: string | null): string {
 }
 
 function SummaryCards({ report }: { report: Loaded }) {
+  const { scope, days } = useReportContext();
   const s = report.summary;
   const last = report.last_data_date;
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <ReportMetricCard label="Total sessions" state="complete" value={fmtNum(s.total_sessions)} source="GA4" lastDataDate={last} />
+      <ReportMetricCard label="Total sessions" state="complete" value={fmtNum(s.total_sessions)} source="GA4" lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "total_sessions", days: days } : undefined} />
       <ReportMetricCard
         label="Located share"
         state={report.geography_available ? "complete" : "empty"}
@@ -49,6 +51,7 @@ function SummaryCards({ report }: { report: Loaded }) {
         source="GA4"
         lastDataDate={last}
         sample={{ numerator: s.located_sessions, denominator: s.total_sessions, unit: "sessions with a city" }}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "located_share", days: days } : undefined}
       />
       <ReportMetricCard
         label="Cities represented"
@@ -57,6 +60,7 @@ function SummaryCards({ report }: { report: Loaded }) {
         stateDetail="No sessions carry a city yet."
         source="GA4"
         lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "cities_represented", days: days } : undefined}
       />
       <ReportMetricCard
         label="Top city"
@@ -65,6 +69,7 @@ function SummaryCards({ report }: { report: Loaded }) {
         stateDetail="No located sessions yet."
         source="GA4"
         lastDataDate={last}
+        drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "top_city", days: days } : undefined}
       />
     </div>
   );
