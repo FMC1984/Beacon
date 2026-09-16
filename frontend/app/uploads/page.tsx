@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   API_BASE,
   Property,
@@ -292,7 +292,8 @@ export default function UploadsPage() {
                 </tr>
               )}
               {history.map((u) => (
-                <tr key={u.id} className="border-b border-line/50 last:border-0">
+                <Fragment key={u.id}>
+                <tr className={`border-b border-line/50 last:border-0 ${u.status === "failed" && u.error_message ? "border-b-0" : ""}`}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {fmtDateTime(u.uploaded_at)}
                   </td>
@@ -312,10 +313,7 @@ export default function UploadsPage() {
                         processed
                       </span>
                     ) : u.status === "failed" ? (
-                      <span
-                        className="cursor-help rounded-full bg-pink-a/15 px-2 py-0.5 text-xs text-pink-a"
-                        title={u.error_message ?? undefined}
-                      >
+                      <span className="rounded-full bg-pink-a/15 px-2 py-0.5 text-xs text-pink-a">
                         failed
                       </span>
                     ) : (
@@ -325,6 +323,16 @@ export default function UploadsPage() {
                     )}
                   </td>
                 </tr>
+                {/* The reason a file was rejected is the whole point of this
+                    row: show it inline rather than hiding it in a tooltip. */}
+                {u.status === "failed" && u.error_message && (
+                  <tr className="border-b border-line/50 last:border-0">
+                    <td colSpan={6} className="px-4 pb-3 text-xs text-pink-a">
+                      {u.error_message}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
