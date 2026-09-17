@@ -108,9 +108,10 @@ def _derive_observatory_fields(db: Session, prop: Property) -> None:
     Derived, never operator-entered, so they stay consistent with the
     fields they come from."""
     from app.services.observatory.citations import domain_of_url
-    from app.services.observatory.markets import assign_property_market
+    from app.services.observatory.markets import assign_property_market, assign_property_submarket
 
     assign_property_market(db, prop)
+    assign_property_submarket(db, prop)
     prop.domain = domain_of_url(prop.website_url)
 
 
@@ -148,9 +149,19 @@ def update_property(
         _require_company(db, changes["company_id"])
     if "property_type" in changes:
         changes["property_type"] = _valid_type(changes["property_type"])
+    if "attributes" in changes:
+        # Merge, never replace: a form that edits one attribute (say the
+        # neighborhood) must not wipe amenities, pet policy or the sample flag.
+        merged = dict(prop.attributes or {})
+        for k, v in (changes["attributes"] or {}).items():
+            if v is None:
+                merged.pop(k, None)
+            else:
+                merged[k] = v
+        changes["attributes"] = merged
     for field, value in changes.items():
         setattr(prop, field, value)
-    if changes.keys() & {"city", "state", "website_url"}:
+    if changes.keys() & {"city", "state", "website_url", "attributes"}:
         _derive_observatory_fields(db, prop)
     db.commit()
     db.refresh(prop)

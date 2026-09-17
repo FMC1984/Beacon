@@ -21,6 +21,7 @@ type Draft = {
   state: string;
   unitCount: string;
   websiteUrl: string;
+  neighborhood: string;
 };
 
 const emptyDraft: Draft = {
@@ -31,6 +32,7 @@ const emptyDraft: Draft = {
   state: "",
   unitCount: "",
   websiteUrl: "",
+  neighborhood: "",
 };
 
 export default function PropertiesPage() {
@@ -189,6 +191,7 @@ export default function PropertiesPage() {
       state: p.state ?? "",
       unitCount: p.unit_count ? String(p.unit_count) : "",
       websiteUrl: p.website_url ?? "",
+      neighborhood: typeof p.attributes?.neighborhood === "string" ? p.attributes.neighborhood : "",
     });
   }
 
@@ -211,6 +214,7 @@ export default function PropertiesPage() {
           state: draft.state.trim() || null,
           unit_count: draft.unitCount ? Number(draft.unitCount) : null,
           website_url: draft.websiteUrl.trim() || null,
+          attributes: { neighborhood: draft.neighborhood.trim() || null },
         }),
       });
       if (!res.ok) {
@@ -520,6 +524,16 @@ export default function PropertiesPage() {
                             onChange={(e) => setDraft((d) => ({ ...d, websiteUrl: e.target.value }))}
                             placeholder="https://example.com"
                             type="url"
+                            className="mt-1 w-full rounded-xl border border-line bg-surface-raised px-3 py-2 text-sm"
+                          />
+                        </label>
+                        <label className="block text-sm">
+                          <span className="text-muted">Neighborhood</span>
+                          <input
+                            value={draft.neighborhood}
+                            onChange={(e) => setDraft((d) => ({ ...d, neighborhood: e.target.value }))}
+                            placeholder="e.g. Old Town"
+                            title="Operator-asserted. Adds this neighborhood's questions to the property's AI monitoring."
                             className="mt-1 w-full rounded-xl border border-line bg-surface-raised px-3 py-2 text-sm"
                           />
                         </label>

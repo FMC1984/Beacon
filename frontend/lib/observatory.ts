@@ -753,3 +753,27 @@ export type ActionList = {
 };
 
 export const fetchActions = (propertyId: number) => getJSON<ActionList>(`/opportunities/${propertyId}`);
+
+// --- Visibility by area and audience -------------------------------------
+
+export type DimensionRow = {
+  key: string;
+  label: string;
+  clusters: number;
+  answers: number;
+  ai_visibility: { value: number | null; numerator: number; denominator: number; minimum_sample: number; state: DataStateKey };
+};
+
+export type Dimensions = {
+  property_id: number;
+  data_label: DataLabel;
+  window: { start: string; end: string; days: number };
+  property_geography: string | null;
+  property_personas: string[];
+  regions: DimensionRow[];
+  personas: DimensionRow[];
+  note: string;
+};
+
+export const fetchDimensions = (propertyId: number, days: number) =>
+  getJSON<Dimensions>(`${BASE}/dimensions?${qs({ property_id: propertyId, days })}`);

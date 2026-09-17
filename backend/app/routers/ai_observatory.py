@@ -52,6 +52,7 @@ from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
 from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.dimensions import visibility_dimensions
 from app.services.observatory.topic_rankings import topic_rankings
 from app.services.observatory.drilldown import (
     EVIDENCE_FILTERS,
@@ -1010,3 +1011,16 @@ def rankings(
 ):
     _require_property(db, property_id)
     return topic_rankings(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/dimensions")
+def dimensions(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """AI Visibility by area (neighborhood clusters) and by audience
+    (persona clusters); both dimensions operator-asserted."""
+    _require_property(db, property_id)
+    return visibility_dimensions(db, property_id, days=days, today=_today(today))

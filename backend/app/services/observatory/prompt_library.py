@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models.property_profile import PropertyProfile
 from app.models import (
+    Submarket,
     AIVisibilityPrompt,
     Competitor,
     GSCPerformanceDaily,
@@ -35,7 +36,7 @@ from app.models.ai_prompt_library import (
     PROMPT_SCOPE_FEATURE,
     PROMPT_SCOPE_MARKET,
 )
-from app.services.observatory.markets import assign_property_market
+from app.services.observatory.markets import assign_property_market, assign_property_submarket
 from app.services.observatory.taxonomy import (
     core_topic_keys,
     topic,
@@ -76,6 +77,8 @@ class PromptDraft:
     organization_id: int | None = None
     platform: str = "chatgpt"
     tags: list[str] = field(default_factory=list)
+    persona: str | None = None
+    submarket_id: int | None = None
 
 
 def _fill(text: str, values: dict) -> str | None:
@@ -107,6 +110,8 @@ def upsert_prompt(db: Session, draft: PromptDraft) -> tuple[AIVisibilityPrompt, 
     if existing is not None:
         existing.generated_from = draft.generated_from
         existing.topic_key = existing.topic_key or draft.topic_key
+        existing.persona = existing.persona or draft.persona
+        existing.submarket_id = existing.submarket_id or draft.submarket_id
         return existing, False
     row = AIVisibilityPrompt(
         property_id=draft.property_id,
@@ -128,6 +133,8 @@ def upsert_prompt(db: Session, draft: PromptDraft) -> tuple[AIVisibilityPrompt, 
         is_representative=draft.is_representative,
         variant_group=draft.variant_group,
         tags=draft.tags or None,
+        persona=draft.persona,
+        submarket_id=draft.submarket_id,
         cadence="weekly" if draft.scope in (PROMPT_SCOPE_MARKET, PROMPT_SCOPE_FEATURE) else "monthly",
     )
     db.add(row)
@@ -136,19 +143,20 @@ def upsert_prompt(db: Session, draft: PromptDraft) -> tuple[AIVisibilityPrompt, 
 
 
 def _template_drafts(entries: list[dict], scope: str, values: dict, *, market_id, property_id,
-                     organization_id, provenance: dict) -> list[PromptDraft]:
+                     organization_id, provenance: dict, submarket_id: int | None = None) -> list[PromptDraft]:
     drafts: list[PromptDraft] = []
     for entry in entries:
         t = topic(entry.get("topic_key")) or {}
         primary = _fill(entry["text"], values)
         if primary is None:
             continue
-        group = f"{entry['id']}:{market_id or ''}:{property_id or ''}"
+        group = f"{entry['id']}:{market_id or ''}:{property_id or ''}:{submarket_id or ''}"
         base = dict(
             scope=scope, topic_key=entry.get("topic_key"), intent=entry.get("intent"),
             importance=int(entry.get("importance") or t.get("importance") or 3),
             funnel_stage=t.get("funnel_stage"), variant_group=group,
             market_id=market_id, property_id=property_id, organization_id=organization_id,
+            persona=entry.get("persona"), submarket_id=submarket_id,
         )
         drafts.append(PromptDraft(
             text=primary, is_representative=True,
@@ -182,7 +190,19 @@ def generate_market_prompts(db: Session, market_id: int) -> dict:
         tpl["feature"], PROMPT_SCOPE_FEATURE, values,
         market_id=market.id, property_id=None, organization_id=market.organization_id,
         provenance=provenance,
+    ) + _template_drafts(
+        # Audience personas: the same market asked from one renter's point of view.
+        tpl.get("persona", []), PROMPT_SCOPE_FEATURE, values,
+        market_id=market.id, property_id=None, organization_id=market.organization_id,
+        provenance={**provenance, "dimension": "persona"},
     )
+    # Regions: one set per submarket, from operator-asserted neighborhoods.
+    for sm in db.query(Submarket).filter_by(market_id=market.id).order_by(Submarket.id).all():
+        drafts += _template_drafts(
+            tpl.get("region", []), PROMPT_SCOPE_MARKET, {**values, "neighborhood": sm.name},
+            market_id=market.id, property_id=None, organization_id=market.organization_id,
+            provenance={**provenance, "dimension": "region", "submarket_id": sm.id}, submarket_id=sm.id,
+        )
     created = 0
     prompts = []
     for draft in drafts:
@@ -199,6 +219,22 @@ def property_segment(db: Session, prop: Property) -> str | None:
     (senior, student, luxury, affordable...). Never inferred."""
     profile = db.query(PropertyProfile).filter_by(property_id=prop.id).one_or_none()
     return (profile.property_type or None) if profile else None
+
+
+def property_personas(db: Session, prop: Property) -> list[str]:
+    """Audiences this property is monitored for: the ones its Property
+    Context type implies plus any listed in attributes.personas. Never
+    inferred from reviews or content."""
+    tpl = templates()
+    out: list[str] = []
+    seg = property_segment(db, prop)
+    for k in tpl.get("segment_personas", {}).get(seg or "", []):
+        if k not in out:
+            out.append(k)
+    for k in (prop.attributes or {}).get("personas") or []:
+        if isinstance(k, str) and k in tpl.get("personas", {}) and k not in out:
+            out.append(k)
+    return out
 
 
 def property_signal_topics(db: Session, prop: Property) -> dict:
@@ -256,6 +292,8 @@ def generate_property_prompts(db: Session, property_id: int) -> dict:
     if prop.market_id is None:
         assign_property_market(db, prop)
         db.flush()
+    assign_property_submarket(db, prop)
+    db.flush()
     org_id = property_org_id(db, property_id)
     values = {"name": prop.name, "city": prop.city, "state": prop.state}
     provenance = {"generation_method": "template", "property_id": prop.id, "inputs": values}
@@ -308,5 +346,7 @@ def generate_property_prompts(db: Session, property_id: int) -> dict:
         "market_prompts_created": market_summary["prompts_created"] if market_summary else 0,
         "signal_topics": property_signal_topics(db, prop),
         "segment": segment,
+        "personas": property_personas(db, prop),
+        "submarket_id": prop.submarket_id,
         "prompts": prompts,
     }

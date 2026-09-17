@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
+import { DimensionsPanel } from "@/components/observatory/DimensionsPanel";
 import { UsagePanel } from "@/components/observatory/IntelligencePanels";
 import { DataLabelBadge, LoadState, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchMarkets, fetchMarketSummary, fmtRate } from "@/lib/observatory";
@@ -21,6 +22,7 @@ export default function MarketsPage() {
 
   return (
     <div className="space-y-6">
+      {property && <DimensionsPanel propertyId={property.id} days={days} />}
       <UsagePanel days={days} propertyId={property?.id ?? null} />
       <LoadState
         loading={markets.loading && !markets.data}

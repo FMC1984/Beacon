@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import AIPromptCluster, AIPromptEmbedding, AIVisibilityPrompt
+from app.models import Submarket, AIPromptCluster, AIPromptEmbedding, AIVisibilityPrompt
 from app.providers.registry import get_embedding_provider
 from app.services.observatory.prompt_library import prompt_hash
 
@@ -86,7 +86,15 @@ class ClusterReport:
 
 
 def _bucket_key(p: AIVisibilityPrompt) -> tuple:
-    return (p.market_id if p.property_id is None else None, p.property_id, p.scope, p.topic_key, p.intent)
+    return (p.market_id if p.property_id is None else None, p.property_id, p.scope, p.topic_key, p.intent,
+            p.persona, p.submarket_id)
+
+
+def _geography(db: Session, submarket_id: int | None) -> str | None:
+    if submarket_id is None:
+        return None
+    sm = db.get(Submarket, submarket_id)
+    return sm.slug if sm else None
 
 
 def cluster_prompts(
@@ -155,6 +163,8 @@ def cluster_prompts(
                 db.flush()
                 report.clusters_created += 1
             cluster.label = rep.prompt_text[:300]
+            cluster.persona = rep.persona
+            cluster.geography = _geography(db, rep.submarket_id)
             cluster.representative_prompt_id = rep.id
             cluster.variant_count = len(g["members"])
             cluster.centroid = pack(g["centroid"])

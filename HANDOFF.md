@@ -80,6 +80,28 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P3a: regions and personas as prompt dimensions (2026-09-16, 836 tests)
+- Regions: `markets.ensure_submarket` / `assign_property_submarket` derive
+  `Property.submarket_id` from the operator-asserted
+  `attributes.neighborhood` (Properties edit form gains a Neighborhood
+  field; PATCH now merges `attributes` instead of replacing them and
+  re-derives on attribute changes). `ai_prompt_templates.json` `region`
+  templates ({neighborhood}) are generated once per submarket by
+  `generate_market_prompts` (scope market, `submarket_id` set).
+- Personas: `personas`, `segment_personas` and persona-tagged `persona`
+  templates (scope feature) in the same file; `prompt_library.property_personas`
+  (Context type plus `attributes.personas`).
+- `AIVisibilityPrompt.persona` / `submarket_id` are now set by drafts;
+  clustering buckets add both, and clusters carry `persona` and
+  `geography` (submarket slug). `subscribe_property`: neighborhood
+  clusters only for properties in that neighborhood; persona clusters for
+  properties monitored for that audience or with the topic signal.
+- `services/observatory/dimensions.py` `visibility_dimensions` groups
+  `ai_cluster_visibility_daily` by cluster geography and persona
+  (`GET /ai-observatory/dimensions`); `DimensionsPanel` on the Markets tab
+  says exactly what to set when a dimension is empty.
+- Tests: `tests/test_flow_dimensions.py` (4).
+
 ### Flow P2: segment-aware prompt templates (2026-09-16, 832 tests)
 - The segment is `PropertyProfile.property_type` (Property Context), never
   a guess from the name. `ai_prompt_templates.json` gains `segment_topics`
@@ -1402,7 +1424,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **832**, all passing. Always run the full
+change (shown on `/admin`). Current: **836**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

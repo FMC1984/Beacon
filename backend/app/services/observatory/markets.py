@@ -6,7 +6,7 @@ import re
 
 from sqlalchemy.orm import Session
 
-from app.models import Company, Market, Property
+from app.models import Submarket, Company, Market, Property
 
 
 def market_slug(city: str, state: str) -> str:
@@ -41,6 +41,33 @@ def assign_property_market(db: Session, prop: Property) -> Market | None:
     market = ensure_market(db, city, state)
     prop.market_id = market.id
     return market
+
+
+def submarket_slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def ensure_submarket(db: Session, market_id: int, name: str) -> Submarket:
+    slug = submarket_slug(name)
+    sm = db.query(Submarket).filter_by(market_id=market_id, slug=slug).one_or_none()
+    if sm is None:
+        sm = Submarket(market_id=market_id, slug=slug, name=name.strip())
+        db.add(sm)
+        db.flush()
+    return sm
+
+
+def assign_property_submarket(db: Session, prop: Property) -> Submarket | None:
+    """Set prop.submarket_id from the operator-asserted neighborhood
+    (Property attributes). Never inferred from content or reviews. Clears
+    it when there is no neighborhood or no market. Does not commit."""
+    name = ((prop.attributes or {}).get("neighborhood") or "").strip()
+    if not name or prop.market_id is None:
+        prop.submarket_id = None
+        return None
+    sm = ensure_submarket(db, prop.market_id, name)
+    prop.submarket_id = sm.id
+    return sm
 
 
 def market_members(

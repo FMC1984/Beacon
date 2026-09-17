@@ -6,13 +6,13 @@ Brand clusters are the property's own."""
 
 from sqlalchemy.orm import Session
 
-from app.models import AIPromptAssignment, AIPromptCluster, Property
+from app.models import Submarket, AIPromptAssignment, AIPromptCluster, Property
 from app.models.ai_prompt_library import (
     PROMPT_SCOPE_BRAND,
     PROMPT_SCOPE_FEATURE,
     PROMPT_SCOPE_MARKET,
 )
-from app.services.observatory.prompt_library import property_signal_topics
+from app.services.observatory.prompt_library import property_personas, property_signal_topics
 from app.services.observatory.tenancy import property_org_id
 
 
@@ -40,6 +40,13 @@ def assign(
     return row, True
 
 
+def _geography(db: Session, submarket_id: int | None) -> str | None:
+    if submarket_id is None:
+        return None
+    sm = db.get(Submarket, submarket_id)
+    return sm.slug if sm else None
+
+
 def subscribe_property(db: Session, property_id: int, tier: str = "standard_property") -> dict:
     """Assign the property to its market's market clusters, the feature
     clusters its signals justify, and its own brand clusters. Feature
@@ -51,6 +58,8 @@ def subscribe_property(db: Session, property_id: int, tier: str = "standard_prop
         raise ValueError("Property not found.")
     org_id = property_org_id(db, property_id)
     signals = property_signal_topics(db, prop)
+    personas = set(property_personas(db, prop))
+    geography = _geography(db, prop.submarket_id)
     created = 0
     assigned_cluster_ids: set[int] = set()
 
@@ -61,9 +70,17 @@ def subscribe_property(db: Session, property_id: int, tier: str = "standard_prop
             .all()
         )
         for cluster in market_clusters:
-            wanted = cluster.scope == PROMPT_SCOPE_MARKET or (
-                cluster.scope == PROMPT_SCOPE_FEATURE and cluster.topic_key in signals
-            )
+            # A neighborhood cluster belongs only to properties in that
+            # neighborhood; a persona cluster to properties monitored for
+            # that audience (or with a signal for its topic).
+            geo_ok = cluster.geography is None or cluster.geography == geography
+            if cluster.scope == PROMPT_SCOPE_MARKET:
+                wanted = geo_ok
+            elif cluster.scope == PROMPT_SCOPE_FEATURE:
+                topic_ok = cluster.topic_key in signals
+                wanted = geo_ok and (topic_ok or (cluster.persona is not None and cluster.persona in personas))
+            else:
+                wanted = False
             if not wanted:
                 continue
             _, was_created = assign(
@@ -88,6 +105,8 @@ def subscribe_property(db: Session, property_id: int, tier: str = "standard_prop
         "property_id": prop.id, "market_id": prop.market_id, "assignments_created": created,
         "assignments_active": len(assigned_cluster_ids), "assignments_deactivated": deactivated,
         "signal_topics": signals,
+        "personas": sorted(personas),
+        "geography": geography,
     }
 
 
