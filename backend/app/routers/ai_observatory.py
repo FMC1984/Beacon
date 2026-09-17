@@ -51,6 +51,7 @@ from app.services.observatory.impact import impact_summary
 from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
 from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
+from app.services.observatory.benchmark import property_benchmark
 from app.services.observatory.derivation import backfill_observations
 from app.services.observatory.dimensions import visibility_dimensions
 from app.services.observatory.topic_rankings import topic_rankings
@@ -1024,3 +1025,16 @@ def dimensions(
     (persona clusters); both dimensions operator-asserted."""
     _require_property(db, property_id)
     return visibility_dimensions(db, property_id, days=days, today=_today(today))
+
+
+@router.get("/benchmark")
+def benchmark(
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """The property's metrics beside the average of other monitored
+    properties (all, and same segment); UNAVAILABLE below the pool minimum."""
+    _require_property(db, property_id)
+    return property_benchmark(db, property_id, days=days, today=_today(today))

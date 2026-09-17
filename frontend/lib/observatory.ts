@@ -777,3 +777,33 @@ export type Dimensions = {
 
 export const fetchDimensions = (propertyId: number, days: number) =>
   getJSON<Dimensions>(`${BASE}/dimensions?${qs({ property_id: propertyId, days })}`);
+
+// --- Cross-property benchmarks -------------------------------------------
+
+export type BenchmarkRow = {
+  property_value: number | null;
+  benchmark_value: number | null;
+  properties: number;
+  data_label: DataLabel;
+  note: string | null;
+  point_change: number | null;
+};
+
+export type BenchmarkPool = {
+  pool: { properties: number; organizations: number };
+  metrics: Record<"ai_visibility" | "citation_rate" | "share_of_voice" | "recommendation_rate", BenchmarkRow>;
+};
+
+export type Benchmark = {
+  property_id: number;
+  window: { start: string; end: string; days: number };
+  is_sample: boolean;
+  segment: string | null;
+  minimum_pool: number;
+  all: BenchmarkPool;
+  segment_pool: BenchmarkPool;
+  note: string;
+};
+
+export const fetchBenchmark = (propertyId: number, days: number) =>
+  getJSON<Benchmark>(`${BASE}/benchmark?${qs({ property_id: propertyId, days })}`);

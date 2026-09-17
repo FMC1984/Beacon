@@ -80,6 +80,21 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P3b: cross-property benchmarks (2026-09-16, 840 tests)
+- `services/observatory/benchmark.py` `property_benchmark`: the property's
+  AI Visibility, Citation Rate, Share of Voice and Recommendation Rate
+  beside the average of the OTHER active properties (pool "all") and of
+  those with the same Property Context type (pool "segment"). A metric's
+  pool counts only properties whose own value cleared the sample gate in
+  the window; below `MIN_POOL` (3) it is UNAVAILABLE with the reason.
+  Sample properties pool only with sample properties and real with real.
+  Members are never named; only the property and organization counts are
+  disclosed. `GET /ai-observatory/benchmark`.
+- `components/observatory/BenchmarkPanel.tsx` on the AI Visibility
+  Overview under "This week": two tables (all, same type) with You /
+  Others / Gap in points.
+- Tests: `tests/test_flow_benchmark.py` (4).
+
 ### Flow P3a: regions and personas as prompt dimensions (2026-09-16, 836 tests)
 - Regions: `markets.ensure_submarket` / `assign_property_submarket` derive
   `Property.submarket_id` from the operator-asserted
@@ -1424,7 +1439,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **836**, all passing. Always run the full
+change (shown on `/admin`). Current: **840**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

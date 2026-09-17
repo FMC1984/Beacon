@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
+import { BenchmarkPanel } from "@/components/observatory/BenchmarkPanel";
 import { ThisWeekStrip } from "@/components/observatory/ThisWeekStrip";
 import { EvidenceDrawer, PositionPanel, SentimentPanel, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
@@ -56,6 +57,8 @@ export default function ObservatoryOverviewPage() {
           </div>
 
           <ThisWeekStrip propertyId={data.property_id} />
+
+          <BenchmarkPanel propertyId={data.property_id} days={days} />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel
