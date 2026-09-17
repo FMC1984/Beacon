@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
+import { ThisWeekStrip } from "@/components/observatory/ThisWeekStrip";
 import { EvidenceDrawer, PositionPanel, SentimentPanel, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
 import { fetchOverview, fmtRate } from "@/lib/observatory";
@@ -53,6 +54,8 @@ export default function ObservatoryOverviewPage() {
               <ObsMetricCard key={k} metric={data.metrics[k]} onDrill={k === "prompt_coverage" ? undefined : drawer.open} />
             ))}
           </div>
+
+          <ThisWeekStrip propertyId={data.property_id} />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel

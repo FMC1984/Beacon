@@ -80,6 +80,21 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P1e: "This week" strip and listing-gap actions (2026-09-16, 830 tests)
+- `services/observatory/listing_gaps.py` `listing_gap_opportunities`: for
+  each cited page in the window with `mentioned_on_page == not_mentioned`,
+  at least `MIN_CITATIONS` (3) citations and a non-owned, non-competitor
+  source type, one Actionable, MEASURED action ("Get X onto domain: the
+  cited page does not mention it") with the page, citation count and the
+  fetch date as evidence. Unchecked or unreachable pages never become
+  actions. Collected under the `ai_observatory` source in
+  `opportunity_engine.build_opportunities`.
+- `components/observatory/ThisWeekStrip.tsx` on the AI Visibility
+  Overview under the metric cards: the engine's top three actions (state,
+  source, impact, first evidence line, gate reason) and a link to the full
+  list. `lib/observatory.ts` `fetchActions` / `ActionItem`.
+- Tests: `tests/test_flow_listing_gaps.py` (3).
+
 ### Flow P1d: Nora reads the Observatory (2026-09-16, 827 tests)
 - `services/observatory/summary.py`: `observatory_summary_text` builds one
   deterministic chunk per property from the same rollups the Overview
@@ -1364,7 +1379,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **827**, all passing. Always run the full
+change (shown on `/admin`). Current: **830**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

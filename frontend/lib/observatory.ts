@@ -723,3 +723,33 @@ export const requestCitationPageCheck = (propertyId: number, days: number) =>
 
 export const fetchTopicRankings = (propertyId: number, days: number) =>
   getJSON<TopicRankings>(`${BASE}/rankings?${qs({ property_id: propertyId, days })}`);
+
+// --- Opportunity Engine actions (the "This week" strip) ---------------------
+
+export type ActionItem = {
+  source: string;
+  source_label: string;
+  title: string;
+  reason: string;
+  state: string;
+  impact: string | null;
+  effort: string | null;
+  evidence_level?: string | null;
+  citations?: { page?: string | null; source_ref: string; evidence?: string[] }[];
+  gate_reason?: string | null;
+  corroborating_sources?: string[];
+  priority?: number;
+  priority_score?: number;
+};
+
+export type ActionList = {
+  property_id: number;
+  property_name: string;
+  generated_on: string;
+  total: number;
+  by_source: Record<string, number>;
+  opportunities: ActionItem[];
+  summary: string;
+};
+
+export const fetchActions = (propertyId: number) => getJSON<ActionList>(`/opportunities/${propertyId}`);

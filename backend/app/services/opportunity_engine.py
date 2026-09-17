@@ -189,6 +189,13 @@ def build_opportunities(
         collect("ai_observatory", gap_opportunities(db, property_id))
     except Exception:
         pass
+    try:
+        # Flow P1: directory pages AI cites that do not mention the property.
+        from app.services.observatory.listing_gaps import listing_gap_opportunities
+
+        collect("ai_observatory", listing_gap_opportunities(db, property_id, today=today))
+    except Exception:
+        pass
 
     # Corroboration: which distinct sources touch each topic keyword.
     keyword_sources: dict[str, set[str]] = {}
