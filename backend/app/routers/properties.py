@@ -31,6 +31,7 @@ from app.services.property_types import (
     validate_property_type,
 )
 from app.services.rag.store import get_collection
+from app.services.setup import property_setup
 
 router = APIRouter(prefix="/properties", tags=["properties"])
 
@@ -124,6 +125,15 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
     if prop is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return prop
+
+
+@router.get("/{property_id}/setup")
+def get_property_setup(property_id: int, db: Session = Depends(get_db)):
+    """Setup checklist: six dependency-ordered steps, each a deterministic
+    check over existing rows, with what it unlocks and where to do it."""
+    if db.get(Property, property_id) is None:
+        raise HTTPException(status_code=404, detail="Property not found.")
+    return property_setup(db, property_id)
 
 
 @router.patch("/{property_id}", response_model=PropertyOut)

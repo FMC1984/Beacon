@@ -1,5 +1,6 @@
 "use client";
 
+import { SetupBanner } from "@/components/SetupChecklist";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
@@ -77,6 +78,7 @@ function ObservatoryShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
+      <SetupBanner propertyId={propertyId} requires={["identity", "prompts", "monitoring"]} />
       {isSample && (
         <div
           role="note"

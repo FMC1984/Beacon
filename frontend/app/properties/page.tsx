@@ -1,7 +1,8 @@
 "use client";
 
+import { requestedPropertyId } from "@/lib/urlScope";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   API_BASE,
   Company,
@@ -60,6 +61,7 @@ export default function PropertiesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [editingId, setEditingId] = useState<number | null>(null);
+  const openedFromUrl = useRef(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -70,6 +72,13 @@ export default function PropertiesPage() {
       .then(([props, comps]) => {
         setProperties(props);
         setCompanies(comps);
+        // A deep link from the setup checklist opens that property's editor.
+        const wanted = requestedPropertyId();
+        const target = wanted === null ? undefined : props.find((x) => x.id === wanted);
+        if (target && !openedFromUrl.current) {
+          openedFromUrl.current = true;
+          startEdit(target);
+        }
       })
       .catch(() => setError("Could not reach the Beacon API."))
       .finally(() => setLoading(false));

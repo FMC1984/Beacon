@@ -80,6 +80,27 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P1a: property setup checklist (2026-09-16, 817 tests)
+**The first stage of the user flow made visible.**
+- `services/setup.py` `property_setup(db, property_id)`: six dependency-ordered
+  steps (identity, data, facts, competitors, prompts, monitoring). Each is a
+  deterministic check over rows that already exist (Property fields, GA4 and
+  GSC rows or a connected Google account, PropertyProfile plus recorded
+  attributes and site pages, Competitor rows, prompt assignments or standing
+  prompts, eligible observations) and carries `missing`, `optional_hints`,
+  `unlocks` and an `href`. Housing authorities are never asked for a single
+  pet policy; the hint says per-development facts are not recorded yet.
+  `GET /api/properties/{id}/setup`.
+- `components/SetupChecklist.tsx`: `SetupChecklist` on the property dashboard
+  (full card while incomplete, one line with "Review steps" once complete,
+  hidden for sample properties) and `SetupBanner` on the AI Visibility and
+  Reports layouts, which names the next step relevant to that surface
+  (`requires`) and links to it.
+- Deep links: `lib/urlScope.ts` `requestedPropertyId()`; Properties opens the
+  editor for `?property_id=`, Uploads, Property Context and Competitors
+  preselect it. All read inside fetch callbacks (no set-state-in-effect).
+- Tests: `tests/test_property_setup.py` (5).
+
 ### Top citation pages with "mentioned on page" + visibility rankings by topic (2026-09-16, 812 tests)
 **Two more Profound-style views, both from evidence Beacon holds.**
 - `ai_cited_pages` (migration `c8d9e0f1a2b3`): a per-URL cache of fetched
@@ -1295,7 +1316,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **812**, all passing. Always run the full
+change (shown on `/admin`). Current: **817**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

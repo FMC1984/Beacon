@@ -195,3 +195,35 @@ export function exportUrl(
   const qs = params.toString();
   return `${API_BASE}/export${qs ? `?${qs}` : ""}`;
 }
+
+// --- Property setup checklist ---------------------------------------------
+
+export type SetupStep = {
+  key: "identity" | "data" | "facts" | "competitors" | "prompts" | "monitoring";
+  label: string;
+  done: boolean;
+  detail: string;
+  href: string;
+  unlocks: string;
+  missing: string[];
+  optional_hints: string[];
+};
+
+export type PropertySetup = {
+  property_id: number;
+  property_name: string;
+  property_type: string;
+  is_sample: boolean;
+  steps: SetupStep[];
+  done: number;
+  total: number;
+  percent: number;
+  complete: boolean;
+  next: SetupStep | null;
+};
+
+export async function fetchPropertySetup(propertyId: number): Promise<PropertySetup> {
+  const res = await fetch(`${API_BASE}/properties/${propertyId}/setup`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Setup checklist request failed (${res.status}).`);
+  return res.json();
+}

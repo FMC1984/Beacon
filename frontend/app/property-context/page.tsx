@@ -1,5 +1,6 @@
 "use client";
 
+import { requestedPropertyId } from "@/lib/urlScope";
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE, Company, Property, fetchCompanies, fetchProperties } from "@/lib/api";
 import { ScopeSelect } from "@/components/ScopeSelect";
@@ -51,7 +52,9 @@ export default function PropertyContextPage() {
     fetchProperties()
       .then((p) => {
         setProperties(p);
-        if (p.length) setPropertyId(p[0].id);
+        const wanted = requestedPropertyId();
+        if (wanted !== null && p.some((x) => x.id === wanted)) setPropertyId(wanted);
+        else if (p.length) setPropertyId(p[0].id);
       })
       .catch(() => setError("Could not reach the Beacon API."));
     fetchCompanies().then(setCompanies).catch(() => {});

@@ -1,5 +1,6 @@
 "use client";
 
+import { requestedPropertyId } from "@/lib/urlScope";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   API_BASE,
@@ -54,7 +55,13 @@ export default function UploadsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
-    fetchProperties().then(setProperties).catch(() => {});
+    fetchProperties()
+      .then((props) => {
+        setProperties(props);
+        const wanted = requestedPropertyId();
+        if (wanted !== null && props.some((x) => x.id === wanted)) setPropertyId((cur) => cur || String(wanted));
+      })
+      .catch(() => {});
     fetchUploads().then(setHistory).catch(() => {});
   }, []);
 

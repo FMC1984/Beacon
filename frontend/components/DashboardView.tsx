@@ -1,5 +1,6 @@
 "use client";
 
+import { SetupChecklist } from "@/components/SetupChecklist";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -166,6 +167,7 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
           Sync now, or check Admin for the reason.
         </div>
       )}
+      {isProperty && propertyId !== null && <SetupChecklist propertyId={propertyId} />}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{scopeTitle}</h1>

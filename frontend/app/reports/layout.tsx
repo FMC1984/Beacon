@@ -1,5 +1,6 @@
 "use client";
 
+import { SetupBanner } from "@/components/SetupChecklist";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ErrorState } from "@/components/reports/DataStates";
@@ -10,7 +11,7 @@ import {
 } from "@/components/reports/ReportContext";
 
 function ReportsShell({ children }: { children: React.ReactNode }) {
-  const { tabs, loaded, loadError, reload } = useReportContext();
+  const { tabs, loaded, loadError, reload, propertyId } = useReportContext();
   const pathname = usePathname();
 
   // The print route is a standalone, self-contained layout: no control bar,
@@ -34,6 +35,7 @@ function ReportsShell({ children }: { children: React.ReactNode }) {
       ) : (
         <>
           <ReportControls />
+          <SetupBanner propertyId={propertyId} requires={["identity", "data"]} />
 
           <nav aria-label="Report tabs" className="flex flex-wrap gap-1 border-b border-line">
             {tabs.map((tab) => {
