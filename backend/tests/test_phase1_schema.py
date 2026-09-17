@@ -64,6 +64,7 @@ EXPECTED_TABLES = {
     "ai_run_costs_daily",
     "ai_competitor_stats",
     "ai_cited_pages",
+    "property_facts",
 }
 
 

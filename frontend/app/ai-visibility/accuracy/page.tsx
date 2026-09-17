@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ClaimsPanel } from "@/components/observatory/IntelligencePanels";
+import { TruthPanel } from "@/components/observatory/TruthPanel";
 import { NeedsProperty, Panel } from "@/components/observatory/ui";
 
 const STATUSES: [string, string][] = [
@@ -13,10 +14,11 @@ const STATUSES: [string, string][] = [
 ];
 
 export default function AccuracyPage() {
-  const { propertyId } = useObservatory();
+  const { propertyId, days } = useObservatory();
   if (propertyId === null) return <NeedsProperty />;
   return (
     <div className="space-y-6">
+      <TruthPanel propertyId={propertyId} days={Math.max(days, 90)} />
       <ClaimsPanel propertyId={propertyId} />
       <Panel
         title="How accuracy is judged"

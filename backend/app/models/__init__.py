@@ -59,6 +59,7 @@ from app.models.ai_intelligence import (
     AIVisibilityAlert,
 )
 from app.models.ai_cited_pages import AICitedPage
+from app.models.property_facts import PropertyFact
 from app.models.ai_rollups import (
     AICompetitorStat,
     AIRunCostDaily,
@@ -142,4 +143,5 @@ __all__ = [
     "AIRunCostDaily",
     "AICompetitorStat",
     "AICitedPage",
+    "PropertyFact",
 ]

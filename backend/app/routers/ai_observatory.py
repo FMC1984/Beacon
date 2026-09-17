@@ -54,6 +54,7 @@ from app.services.observatory.citation_pages import check_cited_pages, top_citat
 from app.services.observatory.benchmark import property_benchmark
 from app.services.observatory.concerns import areas_of_concern, explain_concern
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.truth import set_provenance, truth_grid
 from app.services.observatory.platform_breakdown import platform_breakdown
 from app.services.observatory.source_matrix import source_matrix
 from app.services.observatory.standing import property_standing
@@ -1081,3 +1082,36 @@ def concern_detail(
         return explain_concern(db, property_id, topic_key, days=days, today=_today(today))
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/truth")
+def truth(
+    property_id: int = Query(...),
+    days: int = Query(default=90, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Truth layer: each recorded fact against the property's site, the
+    listing pages AI cites and the AI answers, with provenance."""
+    _require_property(db, property_id)
+    return truth_grid(db, property_id, days=days, today=_today(today))
+
+
+class ProvenanceIn(BaseModel):
+    source_of_truth: str | None = None
+    verified: bool | None = None
+    verified_by: str | None = None
+    effective_date: date | None = None
+    freshness: str | None = None
+    notes: str | None = None
+
+
+@router.put("/truth/facts/{fact_key:path}")
+def truth_provenance(fact_key: str, payload: ProvenanceIn, property_id: int = Query(...), db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    try:
+        return set_provenance(db, property_id, fact_key, **payload.model_dump())
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))

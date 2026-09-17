@@ -80,6 +80,34 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Competitive roadmap 5: Property Truth layer v1 (2026-09-17, 859 tests)
+- `property_facts` (migration `e0f1a2b3c4d5`): provenance only, one row per
+  (property, fact_key): source_of_truth, verified_at/by, effective_date,
+  freshness (stable 180d | seasonal 90d | volatile 7d), notes. Fact VALUES
+  stay in `Property.attributes` and Property Context so there is one place
+  to edit them. Deleted with the property.
+- `services/observatory/truth.py` `truth_grid`: facts = property type,
+  state, pets, rent range (volatile), each recorded amenity in
+  `claims.AMENITY_TERMS`. Columns = your website (`PropertyContent`), the
+  top 4 cited third-party domains in the window (cached `ai_cited_pages`
+  text), and AI answers (`ai_claims`). Every cell runs the SAME claim
+  extractors used on AI answers (`_pet_claims`, `_amenity_claims`,
+  `_rent_claims`, `_type_claims`, `_state_claims`): agrees | conflicts |
+  mentions | not_stated, plus unread | unreachable | not_listed for sources
+  and volatile for rent (never graded). On third-party pages only sentences
+  naming the property count. `cited_sources_with_same_value` lists pages
+  the conflicting answers cited that state the same wrong value; the copy
+  says it is not proof of origin. Housing authorities are not graded on
+  pets or rent (per-development facts do not exist yet).
+- `set_provenance` + `PUT /ai-observatory/truth/facts/{fact_key}` (404 for a
+  fact Beacon does not hold, 422 for a bad freshness); `GET /truth`.
+- `components/observatory/TruthPanel.tsx` leads the Accuracy tab: grid,
+  provenance line per fact, inline "verify" editor.
+- Known limit: listing sites often block automated reads (Apartments.com
+  returned 403 to our checker), so those columns will often read
+  unreachable. An operator-confirmed listing value is the planned next step.
+- Tests: `tests/test_flow_truth.py` (7), including the directory-list false positive: a third-party sentence that also names another known community is skipped, never attributed.
+
 ### Competitive roadmap 4: Areas of concern (2026-09-17, 852 tests)
 - `services/observatory/concerns.py`. `areas_of_concern`: observations
   grouped by the cluster's `topic_key`; per topic the property's AI
@@ -1507,7 +1535,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **852**, all passing. Always run the full
+change (shown on `/admin`). Current: **859**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

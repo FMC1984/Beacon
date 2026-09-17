@@ -933,3 +933,59 @@ export const fetchConcerns = (propertyId: number, days: number) =>
 
 export const fetchConcernDetail = (propertyId: number, topicKey: string, days: number) =>
   getJSON<ConcernDetail>(`${BASE}/concerns/${encodeURIComponent(topicKey)}?${qs({ property_id: propertyId, days })}`);
+
+// --- Truth layer ------------------------------------------------------------------
+
+export type TruthCell = {
+  state: "agrees" | "conflicts" | "mentions" | "not_stated" | "unread" | "unreachable" | "not_listed" | "volatile";
+  values?: string[];
+  evidence?: string;
+  agree?: number;
+  conflict?: number;
+};
+
+export type TruthFact = {
+  fact_key: string;
+  label: string;
+  recorded_value: string;
+  provenance: {
+    source_of_truth: string | null;
+    verified_at: string | null;
+    verified_by: string | null;
+    effective_date: string | null;
+    freshness: "stable" | "seasonal" | "volatile";
+    status: "verified" | "stale" | "unverified";
+    stale_after_days: number;
+    notes: string | null;
+  };
+  cells: Record<string, TruthCell>;
+  conflicts: number;
+  cited_sources_with_same_value: { domain: string; url: string; value: string; evidence: string }[];
+};
+
+export type TruthGrid = {
+  property_id: number;
+  data_label: DataLabel;
+  columns: { key: string; label: string; kind: "owned" | "listing" | "ai"; citations?: number }[];
+  facts: TruthFact[];
+  summary: { facts: number; with_conflicts: number; unverified: number; stale: number };
+  notes: string[];
+  note: string;
+};
+
+export const fetchTruth = (propertyId: number, days: number) =>
+  getJSON<TruthGrid>(`${BASE}/truth?${qs({ property_id: propertyId, days })}`);
+
+export async function saveFactProvenance(
+  propertyId: number,
+  factKey: string,
+  body: { verified?: boolean; source_of_truth?: string; verified_by?: string; freshness?: string; notes?: string }
+): Promise<TruthFact["provenance"]> {
+  const res = await fetch(`${API_BASE}${BASE}/truth/facts/${encodeURIComponent(factKey)}?${qs({ property_id: propertyId })}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await errorText(res));
+  return res.json();
+}
