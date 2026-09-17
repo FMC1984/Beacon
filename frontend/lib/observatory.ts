@@ -887,3 +887,49 @@ export const fetchSourceMatrix = (propertyId: number, days: number) =>
 
 export const fetchStanding = (propertyId: number, days: number) =>
   getJSON<Standing>(`${BASE}/standing?${qs({ property_id: propertyId, days })}`);
+
+// --- Areas of concern -------------------------------------------------------------
+
+export type ConcernLevel = "high" | "medium" | "monitor" | "maintain" | "insufficient";
+
+export type ConcernTopic = {
+  topic_key: string;
+  label: string;
+  answers: number;
+  visibility: { value: number | null; numerator: number; denominator: number; minimum_sample: number };
+  best_competitor: { name: string; rate: { value: number | null; numerator: number; denominator: number } } | null;
+  gap_points: number | null;
+  evidence: "strong" | "medium" | "weak";
+  concern: ConcernLevel;
+  absent: number;
+};
+
+export type Concerns = {
+  property_id: number;
+  data_label: DataLabel;
+  tracked_competitors: number;
+  topics: ConcernTopic[];
+  summary: Record<ConcernLevel, number>;
+  note: string;
+};
+
+export type ConcernDetail = {
+  topic_key: string;
+  label: string;
+  answers: number;
+  absent: number;
+  questions: string[];
+  competitors_winning: { name: string; answers: number }[];
+  cited_sources: { domain: string; citations: number; source_type: string | null }[];
+  cited_pages: { url: string; citations: number; read: boolean; names_you: boolean | null; names_competitors: string[] }[];
+  own_content: { pages: number; target_page: string; target_exists: boolean; covered_terms: string[]; missing_terms: string[] };
+  explanation: string[];
+  recommended_action: { text: string; state: string; gate_reason: string | null; from_content_gap: boolean };
+  note: string;
+};
+
+export const fetchConcerns = (propertyId: number, days: number) =>
+  getJSON<Concerns>(`${BASE}/concerns?${qs({ property_id: propertyId, days })}`);
+
+export const fetchConcernDetail = (propertyId: number, topicKey: string, days: number) =>
+  getJSON<ConcernDetail>(`${BASE}/concerns/${encodeURIComponent(topicKey)}?${qs({ property_id: propertyId, days })}`);

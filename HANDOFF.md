@@ -80,6 +80,25 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Competitive roadmap 4: Areas of concern (2026-09-17, 852 tests)
+- `services/observatory/concerns.py`. `areas_of_concern`: observations
+  grouped by the cluster's `topic_key`; per topic the property's AI
+  Visibility, the tracked competitor named most often (from
+  `competitor_entity_ids`), gap in points, evidence (strong at 10+ answers),
+  and a concern level from a stated rule (`HIGH_GAP` 20 pts, `MEDIUM_GAP`
+  10 pts; with no competitors, own visibility below 25% / 50%). Below the
+  sample minimum the level is "insufficient" and no gap is shown.
+  `explain_concern`: absent count, competitors named in those answers,
+  the domains and pages those answers cited and who each readable page
+  names (unread pages are never called silent), taxonomy-term coverage of
+  the property's own pages (`content_gaps._page_coverage`), the open
+  content gap's recommendation when one exists, and a Property Context
+  gate on the action. No predicted lift anywhere.
+- `GET /ai-observatory/concerns` and `/concerns/{topic_key}` (404 when the
+  topic has no answers in the window). `ConcernsPanel` leads the
+  Competitors tab; rows expand in place.
+- Tests: `tests/test_flow_concerns.py` (4).
+
 ### Competitive roadmap 1-3: platform structure, Source Influence Matrix, standing (2026-09-17, 848 tests)
 Context: LeasingAI and Peek Discover are multifamily-specific AI visibility
 products. Beacon's wedge is independent, evidence-first measurement, a truth
@@ -1488,7 +1507,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **848**, all passing. Always run the full
+change (shown on `/admin`). Current: **852**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

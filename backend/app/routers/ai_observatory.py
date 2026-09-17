@@ -52,6 +52,7 @@ from app.services.observatory.portfolio import portfolio_summary
 from app.services.observatory.costs import cost_report
 from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
 from app.services.observatory.benchmark import property_benchmark
+from app.services.observatory.concerns import areas_of_concern, explain_concern
 from app.services.observatory.derivation import backfill_observations
 from app.services.observatory.platform_breakdown import platform_breakdown
 from app.services.observatory.source_matrix import source_matrix
@@ -1061,3 +1062,22 @@ router.add_api_route("/sources/matrix", _windowed(source_matrix), methods=["GET"
                      summary="Source Influence Matrix: influence, presence, competitor advantage and action per cited domain")
 router.add_api_route("/standing", _windowed(property_standing), methods=["GET"],
                      summary="Market rank and confirmed comp-set rank")
+
+router.add_api_route("/concerns", _windowed(areas_of_concern), methods=["GET"],
+                     summary="Areas of concern: topic visibility against the best tracked competitor")
+
+
+@router.get("/concerns/{topic_key}")
+def concern_detail(
+    topic_key: str,
+    property_id: int = Query(...),
+    days: int = Query(default=30, ge=1, le=365),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Why the gap exists, from stored answers, fetched pages and the property's own content."""
+    _require_property(db, property_id)
+    try:
+        return explain_concern(db, property_id, topic_key, days=days, today=_today(today))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))

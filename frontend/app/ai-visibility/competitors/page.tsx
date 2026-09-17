@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { CandidatesPanel } from "@/components/observatory/IntelligencePanels";
 import { EvidenceDrawer, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
+import { ConcernsPanel } from "@/components/observatory/ConcernsPanel";
 import { TopicRankingsGrid } from "@/components/observatory/RankingPanels";
 import { LoadState, NeedsProperty, ObsMetricCard, Panel, useLoad } from "@/components/observatory/ui";
 import { fetchOverview } from "@/lib/observatory";
@@ -49,6 +50,7 @@ export default function CompetitorsPage() {
         </div>
       </Panel>
 
+      <ConcernsPanel propertyId={propertyId} days={days} />
       <TopicRankingsGrid propertyId={propertyId} days={days} />
       <CandidatesPanel propertyId={propertyId} />
       {drawer.drill && (
