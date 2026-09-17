@@ -41,42 +41,55 @@ const ICONS: Record<string, ReactNode> = {
 };
 
 type Item = { href: string; label: string; icon: keyof typeof ICONS };
-type Group = { label: string; items: Item[] };
+type Group = { label: string; hint?: string; items: Item[] };
 
+// Groups follow the flow a property team works through, in order: set the
+// property up, watch AI answers, understand why, act, prove it, brief the
+// owner. Each label is the stage; `hint` is the question it answers.
 const GROUPS: Group[] = [
   {
     label: "Overview",
+    hint: "Where does the portfolio stand?",
     items: [
-      { href: "/briefing", label: "Monthly Briefing", icon: "briefing" },
       { href: "/", label: "Dashboard", icon: "dashboard" },
-      { href: "/opportunities", label: "Opportunities", icon: "opportunities" },
-      { href: "/reports", label: "Reports", icon: "reports" },
+      { href: "/briefing", label: "Monthly Briefing", icon: "briefing" },
     ],
   },
   {
-    label: "AI Intelligence",
-    items: [
-      { href: "/ai-visibility", label: "AI Visibility", icon: "visibility" },
-      { href: "/ai-query-signals", label: "AI Query Signals", icon: "signals" },
-      { href: "/competitors", label: "Competitor IQ", icon: "competitors" },
-    ],
-  },
-  {
-    label: "Content & Reviews",
-    items: [
-      { href: "/content-intelligence", label: "Content IQ", icon: "content" },
-      { href: "/review-intelligence", label: "Review IQ", icon: "reviews" },
-      { href: "/property-context", label: "Context", icon: "context" },
-    ],
-  },
-  { label: "Assistant", items: [{ href: "/nora", label: "Nora", icon: "nora" }] },
-  {
-    label: "Data",
+    label: "Set up",
+    hint: "Is this property ready to be scored?",
     items: [
       { href: "/properties", label: "Properties", icon: "properties" },
-      { href: "/uploads", label: "Uploads", icon: "uploads" },
+      { href: "/property-context", label: "Property Context", icon: "context" },
+      { href: "/uploads", label: "Data & Uploads", icon: "uploads" },
     ],
   },
+  {
+    label: "Watch",
+    hint: "Are we visible in AI answers?",
+    items: [{ href: "/ai-visibility", label: "AI Visibility", icon: "visibility" }],
+  },
+  {
+    label: "Understand",
+    hint: "Why, and who wins instead?",
+    items: [
+      { href: "/competitors", label: "Competitor IQ", icon: "competitors" },
+      { href: "/content-intelligence", label: "Content IQ", icon: "content" },
+      { href: "/review-intelligence", label: "Review IQ", icon: "reviews" },
+      { href: "/ai-query-signals", label: "AI Query Signals", icon: "signals" },
+    ],
+  },
+  {
+    label: "Act",
+    hint: "What do we do about it?",
+    items: [{ href: "/opportunities", label: "Opportunities", icon: "opportunities" }],
+  },
+  {
+    label: "Prove",
+    hint: "Did it work?",
+    items: [{ href: "/reports", label: "Reports", icon: "reports" }],
+  },
+  { label: "Assistant", hint: "Ask Nora about any of it.", items: [{ href: "/nora", label: "Nora", icon: "nora" }] },
   { label: "System", items: [{ href: "/admin", label: "Admin", icon: "admin" }] },
 ];
 
@@ -200,6 +213,7 @@ export function Sidebar({
                 <button
                   onClick={() => toggleGroup(group.label)}
                   aria-expanded={!closed}
+                  title={group.hint}
                   className="flex w-full items-center justify-between px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted/70 transition-colors hover:text-muted"
                 >
                   {group.label}

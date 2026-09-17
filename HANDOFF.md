@@ -80,6 +80,14 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P1b: sidebar grouped by stage (2026-09-16)
+- `components/Sidebar.tsx` groups now follow the flow: Overview (Dashboard,
+  Monthly Briefing), Set up (Properties, Property Context, Data & Uploads),
+  Watch (AI Visibility), Understand (Competitor IQ, Content IQ, Review IQ,
+  AI Query Signals), Act (Opportunities), Prove (Reports), Assistant, System.
+  Each group carries the question it answers as a tooltip (`hint`). Routes
+  are unchanged; only order and labels moved.
+
 ### Flow P1a: property setup checklist (2026-09-16, 817 tests)
 **The first stage of the user flow made visible.**
 - `services/setup.py` `property_setup(db, property_id)`: six dependency-ordered
