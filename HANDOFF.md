@@ -80,6 +80,24 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P1c: one definition of AI visibility (2026-09-16, 819 tests)
+- `reporting_geo.py`: summary, sufficiency and the daily trend now come from
+  `ai_property_observations` (eligible rows for the property), using
+  `observatory.metrics.metric_from_counts` so mention rate IS AI Visibility
+  and citation rate IS Citation Rate (owned-site citations), same keys,
+  formula and sample gate as the AI Visibility tab. "Answers citing any
+  source" stays as a count (`citation_count`), never as the rate.
+  `build_geo_report(..., days=None)` windows every section (both ends) when
+  `days` is given; `GET /reports/geo?days=` and the report passes the
+  control-bar window. `summary.definition == "observatory"`.
+  Reconciliation test: GEO numerators equal the drilldown evidence counts.
+- Retired `components/observatory/legacy/AnalysisPanel.tsx` (fact checks
+  and recommendations from the pre-Observatory analyzer, superseded by the
+  Accuracy tab's claims and the Recommendations tab's content gaps) and
+  `RunQueriesPanel.tsx` (one-off query; the Prompts tab runs any prompt
+  now). `StandingPanel` (standing-prompt evaluator and score history, used
+  by DCHP) stays on Trends.
+
 ### Flow P1b: sidebar grouped by stage (2026-09-16)
 - `components/Sidebar.tsx` groups now follow the flow: Overview (Dashboard,
   Monthly Briefing), Set up (Properties, Property Context, Data & Uploads),
@@ -1324,7 +1342,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **817**, all passing. Always run the full
+change (shown on `/admin`). Current: **819**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

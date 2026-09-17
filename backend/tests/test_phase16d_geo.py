@@ -4,7 +4,7 @@ their numerator and denominator, a prompt matrix with cell states and evidence
 drawers, a deterministic source landscape, and competitor share labeled as
 share of tested answers rather than market share."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -97,7 +97,9 @@ def test_summary_metrics_are_distinct_with_samples(db, geo_property):
     assert s["mention_rate"]["numerator"] == 2
     assert s["mention_rate"]["denominator"] == 4
     assert s["mention_rate"]["value"] == round(2 / 4, 4)
-    assert s["citation_rate"]["numerator"] == 4  # every response cited something
+    assert s["citation_count"] == 4  # every response cited something (a count, not the rate)
+    assert s["citation_rate"]["numerator"] == 1  # Observatory Citation Rate: owned-site citations
+    assert s["citation_rate"]["key"] == "citation_rate" and s["mention_rate"]["key"] == "ai_visibility"
     assert s["owned_domain_citations"] == 1  # only R_PROPERTY_CITED cites the owned domain
     assert s["competitor_appearances"] == 2  # R_COMPETITOR + R_BOTH
     # Distinct: mention count is not the same field as competitor appearances.
@@ -255,3 +257,24 @@ def test_geo_endpoint_unknown_property_404s(client):
 def test_meta_marks_geo_available(client):
     tabs = {t["key"]: t for t in client.get("/api/reports/meta").json()["tabs"]}
     assert tabs["geo"]["status"] == "available"
+
+
+def test_geo_headline_numbers_match_the_observatory(db, geo_property):
+    """One definition of AI visibility: the GEO summary equals the Observatory
+    evidence counts over the same answers."""
+    from app.services.observatory.drilldown import evidence
+
+    r = build_geo_report(db, geo_property.id)
+    vis = evidence(db, geo_property.id, "ai_visibility", days=365, today=date(2026, 6, 30))
+    cit = evidence(db, geo_property.id, "citation_rate", days=365, today=date(2026, 6, 30))
+    assert r["summary"]["mention_rate"]["numerator"] == vis["numerator"]
+    assert r["summary"]["mention_rate"]["denominator"] == vis["denominator"]
+    assert r["summary"]["citation_rate"]["numerator"] == cit["numerator"]
+    assert r["summary"]["definition"] == "observatory"
+
+
+def test_geo_window_limits_every_section(db, geo_property):
+    r = build_geo_report(db, geo_property.id, today=date(2026, 6, 3), days=2)
+    assert r["summary"]["queries_completed"] == 2  # June 2 and June 3 only
+    assert len(r["prompt_matrix"]["rows"]) == 2
+    assert r["window_days"] == 2

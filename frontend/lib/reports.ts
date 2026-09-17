@@ -319,6 +319,8 @@ export type GeoSummary = {
   ai_referral_sessions: { sessions: number; last_data_date: string } | null;
   last_run: string | null;
   sufficient: boolean;
+  // "observatory": the rates are the AI Visibility tab's own definitions.
+  definition?: string;
 };
 
 export type GeoSufficiency = {
@@ -377,7 +379,6 @@ export type GeoTrends = {
   state: DataStateKey;
   points: {
     date: string;
-    score: number | null;
     mention_rate: number | null;
     sample_size: number;
     sufficient: boolean;
@@ -428,9 +429,10 @@ export type GeoEvidence = {
   detected_competitors: string[];
 };
 
-export const fetchGeoReport = (propertyId: number | null) => {
+export const fetchGeoReport = (propertyId: number | null, days?: number) => {
   const params = new URLSearchParams();
   if (propertyId !== null) params.set("property_id", String(propertyId));
+  if (days) params.set("days", String(days));
   return getJSON<GeoReport>(`/reports/geo?${params}`);
 };
 

@@ -146,11 +146,12 @@ def executive_report(
 @router.get("/geo")
 def geo_report(
     property_id: int | None = Query(default=None),
+    days: int | None = Query(default=None, ge=1, le=365),
     db: Session = Depends(get_db),
 ):
     if property_id is not None and db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
-    return build_geo_report(db, property_id)
+    return build_geo_report(db, property_id, days=days)
 
 
 @router.get("/aeo")

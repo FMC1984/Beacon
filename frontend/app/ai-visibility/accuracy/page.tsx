@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ClaimsPanel } from "@/components/observatory/IntelligencePanels";
-import { LegacyAnalysis } from "@/components/observatory/legacy/AnalysisPanel";
 import { NeedsProperty, Panel } from "@/components/observatory/ui";
 
 const STATUSES: [string, string][] = [
@@ -19,7 +18,6 @@ export default function AccuracyPage() {
   return (
     <div className="space-y-6">
       <ClaimsPanel propertyId={propertyId} />
-      <LegacyAnalysis propertyId={propertyId} only={["facts"]} />
       <Panel
         title="How accuracy is judged"
         subtitle="Claims AI answers make about the property are checked against Property Context. Beacon only says a claim conflicts when it has reliable evidence."

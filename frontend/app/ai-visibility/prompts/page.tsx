@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
-import { RunQueriesPanel } from "@/components/observatory/legacy/RunQueriesPanel";
 import { QueryFanoutsPanel } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, Panel, useLoad } from "@/components/observatory/ui";
 import {
@@ -235,12 +234,6 @@ export default function PromptsPage() {
 
       <QueryFanoutsPanel propertyId={propertyId} days={days} />
 
-      <Panel
-        title="One-off property query"
-        subtitle="Run a single prompt for this property now and inspect the stored answer with its provider evidence."
-      >
-        <RunQueriesPanel propertyId={propertyId} />
-      </Panel>
     </div>
   );
 }

@@ -17,11 +17,12 @@ Truth rules held here:
 - The report reads only stored responses; it never calls an AI platform.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.models import (
+    AIPropertyObservation,
     AIVisibilityQuery,
     AIVisibilityScoreHistory,
     Competitor,
@@ -29,12 +30,14 @@ from app.models import (
     Property,
 )
 from app.services.ai_visibility.parsing import detect_mention, extract_sources
-from app.services.ai_visibility.providers import read_queries
+from app.connectors.base import AIVisibilityRecord
 from app.services.ai_visibility.reference import (
     MIN_QUERIES_FOR_VISIBILITY,
     platform_label,
 )
 from app.services.competitor_intelligence import analyze_share_of_voice
+from app.services.observatory import utc_today
+from app.services.observatory.metrics import metric_from_counts
 from app.services.reporting import DataState, rate
 from app.services.source_classifier import (
     CATEGORY_LABELS,
@@ -48,7 +51,10 @@ MARKET_SHARE_LABEL = "Share of tested AI answers"
 METHODOLOGY_NOTE = (
     "These figures reflect AI answers Beacon tested by querying AI platforms "
     "directly, not what every user sees. Tested answers, AI referral sessions, "
-    "mentions, and citations are distinct and are never combined."
+    "mentions, and citations are distinct and are never combined. Mention rate "
+    "and citation rate are the AI Visibility Observatory's AI Visibility and "
+    "Citation Rate, computed over the same monitored answers, so the number "
+    "here is the number on the AI Visibility tab."
 )
 
 
@@ -98,56 +104,77 @@ def _ai_referral_sessions(db: Session, property_id: int) -> dict | None:
     return {"sessions": ai, "last_data_date": last.isoformat()}
 
 
-def _summary(db, prop, records, competitors):
-    n = len(records)
-    sufficient = n >= MIN_QUERIES_FOR_VISIBILITY
-    owned = _owned_domains(prop)
-    comp_terms, comp_domains, all_comp_domains = _competitor_index(competitors)
+def _observations(db: Session, property_id: int, since: datetime | None, until: datetime) -> list[AIPropertyObservation]:
+    q = db.query(AIPropertyObservation).filter(
+        AIPropertyObservation.property_id == property_id, AIPropertyObservation.eligible.is_(True),
+        AIPropertyObservation.observed_at < until,
+    )
+    if since is not None:
+        q = q.filter(AIPropertyObservation.observed_at >= since)
+    return q.order_by(AIPropertyObservation.observed_at).all()
 
-    mentions = sum(1 for r in records if r.brand_mentioned)
-    responses_with_citation = 0
-    owned_citations = 0
-    competitor_appearances = 0
-    for r in records:
-        cites = _citations(r)
-        if cites:
-            responses_with_citation += 1
-        if owned and any(
-            d == o or d.endswith("." + o) for d in cites for o in owned
-        ):
-            owned_citations += 1
-        if any(detect_mention(r.raw_response_text, comp_terms[c.id]) for c in competitors):
-            competitor_appearances += 1
 
-    platforms = sorted({r.platform for r in records})
+def _records(db: Session, property_id: int, observations) -> list[AIVisibilityRecord]:
+    """Stored responses behind the observations, newest first, with
+    brand_mentioned taken from the per-property observation so a shared
+    market answer reads the same here as on the AI Visibility tab."""
+    if not observations:
+        return []
+    by_response = {o.response_id: o for o in observations}
+    rows = (
+        db.query(AIVisibilityQuery)
+        .filter(AIVisibilityQuery.id.in_(list(by_response)))
+        .order_by(AIVisibilityQuery.executed_at.desc(), AIVisibilityQuery.id.desc())
+        .all()
+    )
+    return [
+        AIVisibilityRecord(
+            property_id=property_id, query_id=r.id, platform=r.platform, prompt_text=r.prompt_text,
+            raw_response_text=r.raw_response_text, executed_at=r.executed_at,
+            brand_mentioned=bool(by_response[r.id].mentioned), sources_cited=r.sources_cited or [],
+        )
+        for r in rows
+    ]
+
+
+def _summary(db, prop, observations):
+    """Headline figures from the Observatory's derived observations, with the
+    Observatory's own keys and sample gate: mention rate is AI Visibility
+    (mentioned / eligible), citation rate is Citation Rate (owned-site
+    citations / eligible). Responses citing anything at all is kept as a
+    separate count, never as the rate."""
+    n = len(observations)
+    mentions = sum(1 for o in observations if o.mentioned)
+    owned_citations = sum(1 for o in observations if o.cited)
+    any_citation = sum(1 for o in observations if (o.total_citation_count or 0) > 0)
+    competitor_appearances = sum(1 for o in observations if (o.competitor_mentioned_count or 0) > 0)
+    platforms = sorted({o.platform for o in observations})
     referral = _ai_referral_sessions(db, prop.id)
-
     return {
         "queries_completed": n,
-        "platforms_tested": [
-            {"key": p, "label": platform_label(p)} for p in platforms
-        ],
+        "platforms_tested": [{"key": p, "label": platform_label(p)} for p in platforms],
         "mention_count": mentions,
-        "citation_count": responses_with_citation,
-        "mention_rate": rate(mentions, n, MIN_QUERIES_FOR_VISIBILITY),
-        "citation_rate": rate(responses_with_citation, n, MIN_QUERIES_FOR_VISIBILITY),
+        "citation_count": any_citation,
+        "mention_rate": metric_from_counts("ai_visibility", mentions, n),
+        "citation_rate": metric_from_counts("citation_rate", owned_citations, n),
         "owned_domain_citations": owned_citations,
         "competitor_appearances": competitor_appearances,
         "ai_referral_sessions": referral,
-        "last_run": max((r.executed_at.date().isoformat() for r in records), default=None),
-        "sufficient": sufficient,
+        "last_run": max((o.observed_at.date().isoformat() for o in observations), default=None),
+        "sufficient": n >= MIN_QUERIES_FOR_VISIBILITY,
+        "definition": "observatory",
     }
 
 
-def _sufficiency(records):
-    n = len(records)
-    dates = sorted(r.executed_at.date() for r in records)
+def _sufficiency(observations):
+    n = len(observations)
+    dates = sorted(o.observed_at.date() for o in observations)
     return {
         "completed_queries": n,
         "minimum_required": MIN_QUERIES_FOR_VISIBILITY,
         "sufficient": n >= MIN_QUERIES_FOR_VISIBILITY,
-        # Beacon stores only completed runs; failed/not-run are surfaced as 0
-        # explicitly rather than silently omitted.
+        # Only scored answers are counted; failed and never-run attempts live
+        # in the ai_runs ledger and are surfaced as 0 here explicitly.
         "failed_queries": 0,
         "not_run_queries": 0,
         "date_span": (
@@ -155,7 +182,7 @@ def _sufficiency(records):
             if dates
             else None
         ),
-        "platforms_represented": sorted({r.platform for r in records}),
+        "platforms_represented": sorted({o.platform for o in observations}),
     }
 
 
@@ -223,7 +250,11 @@ def matrix_cell_evidence(db: Session, property_id: int, query_id: int) -> dict:
     """Evidence drawer for one matrix cell: the stored response and what Beacon
     deterministically detected in it. Stored data only."""
     q = db.get(AIVisibilityQuery, query_id)
-    if q is None or q.property_id != property_id:
+    obs = (
+        db.query(AIPropertyObservation).filter_by(property_id=property_id, response_id=query_id).one_or_none()
+        if q is not None else None
+    )
+    if q is None or (q.property_id != property_id and obs is None):
         raise ValueError("Query not found for this property.")
     prop = db.get(Property, property_id)
     competitors = db.query(Competitor).filter_by(property_id=property_id).all()
@@ -260,7 +291,7 @@ def matrix_cell_evidence(db: Session, property_id: int, query_id: int) -> dict:
         "platform_label": platform_label(q.platform),
         "run_date": q.executed_at.date().isoformat(),
         "response_excerpt": excerpt[:RESPONSE_EXCERPT_CHARS] + ("..." if truncated else ""),
-        "brand_mentioned": q.brand_mentioned,
+        "brand_mentioned": bool(obs.mentioned) if obs is not None else q.brand_mentioned,
         "cited_domains": cites,
         "owned_domains_cited": owned_cited,
         "detected_competitors": detected,
@@ -311,30 +342,27 @@ def _source_landscape(prop, records, competitors):
 # --- trends ------------------------------------------------------------------
 
 
-def _trends(db, property_id):
-    history = (
-        db.query(AIVisibilityScoreHistory)
-        .filter(AIVisibilityScoreHistory.property_id == property_id)
-        .order_by(AIVisibilityScoreHistory.captured_at)
-        .all()
-    )
-    points = [
-        {
-            "date": h.captured_at.date().isoformat(),
-            "score": h.score,  # null below the sample gate; shown as a gap
-            "mention_rate": h.mention_rate,
-            "sample_size": h.sample_size,
-            "sufficient": h.sample_size >= MIN_QUERIES_FOR_VISIBILITY,
-        }
-        for h in history
-    ]
+def _trends(observations):
+    """Daily AI Visibility over the same observations: mentioned / eligible
+    per day, null below the sample gate. The same series the Trends tab
+    draws, without depending on the rollup job having run."""
+    by_day: dict[date, list] = {}
+    for o in observations:
+        by_day.setdefault(o.observed_at.date(), []).append(o)
+    points = []
+    for day in sorted(by_day):
+        rows = by_day[day]
+        r = rate(sum(1 for o in rows if o.mentioned), len(rows), MIN_QUERIES_FOR_VISIBILITY)
+        points.append({
+            "date": day.isoformat(),
+            "mention_rate": r["value"],
+            "sample_size": len(rows),
+            "sufficient": r["value"] is not None,
+        })
     return {
         "state": DataState.COMPLETE.value if points else DataState.AWAITING_DATA.value,
         "points": points,
-        "note": (
-            "Score and mention-rate points are null when that capture was below "
-            "the minimum query sample."
-        ),
+        "note": "Days below the minimum answer sample show no rate rather than a misleading point.",
     }
 
 
@@ -342,9 +370,15 @@ def _trends(db, property_id):
 
 
 def build_geo_report(
-    db: Session, property_id: int | None, today: date | None = None
+    db: Session, property_id: int | None, today: date | None = None, days: int | None = None
 ) -> dict:
-    today = today or date.today()
+    """`days` limits every section to a trailing window ending today; None
+    means all history (what the report showed before it had a window)."""
+    # UTC, like the Observatory, so the report's window ends on the same day
+    # as the AI Visibility tab's and the two never disagree by one day's runs.
+    today = today or utc_today()
+    since = datetime.combine(today - timedelta(days=days - 1), datetime.min.time()) if days else None
+    until = datetime.combine(today + timedelta(days=1), datetime.min.time())
     if property_id is None:
         return {
             "scope_required": True,
@@ -354,7 +388,8 @@ def build_geo_report(
     if prop is None:
         raise ValueError("Property not found.")
 
-    records = read_queries(db, property_id)
+    observations = _observations(db, property_id, since, until)
+    records = _records(db, property_id, observations)
     competitors = db.query(Competitor).filter_by(property_id=property_id).order_by(Competitor.name).all()
 
     if not records:
@@ -364,7 +399,7 @@ def build_geo_report(
             "property_name": prop.name,
             "has_queries": False,
             "methodology": METHODOLOGY_NOTE,
-            "sufficiency": _sufficiency(records),
+            "sufficiency": _sufficiency(observations),
             "message": (
                 "No AI Visibility queries have been run for this property yet. "
                 "Run a standing prompt set from the AI Visibility page to build "
@@ -387,10 +422,11 @@ def build_geo_report(
         "has_queries": True,
         "methodology": METHODOLOGY_NOTE,
         "generated_on": today.isoformat(),
-        "summary": _summary(db, prop, records, competitors),
-        "sufficiency": _sufficiency(records),
+        "window_days": days,
+        "summary": _summary(db, prop, observations),
+        "sufficiency": _sufficiency(observations),
         "prompt_matrix": _matrix(prop, records, competitors),
         "source_landscape": _source_landscape(prop, records, competitors),
         "competitor_share": competitor_share,
-        "trends": _trends(db, property_id),
+        "trends": _trends(observations),
     }

@@ -75,10 +75,11 @@ function SummaryCards({ report }: { report: Extract<GeoReportData, { has_queries
       <ReportMetricCard label="Queries completed" state="complete" value={fmtNum(s.queries_completed)} source="AI Visibility" lastDataDate={last}
         drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "queries_completed", days: days } : undefined} />
       <ReportMetricCard label="Platforms tested" state="complete" value={fmtNum(s.platforms_tested.length)} source="AI Visibility" lastDataDate={last} stateDetail={s.platforms_tested.map((p) => p.label).join(", ")} />
-      {rateCard("Mention rate", s.mention_rate, "responses")}
-      {rateCard("Citation rate", s.citation_rate, "responses")}
+      {rateCard("AI Visibility (mention rate)", s.mention_rate, "monitored answers")}
+      {rateCard("Citation Rate (your site cited)", s.citation_rate, "monitored answers")}
       <ReportMetricCard label="Mention count" state="complete" value={fmtNum(s.mention_count)} source="AI Visibility" lastDataDate={last}
         drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "mention_count", days: days } : undefined} />
+      <ReportMetricCard label="Answers citing any source" state="complete" value={fmtNum(s.citation_count)} source="AI Visibility" lastDataDate={last} />
       <ReportMetricCard label="Owned-domain citations" state="complete" value={fmtNum(s.owned_domain_citations)} source="AI Visibility" lastDataDate={last}
         drill={scope.propertyId !== null ? { propertyId: scope.propertyId, card: "owned_domain_citations", days: days } : undefined} />
       <ReportMetricCard label="Competitor appearances" state="complete" value={fmtNum(s.competitor_appearances)} source="AI Visibility" lastDataDate={last} />
@@ -322,7 +323,7 @@ function CompetitorShare({ report }: { report: Extract<GeoReportData, { has_quer
 }
 
 export function GeoReport() {
-  const { scope } = useReportContext();
+  const { scope, days } = useReportContext();
   const [data, setData] = useState<GeoReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -332,14 +333,14 @@ export function GeoReport() {
     let cancelled = false;
     setData(null);
     setError(null);
-    fetchGeoReport(scope.propertyId)
+    fetchGeoReport(scope.propertyId, days)
       .then((d) => !cancelled && setData(d))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope.propertyId, attempt]);
+  }, [scope.propertyId, days, attempt]);
 
   function openEvidence(queryId: number) {
     if (data === null || data.scope_required || !("has_queries" in data) || !data.has_queries) return;
@@ -380,15 +381,15 @@ export function GeoReport() {
       </Section>
 
       {data.trends.points.length > 0 && (
-        <Section title="Visibility trend" sub={data.trends.note}>
+        <Section title="AI Visibility by day" sub={data.trends.note}>
           <ul className="space-y-1 text-sm">
             {data.trends.points.map((p, i) => (
               <li key={i} className="flex items-center gap-3">
                 <span className="w-28 text-muted">{fmtDate(p.date)}</span>
-                <span className="w-24">
-                  {p.score !== null ? `Score ${p.score}` : "Below sample"}
+                <span className="w-32">
+                  {p.mention_rate !== null ? `AI Visibility ${fmtPct(p.mention_rate)}` : "Below sample"}
                 </span>
-                <span className="text-xs text-muted">{p.sample_size} queries</span>
+                <span className="text-xs text-muted">{p.sample_size} answers</span>
               </li>
             ))}
           </ul>

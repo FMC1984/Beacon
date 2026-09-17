@@ -108,6 +108,13 @@ def _metric(key: str, numerator: int, denominator: int, minimum: int = MIN_QUERI
     }
 
 
+def metric_from_counts(key: str, numerator: int, denominator: int) -> dict:
+    """Public shape builder for readers that count observations directly
+    (the GEO report) so their figures carry the same key, label, formula and
+    sample gate as the Observatory's own."""
+    return _metric(key, numerator, denominator)
+
+
 def share_of_voice_metric(property_mentions: int, competitor_mentions: int, sample_size: int) -> dict:
     """Phase 18 semantics exactly: property / (property + competitor
     mentions), gated on the RESPONSE sample (not the mention total), null
