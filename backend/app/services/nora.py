@@ -27,6 +27,7 @@ from app.services.correlation import (
 from app.services.nora_llm import NoraLLM
 from app.services.rag.embedder import Embedder
 from app.services.rag.retriever import retrieve
+from app.services.observatory.summary import explain_visibility_change
 from app.services.reporting_share_of_voice import explain_sov_change
 
 _CORRELATION_TOPIC = re.compile(
@@ -41,6 +42,14 @@ _AI_TOPIC = re.compile(
 _SOV_TOPIC = re.compile(
     r"share of voice|\bsov\b|losing ground|gaining ground|ahead of|behind "
     r"(?:the )?competitor|competitive rank|out-?mention",
+    re.IGNORECASE,
+)
+
+_VISIBILITY_TOPIC = re.compile(
+    r"ai visibility|visibility (?:score|rate|drop|dropped|fell|fall|change|changed|"
+    r"up|down|rose|rising|declin)|mention rate|citation rate|being cited|"
+    r"recommendation rate|(?:chatgpt|gemini|perplexity|copilot|claude|ai answers?) "
+    r"(?:mention|cite|cited|recommend|name)",
     re.IGNORECASE,
 )
 
@@ -82,6 +91,22 @@ SOV_NO_DIAGNOSIS_PROMPT = """
   explain WHY it changed. Do not hypothesize a specific cause."""
 
 
+VISIBILITY_DIAGNOSIS_PROMPT = """
+- The user is asking about an AI Visibility change. A code-verified
+  contributor exists: answers to "{prompt}" moved {point_change_pts} pts in
+  the same direction as the overall AI Visibility change of {aggregate_pts}
+  pts between the previous and current period. State this as a SUPPORTED
+  DIAGNOSIS - the change is concentrated in that question - but do not
+  claim it is the sole cause; other unmeasured factors may also matter."""
+
+VISIBILITY_NO_DIAGNOSIS_PROMPT = """
+- The user is asking about an AI Visibility change. Beacon does not have
+  enough question-level data to point to a specific contributor. You may
+  state the OBSERVATION (the current-vs-previous numbers, if the excerpts
+  contain them), but you must explicitly say there is not enough data yet
+  to explain WHY it changed. Do not hypothesize a specific cause."""
+
+
 def sanitize(text: str) -> str:
     """Code enforcement of hard rule 7: no em dashes in generated copy."""
     text = re.sub(r"\s*—\s*", ", ", text)
@@ -96,6 +121,10 @@ def is_correlation_question(question: str) -> bool:
 
 def is_sov_question(question: str) -> bool:
     return bool(_SOV_TOPIC.search(question))
+
+
+def is_visibility_question(question: str) -> bool:
+    return bool(_VISIBILITY_TOPIC.search(question))
 
 
 def insufficient_data_template(unmet: list[str]) -> str:
@@ -164,6 +193,9 @@ def ask(
     # explanations (compute-then-template, never let the model guess why).
     sov_q = is_sov_question(question)
     sov_contributor = explain_sov_change(db, property_id) if sov_q and property_id else None
+    # Third gate, same posture, for AI Visibility (Observatory) changes.
+    vis_q = is_visibility_question(question) and not sov_q
+    vis_contributor = explain_visibility_change(db, property_id) if vis_q and property_id else None
 
     correlation_q = is_correlation_question(question)
     if correlation_q and not gate_passed:
@@ -191,6 +223,16 @@ def ask(
                 )
                 if sov_contributor
                 else SOV_NO_DIAGNOSIS_PROMPT
+            )
+        if vis_q:
+            system += (
+                VISIBILITY_DIAGNOSIS_PROMPT.format(
+                    prompt=vis_contributor["prompt"],
+                    point_change_pts=round(vis_contributor["point_change"] * 100),
+                    aggregate_pts=round(vis_contributor["aggregate_point_change"] * 100),
+                )
+                if vis_contributor
+                else VISIBILITY_NO_DIAGNOSIS_PROMPT
             )
         excerpts = "\n\n".join(
             f"[{i}] ({c.citation.source_table}, "
@@ -232,6 +274,13 @@ def ask(
             "periods_confirmed": inputs.periods_confirmed,
             "unmet": unmet,
         },
+        "visibility_gate": (
+            {"has_diagnosis": True, **vis_contributor}
+            if vis_contributor
+            else {"has_diagnosis": False}
+            if vis_q
+            else None
+        ),
         "sov_gate": (
             {"has_diagnosis": True, **sov_contributor}
             if sov_contributor

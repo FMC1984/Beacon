@@ -80,6 +80,28 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P1d: Nora reads the Observatory (2026-09-16, 827 tests)
+- `services/observatory/summary.py`: `observatory_summary_text` builds one
+  deterministic chunk per property from the same rollups the Overview
+  reads (AI Visibility, Citation Rate, Recommendation Rate, Share of Voice
+  with point changes and labels), `source_influence` top domains, cited
+  pages that do not mention the property, rankings by question (needs-work
+  rows with the leader), open claim conflicts and open alerts. None below
+  the monitoring sample minimum. `explain_visibility_change` mirrors
+  `explain_sov_change` over `ai_cluster_visibility_daily`: the one cluster
+  whose change covers at least half the aggregate move in the same
+  direction, both windows sufficient, aggregate at least 3 points
+  (`MIN_AGGREGATE_CHANGE`), else None.
+- RAG: source `ai_observatory` (`_ai_observatory_chunks`,
+  `chroma_id ai_observatory-p{id}`); the `ai_visibility`, `competitors` and
+  `property_context` widen lists refresh it. Existing hosted indexes pick it
+  up at the next sync or a full rebuild from Admin.
+- Nora: `is_visibility_question`, `VISIBILITY_DIAGNOSIS_PROMPT` /
+  `VISIBILITY_NO_DIAGNOSIS_PROMPT`, `visibility_gate` in the ask result
+  (null for unrelated questions; Share of Voice questions keep their own
+  gate and never trigger both).
+- Tests: `tests/test_flow_nora_observatory.py` (8).
+
 ### Flow P1c: one definition of AI visibility (2026-09-16, 819 tests)
 - `reporting_geo.py`: summary, sufficiency and the daily trend now come from
   `ai_property_observations` (eligible rows for the property), using
@@ -1342,7 +1364,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **819**, all passing. Always run the full
+change (shown on `/admin`). Current: **827**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

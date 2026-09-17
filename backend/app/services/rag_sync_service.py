@@ -96,9 +96,9 @@ def process_job(
             elif job.source == "ai_visibility":
                 # New AI Visibility data feeds competitor share-of-voice and
                 # Phase 18 AI Share of Voice too.
-                sources = ["ai_visibility", "competitor_intelligence", "share_of_voice"]
+                sources = ["ai_visibility", "competitor_intelligence", "share_of_voice", "ai_observatory"]
             elif job.source == "competitors":
-                sources = ["competitor_intelligence", "share_of_voice"]
+                sources = ["competitor_intelligence", "share_of_voice", "ai_observatory"]
             elif job.source == "reviews":
                 sources = ["reviews", "review_intelligence"]
             elif job.source == "property_context":
@@ -106,7 +106,7 @@ def process_job(
                 # Intelligence, and the AI Visibility hallucination hook).
                 sources = [
                     "property_context", "content_intelligence",
-                    "review_intelligence", "ai_visibility",
+                    "review_intelligence", "ai_visibility", "ai_observatory",
                 ]
             elif job.source:
                 sources = [job.source]

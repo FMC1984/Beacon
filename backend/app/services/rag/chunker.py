@@ -43,6 +43,7 @@ SOURCE_COMPETITOR_INTELLIGENCE = "competitor_intelligence"
 SOURCE_OPPORTUNITY_ENGINE = "opportunity_engine"
 SOURCE_SHARE_OF_VOICE = "share_of_voice"
 SOURCE_SEO_PERFORMANCE = "seo_performance"
+SOURCE_AI_OBSERVATORY = "ai_observatory"
 
 
 @dataclass(frozen=True)
@@ -428,6 +429,32 @@ def _opportunity_engine_chunks(
     ]
 
 
+def _ai_observatory_chunks(db: Session, prop: Property) -> list[Chunk]:
+    """One deterministic AI Visibility Observatory chunk per property (flow
+    P1): the Overview's labeled metrics, top sources, cited pages that do not
+    mention the property, rankings by question, open fact conflicts and
+    alerts. Empty below the monitoring sample minimum. Distinct from the
+    legacy ai_visibility and share_of_voice chunks; never fused."""
+    from app.services.observatory.summary import observatory_summary_text
+
+    text = observatory_summary_text(db, prop.id)
+    if not text:
+        return []
+    return [
+        Chunk(
+            chroma_id=f"ai_observatory-p{prop.id}",
+            property_id=prop.id,
+            source=SOURCE_AI_OBSERVATORY,
+            source_table="ai_observatory",
+            source_ref=f"ai_observatory: property={prop.id}",
+            period_start=None,
+            period_end=None,
+            text=text,
+            page=None,
+        )
+    ]
+
+
 def _seo_performance_chunks(db: Session, prop: Property) -> list[Chunk]:
     """One deterministic SEO-performance chunk per property (striking-distance
     queries by name with position/impressions/clicks, low-CTR queries, and
@@ -612,6 +639,8 @@ def build_chunks(
             chunks.extend(_share_of_voice_chunks(db, prop))
         if want(SOURCE_SEO_PERFORMANCE):
             chunks.extend(_seo_performance_chunks(db, prop))
+        if want(SOURCE_AI_OBSERVATORY):
+            chunks.extend(_ai_observatory_chunks(db, prop))
         if content_provider is not None:
             if want(SOURCE_CONTENT):
                 chunks.extend(_content_chunks(db, prop, content_provider))
