@@ -53,6 +53,9 @@ from app.services.observatory.costs import cost_report
 from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
 from app.services.observatory.benchmark import property_benchmark
 from app.services.observatory.derivation import backfill_observations
+from app.services.observatory.platform_breakdown import platform_breakdown
+from app.services.observatory.source_matrix import source_matrix
+from app.services.observatory.standing import property_standing
 from app.services.observatory.dimensions import visibility_dimensions
 from app.services.observatory.topic_rankings import topic_rankings
 from app.services.observatory.drilldown import (
@@ -1038,3 +1041,23 @@ def benchmark(
     properties (all, and same segment); UNAVAILABLE below the pool minimum."""
     _require_property(db, property_id)
     return property_benchmark(db, property_id, days=days, today=_today(today))
+
+
+def _windowed(fn):
+    def route(
+        property_id: int = Query(...),
+        days: int = Query(default=30, ge=1, le=365),
+        today: date | None = Query(default=None),
+        db: Session = Depends(get_db),
+    ):
+        _require_property(db, property_id)
+        return fn(db, property_id, days=days, today=_today(today))
+    return route
+
+
+router.add_api_route("/platforms", _windowed(platform_breakdown), methods=["GET"],
+                     summary="Per-platform metrics and top sources, with honest availability for platforms not connected")
+router.add_api_route("/sources/matrix", _windowed(source_matrix), methods=["GET"],
+                     summary="Source Influence Matrix: influence, presence, competitor advantage and action per cited domain")
+router.add_api_route("/standing", _windowed(property_standing), methods=["GET"],
+                     summary="Market rank and confirmed comp-set rank")

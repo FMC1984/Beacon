@@ -75,7 +75,9 @@
       "supports_source_capture": false,
       "supports_location": false,
       "supports_model_selection": false,
-      "supports_raw_response": false
+      "supports_raw_response": false,
+      "availability": "no_api",
+      "availability_note": "Microsoft offers no API for Copilot answers. Beacon shows it as unavailable rather than guessing."
     },
     {
       "key": "claude",
@@ -90,6 +92,38 @@
       "supports_location": true,
       "supports_model_selection": true,
       "supports_raw_response": true
+    },
+    {
+      "key": "grok",
+      "label": "Grok (xAI)",
+      "connector": "xai",
+      "live": false,
+      "default_model": null,
+      "supports_web_search": false,
+      "supports_search_query_capture": false,
+      "supports_citation_capture": false,
+      "supports_source_capture": false,
+      "supports_location": false,
+      "supports_model_selection": false,
+      "supports_raw_response": false,
+      "availability": "planned",
+      "availability_note": "Connector planned. The roster, rollups and reports already carry the platform; nothing is called until the connector is built and a key is added."
+    },
+    {
+      "key": "google_ai_overviews",
+      "label": "Google AI Overviews",
+      "connector": null,
+      "live": false,
+      "default_model": null,
+      "supports_web_search": false,
+      "supports_search_query_capture": false,
+      "supports_citation_capture": false,
+      "supports_source_capture": false,
+      "supports_location": false,
+      "supports_model_selection": false,
+      "supports_raw_response": false,
+      "availability": "no_api",
+      "availability_note": "Google offers no API for AI Overviews or AI Mode. Gemini with Google Search grounding is the closest measurable proxy."
     }
   ],
   "property_type_synonyms": {

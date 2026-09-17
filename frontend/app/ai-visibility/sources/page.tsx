@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { TopCitationPagesPanel } from "@/components/observatory/RankingPanels";
+import { SourceMatrixPanel } from "@/components/observatory/StandingPanels";
 import {
   FormulaNote,
   LoadState,
@@ -23,6 +24,7 @@ export default function SourcesPage() {
 
   return (
     <div className="space-y-6">
+      <SourceMatrixPanel propertyId={propertyId} days={days} />
       <Panel
         title="Source influence"
         label="MEASURED"

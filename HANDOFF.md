@@ -80,6 +80,40 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Competitive roadmap 1-3: platform structure, Source Influence Matrix, standing (2026-09-17, 848 tests)
+Context: LeasingAI and Peek Discover are multifamily-specific AI visibility
+products. Beacon's wedge is independent, evidence-first measurement, a truth
+layer, and portfolio pattern detection. No new AI spend in this slice.
+- **Platforms**: `ai_visibility.json` roster adds `grok` (connector
+  planned) and `google_ai_overviews` (no API); `copilot` marked no_api.
+  `reference.platform_availability(key)` returns one of live | needs_key
+  (with the env var) | planned | no_api. The factory never calls an unbuilt
+  connector. `services/observatory/platform_breakdown.py` +
+  `GET /ai-observatory/platforms`: per-platform metrics from that
+  platform's own rollups and its top cited sources; unconnected platforms
+  show why. `PlatformPanel` on the Overview. Adding a key lights up a row
+  with no code change.
+- **Source Influence Matrix**: `services/observatory/source_matrix.py` +
+  `GET /ai-observatory/sources/matrix`. Per cited domain: share and tier
+  (`HIGH_INFLUENCE` 15%, `MEDIUM_INFLUENCE` 5%), presence from the cached
+  cited pages (owned | present | absent | unknown; unread is never absent),
+  tracked competitors named on those pages, competitor advantage, share by
+  platform, and a rule-based action (expand, strengthen, study, fix,
+  opportunity, maintain, monitor, check, verify). `accuracy` is always null
+  until the Truth layer exists. `SourceMatrixPanel` leads the Sources tab.
+- **Standing**: `services/observatory/standing.py` +
+  `GET /ai-observatory/standing`. Market rank by AI Visibility among the
+  monitored communities in the city (says so when it is the only one, and
+  counts the other communities AI names that nobody tracks); comp-set rank
+  by answers naming the property and each confirmed competitor, with which
+  topics the competitors ahead are winning. `StandingStrip` tops the
+  Overview.
+- Next in this roadmap: Areas of Concern (topic gaps with the competitor
+  explanation), Truth Layer v1, AI Readability v1 (raw HTML), action
+  lifecycle with automatic retest, portfolio pattern detection, Content Fix
+  workspace (drafts only).
+- Tests: `tests/test_flow_platforms_matrix_standing.py` (8).
+
 ### Naming: no "IQ" modules (2026-09-17)
 - Tina does not want anything that could look like mimicking Yardi product
   names. "Content IQ", "Review IQ" and "Competitor IQ" are now "Content
@@ -1454,7 +1488,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **840**, all passing. Always run the full
+change (shown on `/admin`). Current: **848**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

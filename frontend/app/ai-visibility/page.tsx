@@ -5,6 +5,7 @@ import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
 import { BenchmarkPanel } from "@/components/observatory/BenchmarkPanel";
+import { PlatformPanel, StandingStrip } from "@/components/observatory/StandingPanels";
 import { ThisWeekStrip } from "@/components/observatory/ThisWeekStrip";
 import { EvidenceDrawer, PositionPanel, SentimentPanel, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
@@ -50,6 +51,8 @@ export default function ObservatoryOverviewPage() {
             {data.previous_window.end}.
           </p>
 
+          <StandingStrip propertyId={data.property_id} days={days} />
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {ORDER.map((k) => (
               <ObsMetricCard key={k} metric={data.metrics[k]} onDrill={k === "prompt_coverage" ? undefined : drawer.open} />
@@ -59,6 +62,8 @@ export default function ObservatoryOverviewPage() {
           <ThisWeekStrip propertyId={data.property_id} />
 
           <BenchmarkPanel propertyId={data.property_id} days={days} />
+
+          <PlatformPanel propertyId={data.property_id} days={days} />
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Panel

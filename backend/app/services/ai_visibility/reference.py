@@ -55,6 +55,23 @@ def is_live_platform(key: str) -> bool:
     return False
 
 
+def platform_availability(key: str) -> dict:
+    """Why a platform is or is not producing answers, in one of four honest
+    states: live, needs_key (connector built, dormant), planned (roster only,
+    connector not built), no_api (the vendor offers nothing to query)."""
+    p = platform_config(key) or {}
+    connector = p.get("connector")
+    if is_live_platform(key):
+        return {"state": "live", "detail": "Connected and monitored."}
+    if connector in KEYED_CONNECTORS:
+        env = "BEACON_" + KEYED_CONNECTORS[connector].upper()
+        return {"state": "needs_key", "env_var": env,
+                "detail": f"Connector built and dormant. Add {env} to switch it on; nothing is called until then."}
+    state = p.get("availability") or ("no_api" if connector is None else "planned")
+    return {"state": state, "detail": p.get("availability_note") or (
+        "No API Beacon can query." if state == "no_api" else "Connector planned, not built yet.")}
+
+
 def platform_config(key: str) -> dict | None:
     for p in platforms():
         if p["key"] == key:

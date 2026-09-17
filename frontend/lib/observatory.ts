@@ -807,3 +807,83 @@ export type Benchmark = {
 
 export const fetchBenchmark = (propertyId: number, days: number) =>
   getJSON<Benchmark>(`${BASE}/benchmark?${qs({ property_id: propertyId, days })}`);
+
+// --- Platform breakdown, Source Influence Matrix, standing -------------------
+
+export type PlatformAvailability = { state: "live" | "needs_key" | "planned" | "no_api"; detail: string; env_var?: string };
+
+export type PlatformRow = {
+  platform: string;
+  label: string;
+  availability: PlatformAvailability;
+  answers: number;
+  ai_visibility: ObsMetric;
+  citation_rate: ObsMetric;
+  share_of_voice: ObsMetric;
+  recommendation_rate: ObsMetric;
+  top_sources: { domain: string; citations: number; share: number }[];
+  total_citations: number;
+};
+
+export type PlatformBreakdown = { property_id: number; data_label: DataLabel; platforms: PlatformRow[]; live: number; note: string };
+
+export type SourceAction = "expand" | "strengthen" | "study" | "fix" | "opportunity" | "maintain" | "monitor" | "check" | "verify";
+
+export type SourceMatrixRow = {
+  domain: string;
+  source_type: string | null;
+  citations: number;
+  share: number;
+  influence: "high" | "medium" | "low";
+  presence: "owned" | "present" | "absent" | "unknown";
+  pages: { cited: number; read: number; unreachable: number };
+  competitors_named: string[];
+  competitor_advantage: "high" | "shared" | "none" | "unknown";
+  accuracy: null;
+  by_platform: Record<string, number>;
+  action: SourceAction;
+  action_text: string;
+};
+
+export type SourceMatrix = {
+  property_id: number;
+  data_label: DataLabel;
+  total_citations: number;
+  distinct_sources?: number;
+  sources: SourceMatrixRow[];
+  platforms: string[];
+  accuracy_note?: string;
+  note?: string;
+};
+
+export type Standing = {
+  property_id: number;
+  data_label: DataLabel;
+  market:
+    | { available: false; reason: string; monitored?: number; also_named?: number }
+    | { available: true; rank: number; size: number; monitored: number; tied: boolean; ai_visibility: number; also_named: number; only_one: boolean };
+  comp_set:
+    | { available: false; reason: string; answers?: number }
+    | {
+        available: true;
+        answers: number;
+        size: number;
+        rank: number | null;
+        tied: boolean;
+        ranked: { name: string; is_property: boolean; mentions: number; rank: number }[];
+        unranked: string[];
+        beating: number;
+        competitors: number;
+        ahead_of_you: { name: string; winning_on: string[] }[];
+      };
+  note: string;
+};
+
+export const fetchPlatformBreakdown = (propertyId: number, days: number) =>
+  getJSON<PlatformBreakdown>(`${BASE}/platforms?${qs({ property_id: propertyId, days })}`);
+
+export const fetchSourceMatrix = (propertyId: number, days: number) =>
+  getJSON<SourceMatrix>(`${BASE}/sources/matrix?${qs({ property_id: propertyId, days })}`);
+
+export const fetchStanding = (propertyId: number, days: number) =>
+  getJSON<Standing>(`${BASE}/standing?${qs({ property_id: propertyId, days })}`);
