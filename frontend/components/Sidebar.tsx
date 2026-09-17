@@ -73,9 +73,9 @@ const GROUPS: Group[] = [
     label: "Understand",
     hint: "Why, and who wins instead?",
     items: [
-      { href: "/competitors", label: "Competitor IQ", icon: "competitors" },
-      { href: "/content-intelligence", label: "Content IQ", icon: "content" },
-      { href: "/review-intelligence", label: "Review IQ", icon: "reviews" },
+      { href: "/competitors", label: "Competitor Analysis", icon: "competitors" },
+      { href: "/content-intelligence", label: "Content Analysis", icon: "content" },
+      { href: "/review-intelligence", label: "Review Analysis", icon: "reviews" },
       { href: "/ai-query-signals", label: "AI Query Signals", icon: "signals" },
     ],
   },

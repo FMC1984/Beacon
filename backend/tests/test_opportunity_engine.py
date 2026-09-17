@@ -39,11 +39,11 @@ def _prop(db, name="Opp Prop"):
 
 
 def test_empty_property_has_only_add_content(db):
-    # Even a bare property yields the Content IQ "add content" opportunity.
+    # Even a bare property yields the Content Analysis "add content" opportunity.
     p = _prop(db)
     a = build_opportunities(db, p.id)
     assert a["total"] >= 1
-    assert a["by_source"]["Content IQ"] >= 1
+    assert a["by_source"]["Content Analysis"] >= 1
     assert a["opportunities"][0]["source"] == "content"
 
 
@@ -61,7 +61,7 @@ def _parking_reviews(db, pid, n=5):
 def test_aggregates_multiple_sources(db):
     p = _prop(db)
     # Content with a parking gap + enough negative parking reviews to trigger a
-    # Review IQ parking opportunity.
+    # Review Analysis parking opportunity.
     db.add(PropertyContent(
         property_id=p.id, page="amenities", title="Amenities",
         body="Resort-style pool and fitness center. Pet friendly with a dog park.",

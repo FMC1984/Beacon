@@ -2,7 +2,7 @@
 interfaces. The rest of the app asks a TrafficProvider / LeadProvider /
 LeaseProvider / ReviewProvider / ContentProvider for normalized records and
 never knows whether they came from local CSV imports, a CRM API, or a future
-Marketing IQ feed.
+marketing attribution feed.
 
 Current implementation: DevelopmentDataProvider (reads the local SQLite data
 ingested via manual uploads). Future implementations (MarketingIQProvider,

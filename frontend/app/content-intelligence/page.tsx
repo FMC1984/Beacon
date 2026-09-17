@@ -137,7 +137,7 @@ export default function ContentIntelligencePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Content Intelligence</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Content Analysis</h1>
           <p className="mt-1 text-sm text-muted">
             How well your website content serves renters and search intent. Every
             score is explainable and grounded in your ingested content.

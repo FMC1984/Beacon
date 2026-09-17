@@ -139,7 +139,7 @@ def test_narrative_has_no_em_dashes(client, exec_property, db):
 
 
 def test_narrative_bare_property_surfaces_only_supported_sentences(client, db):
-    # A property with no traffic/visibility data still gets Content IQ's
+    # A property with no traffic/visibility data still gets Content Analysis's
     # "add content" recommendation, so the narrative honestly reports that
     # single supported sentence rather than inventing performance claims.
     prop = make_property(client, "Bare Property")

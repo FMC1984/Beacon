@@ -345,13 +345,13 @@ def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
             wins.append(_item(
                 f"Recent review rating rose to {ar['recent']}/5 from {ar['prior']}/5.",
                 ["Review Intelligence: recent vs prior window"],
-                "Review IQ", "/review-intelligence", "reviews",
+                "Review Analysis", "/review-intelligence", "reviews",
             ))
         elif ar["recent"] < ar["prior"]:
             risks.append(_item(
                 f"Recent review rating slipped to {ar['recent']}/5 from {ar['prior']}/5.",
                 ["Review Intelligence: recent vs prior window"],
-                "Review IQ", "/review-intelligence", "reviews",
+                "Review Analysis", "/review-intelligence", "reviews",
             ))
     neg = rmetrics.get("negative_reviews")
     if neg and neg.get("recent") is not None and neg.get("prior") is not None \
@@ -359,7 +359,7 @@ def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
         trends.append(_item(
             f"Negative reviews rising: {neg['recent']} recent vs {neg['prior']} prior.",
             ["Review Intelligence: negative review counts"],
-            "Review IQ", "/review-intelligence", "reviews",
+            "Review Analysis", "/review-intelligence", "reviews",
         ))
 
     # Complaint themes with severity are emerging patterns worth watching.
@@ -369,7 +369,7 @@ def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
             trends.append(_item(
                 f"Residents keep raising {str(label).lower()} in reviews.",
                 [f"Review Intelligence: complaint severity {opp.get('severity', 'n/a')}"],
-                "Review IQ", "/review-intelligence", "reviews",
+                "Review Analysis", "/review-intelligence", "reviews",
             ))
 
     # AI visibility trajectory across sufficient-scored captures.
@@ -554,7 +554,7 @@ def _strategic_questions(cards: dict, seo: dict, review: dict, story: dict) -> l
                 f"Does the website address {str(label).lower()}, which residents keep raising in reviews?",
                 "A recurring review complaint theme may need owned content that answers it.",
                 [f"Review Intelligence: {label}"],
-                {"label": "Review IQ", "href": "/review-intelligence"},
+                {"label": "Review Analysis", "href": "/review-intelligence"},
             ))
 
     return qs[:MAX_QUESTIONS]
@@ -658,7 +658,7 @@ def _adaptive_sections(sources: dict) -> list[dict]:
         "key": "competitors",
         "label": "Competitor Intelligence",
         "connected": False,
-        "message": "Add competitors on the Competitor IQ page to compare share "
+        "message": "Add competitors on the Competitor Analysis page to compare share "
                    "of tested AI answers. Beacon never guesses competitors.",
         "cta": "Add competitors",
     })

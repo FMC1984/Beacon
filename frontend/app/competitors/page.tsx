@@ -134,7 +134,7 @@ export default function CompetitorsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Competitor IQ</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Competitor Analysis</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
             AI-answer share of voice: across your AI Visibility queries, how often
             ChatGPT mentions you versus competitors you name. Directional, from a

@@ -219,7 +219,7 @@ RESOLVERS = {
     "top_city": ("GA4", _ga4_by_city),
     "ai_landing_pages": ("GA4", lambda db, p, s, e: _ga4_by_landing(db, p, s, e, ai_only=True)),
     # Scores and engines
-    "content_score": ("Content IQ", _content_score_components),
+    "content_score": ("Content Analysis", _content_score_components),
     "actionable_opportunities": ("Opportunity Engine", _opportunities),
     # AI Visibility (observatory-backed)
     "ai_mention_rate": ("AI Visibility", lambda db, p, s, e: _ai_visibility(db, p, s, e, "ai_visibility")),

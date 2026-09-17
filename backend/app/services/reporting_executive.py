@@ -156,11 +156,11 @@ def _geo_card(av: dict) -> dict:
 
 def _content_card(ci: dict) -> dict:
     if not ci.get("has_content") or not ci.get("score"):
-        return _card("content_score", "Content Intelligence score", "Content IQ",
+        return _card("content_score", "Content Intelligence score", "Content Analysis",
                      DataState.AWAITING_DATA.value,
                      detail="No website content ingested for this property.")
     score = ci["score"]
-    return _card("content_score", "Content Intelligence score", "Content IQ",
+    return _card("content_score", "Content Intelligence score", "Content Analysis",
                  DataState.COMPLETE.value, value=score["value"],
                  detail=f"Grade {score['grade']}.")
 

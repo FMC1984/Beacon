@@ -130,8 +130,8 @@ export default function OpportunitiesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Opportunities</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            One prioritized to-do list, unified across Content IQ, Review IQ, AI
-            Query Signals, AI Visibility, and Competitor IQ. Context-gated;
+            One prioritized to-do list, unified across Content Analysis, Review Analysis, AI
+            Query Signals, AI Visibility, and Competitor Analysis. Context-gated;
             suppressed and not-enough-data items are shown honestly, not hidden.
           </p>
         </div>

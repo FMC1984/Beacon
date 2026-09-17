@@ -80,6 +80,21 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Naming: no "IQ" modules (2026-09-17)
+- Tina does not want anything that could look like mimicking Yardi product
+  names. "Content IQ", "Review IQ" and "Competitor IQ" are now "Content
+  Analysis", "Review Analysis" and "Competitor Analysis" everywhere:
+  sidebar, page titles, Opportunity Engine source labels, briefing and
+  executive cards, setup hints, tests and docs. Routes are unchanged
+  (`/content-intelligence`, `/review-intelligence`, `/competitors`).
+- Migration `d9e0f1a2b3c4` rewrites the old labels inside saved
+  `monthly_briefings.payload` snapshots (shared briefing links render
+  those). Data only. Nora's index text refreshes on the next sync or a
+  full RAG rebuild.
+- Rule going forward: plain descriptive names; never an "IQ" suffix or
+  another Yardi product lookalike. Naming a real data source (the Yardi CRM
+  CSV adapter, rentcafe.com as a cited directory) is fine.
+
 ### Flow P3b: cross-property benchmarks (2026-09-16, 840 tests)
 - `services/observatory/benchmark.py` `property_benchmark`: the property's
   AI Visibility, Citation Rate, Share of Voice and Recommendation Rate
@@ -198,7 +213,7 @@ run it again without checking which direction data should flow first.
 ### Flow P1b: sidebar grouped by stage (2026-09-16)
 - `components/Sidebar.tsx` groups now follow the flow: Overview (Dashboard,
   Monthly Briefing), Set up (Properties, Property Context, Data & Uploads),
-  Watch (AI Visibility), Understand (Competitor IQ, Content IQ, Review IQ,
+  Watch (AI Visibility), Understand (Competitor Analysis, Content Analysis, Review Analysis,
   AI Query Signals), Act (Opportunities), Prove (Reports), Assistant, System.
   Each group carries the question it answers as a tooltip (`hint`). Routes
   are unchanged; only order and labels moved.
@@ -273,7 +288,7 @@ run it again without checking which direction data should flow first.
   cards now call `useReportContext()` for scope and days).
 - `services/reporting_drilldown.py`: one registry (`RESOLVERS`) mapping each
   card key to the rows it came from: Search Console by query, GA4 by
-  source/medium, city or landing page, Content IQ score components,
+  source/medium, city or landing page, Content Analysis score components,
   Opportunity Engine actions, AI Visibility via the Observatory evidence.
   An unknown card returns `available: false` with a reason instead of an
   empty list that would imply nothing happened.
@@ -385,7 +400,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
     latter the property was the only brand named and every legacy Share of
     Voice read a meaningless 100% at rank "#1 of 1"; it now reads 54 to 64%.
 - Covered: Executive, Audience, SEO Performance, GEO Visibility, AEO
-  Readiness, Content Impact, AI Share of Voice, plus Content IQ, Review IQ
+  Readiness, Content Impact, AI Share of Voice, plus Content Analysis, Review Analysis
   and the Opportunity Engine. Semantic Intelligence stays "planned /
   deferred" in `/api/reports/meta`: that report is not built, which is a
   product gap, not a data gap, and the tab says so.
@@ -476,7 +491,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 - `content_gaps.evaluate_gaps(db, property_id, days, today)`: per active
   cluster assignment, needs >= 3 answers (cluster rollup), visibility <= 34%,
   and either competitor wins or cited sources. Evidence: absent response ids,
-  non-owned cited domains, tracked competitors named. Coverage via Content IQ
+  non-owned cited domains, tracked competitors named. Coverage via Content Analysis
   `matched_terms` over PropertyContent title+body with the taxonomy terms;
   target page = best-matching page, else topic -> canonical page map. No
   content -> Insufficient data. Gate: `gate_text` suppression, then
@@ -486,7 +501,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 - Opportunity Engine: new source `ai_observatory` ("AI Observatory") from
   `gap_opportunities`, citations `source_ref: ai_observatory: gap=, cluster=`.
   The Opportunities page now renders every card's citations (it previously
-  dropped Content IQ and SEO evidence too).
+  dropped Content Analysis and SEO evidence too).
 - `impact.impact_summary`: chain AI Visibility (MEASURED) -> generative-AI
   impressions (always UNAVAILABLE, the GSC API does not split them) -> GA4 AI
   referral sessions -> AI key events; a source with no rows in the period is
@@ -980,7 +995,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   measurable-demand, top review complaint theme vs website coverage. Each
   carries why + evidence + module link + a nora_question for the Ask Nora
   handoff. Capped at 5.
-- DCHP live: 3 corroborated-action insights (Content IQ + SEO Performance
+- DCHP live: 3 corroborated-action insights (Content Analysis + SEO Performance
   agreeing on maintenance/recertification content + striking-distance) and
   2 real precondition-generated questions.
 - Frontend: CrossSystemSection + QuestionsSection (each question launches
@@ -1000,7 +1015,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   through within the 14-day manual tolerance of month end to compare).
 - `_intel_cards()`: per-module what-happened + biggest-opportunity cards
   (seo/ai_visibility/content/reviews) with honest ok/no_data/not_connected
-  states; content card carries Content IQ's top recommendation.
+  states; content card carries Content Analysis's top recommendation.
 - Ask Nora handoff: briefing sections link to `/nora?property_id=&q=` with a
   section-aware question; the Nora page prefills question + property from
   window.location.search on mount (no Suspense needed, no backend change).
@@ -1028,7 +1043,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   window/prev_window overrides (internals already took tuples). Default
   briefing month anchors to the newest GSC month (the laggard source), not a
   partial current month.
-- `app/services/reporting_briefing.py` composes exec report + Review IQ +
+- `app/services/reporting_briefing.py` composes exec report + Review Analysis +
   source_status into: hero, per-module health (seo/ai_visibility/content/
   reviews/website; each with band rule + one-sentence reason + details link;
   not_connected / not_enough_data are EXCLUDED from the assessable count,
@@ -1162,7 +1177,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 
 ### Phase 16E — AEO Readiness report (2026-07-12, 487 tests)
 - `GET /api/reports/aeo` (`app/services/reporting_aeo.py`), per-property,
-  reuses Content IQ's `_question_coverage` and `_freshness` (no recompute):
+  reuses Content Analysis's `_question_coverage` and `_freshness` (no recompute):
   - Explainable weighted score. Seven deterministic components
     (question_coverage .30, answer_completeness .20, specificity .15,
     local_relevance .10, discoverability .10, freshness .05,
@@ -1240,7 +1255,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   Cards: organic clicks/impressions/sessions/key-events (from the SEO
   report's own summary cards), AI referral sessions + AI share (direct GA4
   query over the SEO report's exact window, so every metric shares one
-  period), AI mention rate (AI Visibility, sample-gated), Content IQ score,
+  period), AI mention rate (AI Visibility, sample-gated), Content Analysis score,
   actionable-opportunity count. AEO/semantic cards render an honest
   "arrives with a later phase" not_configured state, never zero.
 - Deterministic cited narrative (`_narrative`): sentences for largest

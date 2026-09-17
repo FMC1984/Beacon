@@ -167,4 +167,4 @@ def test_opportunity_engine_surfaces_topic_recommendation_under_competitors_sour
     protect_opps = [o for o in all_opps if "Protect" in o["title"]]
     assert protect_opps
     assert protect_opps[0]["source"] == "competitors"
-    assert protect_opps[0]["source_label"] == "Competitor IQ"
+    assert protect_opps[0]["source_label"] == "Competitor Analysis"

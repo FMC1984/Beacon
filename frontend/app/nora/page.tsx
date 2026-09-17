@@ -43,7 +43,7 @@ const SOURCE_LABELS: Record<string, string> = {
   ga4_sessions_daily: "GA4 traffic",
   ai_query_signals: "AI Query Signals",
   ai_visibility: "AI Visibility",
-  competitor_intelligence: "Competitor IQ",
+  competitor_intelligence: "Competitor Analysis",
   opportunity_engine: "Opportunities",
   gsc_performance_daily: "Search Console",
   gbp_metrics_daily: "Business Profile",

@@ -214,7 +214,7 @@ property may belong to one company or none (`company_id` is nullable; no company
 = the "Unassigned" bucket). The main dashboard asks for a company first and
 shows no data until one is chosen, then aggregates just that company's
 properties; you can drill into a single property from there. The company filter
-also appears on Nora, Content IQ, Review IQ, and Context (it narrows the
+also appears on Nora, Content Analysis, Review Analysis, and Context (it narrows the
 property picker). Manage companies on the Properties page. API:
 `GET/POST /api/companies`, `PATCH/DELETE /api/companies/{id}` - deleting a
 company unassigns its properties (sets `company_id` NULL) rather than deleting
@@ -269,7 +269,7 @@ A deterministic review-reasoning engine (no external AI, no sentiment model).
   `review_intelligence` chunk stating the score, complaints, praise, trends,
   and verbatim insufficient-data/compliance text. Replace-on-write; deleting a
   review removes its chunk. Nora answers review questions with citations.
-- **Dashboard** at `/review-intelligence` ("Review IQ" in the nav) with all six
+- **Dashboard** at `/review-intelligence` ("Review Analysis" in the nav) with all six
   sections and honest empty/insufficient states.
 
 ## 6c. Property Context (Phase 10.5)
@@ -446,7 +446,7 @@ competitor? Deterministic, sample-gated, no scraping, no guessing.
   directional / insufficient-data language; Nora answers "who shows up more than
   us in ChatGPT" through the existing retrieval path.
 - **API**: `GET /api/competitor-intelligence/{id}`, `POST /{id}/analyze`.
-  **Frontend**: `/competitors` ("Competitor IQ" nav) - manage the competitor
+  **Frontend**: `/competitors` ("Competitor Analysis" nav) - manage the competitor
   list and see the share-of-voice bars with honest empty / insufficient states,
   gated recommendations, and the declared deferrals.
 
@@ -620,7 +620,7 @@ A deterministic content-reasoning engine. No external AI is called for analysis.
   term by editing JSON; no code change.
 - **API**: `GET /api/content-intelligence/{property_id}` (live analysis),
   `POST /api/content-intelligence/{property_id}/analyze` (recompute + refresh
-  Nora's chunk). Dashboard at `/content-intelligence` ("Content IQ" in the nav).
+  Nora's chunk). Dashboard at `/content-intelligence` ("Content Analysis" in the nav).
 - **Nora integration**: the analysis is indexed as a `content_intelligence` RAG
   chunk, so Nora answers "what content should we improve first?", "what renter
   questions are missing?", etc. with citations, reusing the existing pipeline.
@@ -745,7 +745,7 @@ RAG sync are DONE (Phase 9); the roadmap below is what remains.
    `CohereEmbeddingProvider`, `LocalEmbeddingProvider`: implement the interface,
    extend `providers/registry.py`. A provider/version change auto-triggers a
    full rebuild.
-6. **Marketing IQ / HubSpot / Salesforce connectors** - implement the connector
+6. **CRM and marketing attribution connectors (HubSpot, Salesforce, property management systems)** - implement the connector
    interfaces; the rest of Beacon is unaffected.
 7. **Intelligence modules** - Content Intelligence (Phase 10) and Review
    Intelligence (Phase 11) are built. Remaining: AI Visibility Scanner (does the

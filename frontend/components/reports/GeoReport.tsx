@@ -280,7 +280,7 @@ function CompetitorShare({ report }: { report: Extract<GeoReportData, { has_quer
     return (
       <EmptyState
         title="No competitors configured"
-        body="Add the competitors you want compared on the Competitor IQ page. Beacon never guesses competitor identities."
+        body="Add the competitors you want compared on the Competitor Analysis page. Beacon never guesses competitor identities."
       />
     );
   }

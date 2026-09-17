@@ -32,11 +32,11 @@ from app.services.property_context import (
 from app.services.review_intelligence import analyze_property_reviews
 
 SOURCE_LABELS = {
-    "content": "Content IQ",
-    "reviews": "Review IQ",
+    "content": "Content Analysis",
+    "reviews": "Review Analysis",
     "ai_query_signals": "AI Query Signals",
     "ai_visibility": "AI Visibility",
-    "competitors": "Competitor IQ",
+    "competitors": "Competitor Analysis",
     "seo": "SEO Performance",
     "ai_observatory": "AI Observatory",
 }
@@ -277,8 +277,8 @@ def opportunity_engine_summary_text(
         return None
     lines = [
         f"Prioritized opportunities for {analysis['property_name']} (unified "
-        "across Content IQ, Review IQ, AI Query Signals, AI Visibility, and "
-        "Competitor IQ).",
+        "across Content Analysis, Review Analysis, AI Query Signals, AI Visibility, and "
+        "Competitor Analysis).",
         analysis["summary"],
     ]
     for o in analysis["opportunities"][:8]:

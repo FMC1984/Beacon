@@ -105,7 +105,7 @@ def _data(db: Session, prop: Property) -> Step:
         missing.append("Search Console (connect Google or upload the Dates export)")
     hints = []
     if not reviews:
-        hints.append("Reviews unlock Review IQ and the sentiment side of Semantic Intelligence.")
+        hints.append("Reviews unlock Review Analysis and the sentiment side of Semantic Intelligence.")
     if not leads:
         hints.append("CRM leads let the Executive report tie AI referrals to inquiries.")
     detail = ("; ".join(feeds) + (f"; {connected} Google connection(s)" if connected else "")) if feeds else (

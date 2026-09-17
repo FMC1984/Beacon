@@ -166,7 +166,7 @@ def test_intel_card_content_carries_top_opportunity(db, two_months):
     cards = compose_briefing(db, two_months.id, 2026, 6, today=TODAY)["intelligence_cards"]
     content = next(c for c in cards if c["key"] == "content")
     assert content["state"] == "ok"
-    assert content["biggest_opportunity"]  # Content IQ's top recommendation
+    assert content["biggest_opportunity"]  # Content Analysis's top recommendation
 
 
 # --- snapshot includes the new sections -----------------------------------------

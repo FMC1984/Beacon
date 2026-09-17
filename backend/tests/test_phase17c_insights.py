@@ -53,9 +53,9 @@ def test_co_movement_requires_two_distinct_modules():
 
 def test_corroborated_action_requires_two_sources():
     single = {"title": "Do a thing", "supporting_signal_count": 1,
-              "source_modules": ["Content IQ"], "explanation": "why"}
+              "source_modules": ["Content Analysis"], "explanation": "why"}
     multi = {"title": "Do the corroborated thing", "supporting_signal_count": 2,
-             "source_modules": ["Content IQ", "SEO Performance"], "explanation": "why"}
+             "source_modules": ["Content Analysis", "SEO Performance"], "explanation": "why"}
     story = {"wins": [], "risks": [], "trends": []}
     cs = _cross_system(story, [single, multi])
     assert len(cs["insights"]) == 1
