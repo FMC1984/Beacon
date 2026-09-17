@@ -193,6 +193,10 @@ export default function PropertyContextPage() {
                 </option>
               ))}
             </select>
+            <span className="mt-1 block text-xs text-muted">
+              Also chooses which questions the AI Visibility prompt library asks: a senior, student, luxury or
+              affordable community is monitored on what that audience asks an assistant.
+            </span>
           </label>
 
           <label className="block text-sm">

@@ -21,6 +21,7 @@ from pathlib import Path
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.property_profile import PropertyProfile
 from app.models import (
     AIVisibilityPrompt,
     Competitor,
@@ -193,6 +194,13 @@ def generate_market_prompts(db: Session, market_id: int) -> dict:
             "prompts": prompts}
 
 
+def property_segment(db: Session, prop: Property) -> str | None:
+    """The operator-asserted segment: Property Context's property type
+    (senior, student, luxury, affordable...). Never inferred."""
+    profile = db.query(PropertyProfile).filter_by(property_id=prop.id).one_or_none()
+    return (profile.property_type or None) if profile else None
+
+
 def property_signal_topics(db: Session, prop: Property) -> dict:
     """Which taxonomy topics this property has evidence for, and why.
     Signals: operator attributes, site content topics, Search Console
@@ -217,6 +225,12 @@ def property_signal_topics(db: Session, prop: Property) -> dict:
         add(topics_in_text(attr_text), "attributes")
     if prop.property_type == "housing_authority":
         add(["affordable"], "property_type")
+    segment = property_segment(db, prop)
+    if segment:
+        add(templates().get("segment_topics", {}).get(segment, []), "segment")
+        profile = db.query(PropertyProfile).filter_by(property_id=prop.id).one_or_none()
+        if profile and profile.target_audience:
+            add(topics_in_text(profile.target_audience), "segment")
     for row in db.query(PropertyContent).filter_by(property_id=prop.id).all():
         add(topics_for_semantic(row.topics), "content")
         add(topics_in_text(row.body or ""), "content")
@@ -252,6 +266,15 @@ def generate_property_prompts(db: Session, property_id: int) -> dict:
         market_id=prop.market_id, property_id=prop.id, organization_id=org_id,
         provenance=provenance,
     )
+    # Segment templates: the questions renters ask about this kind of
+    # community. Chosen by Property Context, never guessed from the name.
+    segment = property_segment(db, prop)
+    if segment and prop.property_type != "housing_authority":
+        drafts += _template_drafts(
+            tpl.get("brand_segment", {}).get(segment, []), PROMPT_SCOPE_BRAND, values,
+            market_id=prop.market_id, property_id=prop.id, organization_id=org_id,
+            provenance={**provenance, "segment": segment},
+        )
     competitors = (
         db.query(Competitor).filter_by(property_id=prop.id).order_by(Competitor.name)
         .limit(MAX_COMPETITOR_PROMPTS).all()
@@ -284,5 +307,6 @@ def generate_property_prompts(db: Session, property_id: int) -> dict:
         "market_prompts_total": market_summary["prompts_total"] if market_summary else 0,
         "market_prompts_created": market_summary["prompts_created"] if market_summary else 0,
         "signal_topics": property_signal_topics(db, prop),
+        "segment": segment,
         "prompts": prompts,
     }

@@ -65,8 +65,6 @@ def _identity(prop: Property) -> Step:
     hints = []
     if not (prop.aliases or []):
         hints.append("Add aliases AI might use for the name (for example without \"Apartments\").")
-    if not (prop.attributes or {}).get("segment"):
-        hints.append("Set a segment (conventional, affordable, senior, student) so prompts fit the audience.")
     done = not missing
     detail = (
         f"{prop.name}, {prop.city}, {prop.state}; site {prop.domain or prop.website_url}" if done
@@ -127,6 +125,9 @@ def _facts(db: Session, prop: Property) -> Step:
     if profile is None:
         missing.append("Property Context (regulatory status and marketing restrictions gate every recommendation)")
     hints = []
+    if profile is not None and not profile.property_type and prop.property_type != HOUSING_AUTHORITY:
+        hints.append("Set the property type on Property Context (conventional, luxury, student, senior, affordable) "
+                     "so the prompt library asks what that audience asks.")
     if prop.property_type == HOUSING_AUTHORITY:
         hints.append("Housing authorities hold different policies per development; per-development facts are not "
                      "recorded yet, so AI claims about policies are shown, never marked wrong.")
@@ -137,7 +138,7 @@ def _facts(db: Session, prop: Property) -> Step:
     done = profile is not None
     parts = []
     if profile is not None:
-        parts.append("Property Context set")
+        parts.append("Property Context set" + (f" ({profile.property_type})" if profile.property_type else ""))
     if recorded:
         parts.append("facts: " + ", ".join(r.replace("_", " ") for r in recorded))
     if pages:

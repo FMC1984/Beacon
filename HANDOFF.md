@@ -80,6 +80,29 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Flow P2: segment-aware prompt templates (2026-09-16, 832 tests)
+- The segment is `PropertyProfile.property_type` (Property Context), never
+  a guess from the name. `ai_prompt_templates.json` gains `segment_topics`
+  (segment -> taxonomy topics: senior/active_adult -> senior, student ->
+  student + transit, luxury -> luxury, affordable/mixed_income -> affordable)
+  and `brand_segment` (per-segment brand questions: "Is {name} a 55+
+  community?", "Does {name} offer individual leases by the bedroom?",
+  "Does {name} offer income-restricted apartments?" and so on).
+- `prompt_library.property_segment`; `property_signal_topics` adds the
+  segment's topics (reason "segment") and any taxonomy topics in the
+  profile's `target_audience` text, so `subscribe_property` assigns the
+  matching feature clusters; `generate_property_prompts` adds the
+  `brand_segment` drafts (provenance carries `segment`) for multifamily
+  properties (housing authorities keep their own set) and returns
+  `segment`.
+- Setup checklist: the segment hint moved from Identity to Facts and points
+  at Property Context; the Facts detail shows the type. Property Context's
+  type select says it also drives the prompt library.
+- Tests: two added to `tests/test_obs_prompt_library.py` (segment prompts
+  and signals; senior property subscribes to the senior feature cluster).
+- Not done: the Sample Portfolio seeder still writes one scripted brand
+  prompt per property, so the demo does not show segment prompts yet.
+
 ### Flow P1e: "This week" strip and listing-gap actions (2026-09-16, 830 tests)
 - `services/observatory/listing_gaps.py` `listing_gap_opportunities`: for
   each cited page in the window with `mentioned_on_page == not_mentioned`,
@@ -1379,7 +1402,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **830**, all passing. Always run the full
+change (shown on `/admin`). Current: **832**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

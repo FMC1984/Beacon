@@ -98,3 +98,53 @@ def test_half_filled_templates_are_never_emitted(db):
     texts = [r.prompt_text for r in out["prompts"]]
     assert texts and all("{" not in t for t in texts)
     assert out["market_id"] is None and out["market_prompts_total"] == 0
+
+
+def test_segment_from_property_context_adds_prompts_and_signals(db):
+    from app.models.property_profile import PropertyProfile
+
+    senior = _prop(db, "Golden Pines")
+    db.add(PropertyProfile(property_id=senior.id, property_type="senior"))
+    plain = _prop(db, "Plain Court")
+    db.add(PropertyProfile(property_id=plain.id, property_type="conventional"))
+    student = _prop(db, "Campus Row")
+    db.add(PropertyProfile(property_id=student.id, property_type="student", target_audience="students near campus, transit riders"))
+    db.commit()
+
+    out = generate_property_prompts(db, senior.id)
+    assert out["segment"] == "senior"
+    texts = {r.prompt_text: r for r in db.query(AIVisibilityPrompt).filter_by(property_id=senior.id).all()}
+    assert "Is Golden Pines in Castle Rock, CO a 55+ community?" in texts
+    assert texts["Is Golden Pines in Castle Rock, CO a 55+ community?"].generated_from["segment"] == "senior"
+    assert "segment" in property_signal_topics(db, senior)["senior"]
+
+    generate_property_prompts(db, plain.id)
+    assert not any("55+" in r.prompt_text for r in db.query(AIVisibilityPrompt).filter_by(property_id=plain.id).all())
+    assert "senior" not in property_signal_topics(db, plain)
+
+    signals = property_signal_topics(db, student)
+    assert "segment" in signals["student"] and "segment" in signals["transit"]
+    generate_property_prompts(db, student.id)
+    assert any("individual leases" in r.prompt_text for r in db.query(AIVisibilityPrompt).filter_by(property_id=student.id).all())
+
+
+def test_segment_prompts_subscribe_the_matching_feature_cluster(db):
+    from app.models.property_profile import PropertyProfile
+    from app.services.observatory.assignments import subscribe_property
+    from app.services.observatory.clustering import cluster_prompts
+
+    senior = _prop(db, "Silver Meadows")
+    db.add(PropertyProfile(property_id=senior.id, property_type="senior"))
+    db.commit()
+    generate_property_prompts(db, senior.id)
+    from app.providers.development import DeterministicEmbeddingProvider
+
+    cluster_prompts(db, market_id=senior.market_id, provider=DeterministicEmbeddingProvider(), threshold=0.5)
+    out = subscribe_property(db, senior.id)
+    assert "senior" in out["signal_topics"]
+    from app.models import AIPromptAssignment, AIPromptCluster
+    topics = {
+        c.topic_key for c in db.query(AIPromptCluster).join(AIPromptAssignment, AIPromptAssignment.cluster_id == AIPromptCluster.id)
+        .filter(AIPromptAssignment.property_id == senior.id, AIPromptAssignment.active.is_(True))
+    }
+    assert "senior" in topics
