@@ -976,6 +976,39 @@ export type TruthGrid = {
 export const fetchTruth = (propertyId: number, days: number) =>
   getJSON<TruthGrid>(`${BASE}/truth?${qs({ property_id: propertyId, days })}`);
 
+// --- AI readability ----------------------------------------------------------------
+
+type ReadabilityBase = {
+  property_id: number;
+  data_label: DataLabel;
+  site_url: string | null;
+  categories_spec: Record<string, { label: string; severity: "critical" | "high" | "medium" }>;
+  agents: string[];
+  note: string;
+};
+
+export type ReadabilityReport =
+  | (ReadabilityBase & { checked: false; reason: string })
+  | (ReadabilityBase & {
+      checked: true;
+      checked_at: string;
+      status: "ok" | "error";
+      error: string | null;
+      is_sample: boolean;
+      pages: { url: string; http_status: number | null; chars: number | null; scripts: number; found: Record<string, string>; error?: string }[];
+      categories: Record<string, { present: boolean; page: string | null; evidence: string | null }>;
+      robots: { reachable?: boolean; url?: string; present?: boolean; agents?: Record<string, "allowed" | "disallowed" | "unknown"> };
+      structured_data: string[];
+      findings: { severity: "critical" | "high" | "medium"; category: string; text: string }[];
+      summary: { critical: number; high: number; medium: number; present: number; total: number };
+    });
+
+export const fetchReadability = (propertyId: number) =>
+  getJSON<ReadabilityReport>(`${BASE}/readability?${qs({ property_id: propertyId })}`);
+
+export const requestReadabilityCheck = (propertyId: number) =>
+  postJSON<{ job_id: number; status: string; created: boolean }>(`${BASE}/readability/check?${qs({ property_id: propertyId })}`);
+
 export async function saveFactProvenance(
   propertyId: number,
   factKey: string,

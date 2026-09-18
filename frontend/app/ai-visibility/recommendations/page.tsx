@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ContentGapsPanel } from "@/components/observatory/GapsImpactPanels";
+import { ReadabilityPanel } from "@/components/observatory/ReadabilityPanel";
 import { NeedsProperty, Panel } from "@/components/observatory/ui";
 
 export default function RecommendationsPage() {
@@ -10,6 +11,7 @@ export default function RecommendationsPage() {
   if (propertyId === null) return <NeedsProperty />;
   return (
     <div className="space-y-6">
+      <ReadabilityPanel propertyId={propertyId} />
       <ContentGapsPanel propertyId={propertyId} days={days} />
       <Panel title="Where to act" subtitle="Open content gaps also appear in the Opportunity Engine as AI Observatory actions, ranked with every other module.">
         <div className="flex flex-wrap gap-2 text-sm">

@@ -56,6 +56,7 @@ from app.services.observatory.concerns import areas_of_concern, explain_concern
 from app.services.observatory.derivation import backfill_observations
 from app.services.observatory.truth import set_provenance, truth_grid
 from app.services.observatory.platform_breakdown import platform_breakdown
+from app.services.observatory.readability import readability_report
 from app.services.observatory.source_matrix import source_matrix
 from app.services.observatory.standing import property_standing
 from app.services.observatory.dimensions import visibility_dimensions
@@ -1002,6 +1003,26 @@ def citation_pages_check(property_id: int = Query(...), days: int = Query(defaul
     job, created = enqueue(
         db, "check_cited_pages", {"property_id": property_id, "days": days},
         idempotency_key=f"check_cited_pages:{property_id}:{_today(None).isoformat()}",
+        property_id=property_id, organization_id=property_org_id(db, prop.id),
+    )
+    db.commit()
+    return {"job_id": job.id, "status": job.status, "created": created}
+
+
+@router.get("/readability")
+def readability(property_id: int = Query(...), db: Session = Depends(get_db)):
+    """Latest raw-HTML readability check of the property's own site."""
+    _require_property(db, property_id)
+    return readability_report(db, property_id)
+
+
+@router.post("/readability/check")
+def readability_check(property_id: int = Query(...), db: Session = Depends(get_db)):
+    """Queue a readability check (the jobs runner fetches the pages)."""
+    prop = _require_property(db, property_id)
+    job, created = enqueue(
+        db, "check_ai_readability", {"property_id": property_id},
+        idempotency_key=f"check_ai_readability:{property_id}:{_today(None).isoformat()}",
         property_id=property_id, organization_id=property_org_id(db, prop.id),
     )
     db.commit()

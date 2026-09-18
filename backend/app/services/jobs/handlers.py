@@ -183,6 +183,20 @@ def check_cited_pages_job(db: Session, job: Job) -> dict:
     return check_cited_pages(db, property_id=p.get("property_id", job.property_id), days=int(p.get("days", 30)))
 
 
+@register("check_ai_readability")
+def check_ai_readability_job(db: Session, job: Job) -> dict:
+    """Raw-HTML readability check of a property's own site (or every
+    property due for one). Real network calls; sample properties skipped."""
+    from app.services.observatory.readability import check_due, run_check
+
+    p = job.payload or {}
+    pid = p.get("property_id", job.property_id)
+    if pid:
+        row = run_check(db, pid)
+        return {"property_id": pid, "status": row.status, "findings": len(row.findings or [])}
+    return check_due(db)
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

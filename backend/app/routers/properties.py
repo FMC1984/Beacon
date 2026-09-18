@@ -222,6 +222,7 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
         AISourceDomainRollup,
         AICompetitorStat,
         PropertyFact,
+        AIReadabilityCheck,
         AIVisibilityAlert,
         AIPromptAssignment,
         AIPromptCluster,
@@ -243,7 +244,7 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
     for model in (
         AIPropertyObservation, AIVisibilityDaily, AIClusterVisibilityDaily, AIPromptAssignment,
         AIClaim, AIEntityDecision, AIVisibilityAlert, AIRunSchedule, AIContentGap,
-        AISourceDomainRollup, AICompetitorStat, PropertyFact,
+        AISourceDomainRollup, AICompetitorStat, PropertyFact, AIReadabilityCheck,
     ):
         db.query(model).filter_by(property_id=property_id).delete(synchronize_session=False)
     # This property's entities inside shared market answers.

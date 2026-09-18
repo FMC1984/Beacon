@@ -36,6 +36,7 @@ from app.models import (
     AICitedPage,
     AIClaim,
     AIClusterVisibilityDaily,
+    AIReadabilityCheck,
     AIContentGap,
     AIDiscoveredEntity,
     AIEntityDecision,
@@ -593,6 +594,40 @@ def _seed_cited_pages(db: Session, created: list, now: datetime) -> int:
     return len(rows)
 
 
+def _seed_readability(db: Session, created: list, now: datetime) -> int:
+    """Labeled sample readability checks: the sample sites cannot be fetched,
+    so each property gets a plausible raw-HTML result. Two properties show
+    the pattern the check exists to catch (pricing and availability absent
+    from the raw HTML, robots blocking an AI crawler)."""
+    from app.services.observatory.readability import AI_AGENTS, CATEGORIES, build_findings
+
+    rows = 0
+    for i, (sample, prop) in enumerate(created):
+        home = f"https://www.{sample.domain}/"
+        missing = {"pricing", "availability"} if i % 3 == 1 else ({"fees"} if i % 3 == 2 else set())
+        categories = {
+            k: {"present": k not in missing, "page": None if k in missing else home,
+                "evidence": None if k in missing else f"{sample.name} {v['label'].lower()} details"}
+            for k, v in CATEGORIES.items()
+        }
+        agents = {a: "allowed" for a in AI_AGENTS}
+        if i % 4 == 3:
+            agents["GPTBot"] = "disallowed"
+        robots = {"reachable": True, "url": home + "robots.txt", "present": True, "agents": agents}
+        pages = [{"url": home, "http_status": 200, "chars": 350 if missing else 4200, "scripts": 9 if missing else 3,
+                  "found": {k: c["evidence"] for k, c in categories.items() if c["present"]}},
+                 {"url": home + "floorplans", "http_status": 200, "chars": 2800, "scripts": 4, "found": {}}]
+        db.add(AIReadabilityCheck(
+            organization_id=prop.company_id, property_id=prop.id, checked_at=now, site_url=home, status="ok",
+            pages=pages, categories=categories, robots=robots,
+            structured_data=["ApartmentComplex"] if i % 2 == 0 else [],
+            findings=build_findings(categories, robots, pages), source="sample",
+        ))
+        rows += 1
+    db.commit()
+    return rows
+
+
 def sample_organization(db: Session) -> Organization | None:
     return db.query(Organization).filter_by(slug=SAMPLE_ORG_SLUG).one_or_none()
 
@@ -750,6 +785,7 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
 
     first_party = _seed_first_party(db, created, now)
     _seed_cited_pages(db, created, now)
+    _seed_readability(db, created, now)
 
     from app.services.observatory.alerts import detect_property_alerts
     from app.services.observatory.content_gaps import evaluate_gaps
@@ -806,6 +842,7 @@ def remove_sample_portfolio(db: Session) -> dict:
     db.query(AIBudget).filter_by(scope_type="org", scope_id=org.id).delete(synchronize_session=False)
     db.query(AIRunCostDaily).filter_by(organization_id=org.id).delete(synchronize_session=False)
     db.query(AICitedPage).filter_by(source="sample").delete(synchronize_session=False)
+    db.query(AIReadabilityCheck).filter_by(source="sample").delete(synchronize_session=False)
     for prop in props:
         db.delete(prop)
     db.query(Company).filter_by(organization_id=org.id).delete(synchronize_session=False)

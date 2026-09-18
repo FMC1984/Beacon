@@ -80,6 +80,37 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Competitive roadmap 6: AI Readability v1 (2026-09-17, 867 tests)
+- `ai_readability_checks` (migration `f1a2b3c4d5e6`): one row per check
+  (pages, categories, robots, structured_data, findings JSON; source fetch
+  | sample). Deleted with the property; sample rows removed with the
+  Sample Portfolio.
+- `services/observatory/readability.py`: `run_check` fetches the homepage
+  plus up to 4 of the property's own pages (its recorded content pages and
+  same-host links whose path matches `PATH_HINTS`) as a plain HTTP client,
+  no JavaScript. `analyze_html` strips scripts, matches `CATEGORIES`
+  (pricing, availability, floor plans, pets, amenities, fees, neighborhood,
+  contact; housing authorities use `HA_CATEGORIES`: eligibility, apply,
+  programs, developments, neighborhood, contact), collects JSON-LD types
+  and same-host links. `_robots` parses robots.txt for `AI_AGENTS`
+  (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended,
+  Bingbot, CCBot); a missing robots.txt means allowed, an unreachable one
+  means unknown. `build_findings`: a missing category is "not present in
+  the raw HTML ... may be rendered by a script or not published" (never
+  "hidden"); disallowed crawlers are critical; pages under 400 chars with
+  5+ scripts are flagged as likely script-rendered; an unreadable homepage
+  yields only robots findings. Sample properties are never fetched.
+- Job `check_ai_readability` (per property, or every non-sample property
+  whose last check is older than 7 days) enqueued daily from the startup
+  loop; `POST /ai-observatory/readability/check` per property; `GET
+  /ai-observatory/readability` returns the latest check.
+  `ReadabilityPanel` leads the Recommendations tab ("Can AI read your
+  site?") with a Run check button (disabled for sample properties).
+- Live result on DCHP's site: all six housing-authority categories present
+  in raw HTML, every AI crawler allowed, FAQPage and GovernmentOrganization
+  structured data declared, no findings.
+- Tests: `tests/test_flow_readability.py` (8), all with a mock transport.
+
 ### Competitive roadmap 5: Property Truth layer v1 (2026-09-17, 859 tests)
 - `property_facts` (migration `e0f1a2b3c4d5`): provenance only, one row per
   (property, fact_key): source_of_truth, verified_at/by, effective_date,
@@ -1535,7 +1566,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **859**, all passing. Always run the full
+change (shown on `/admin`). Current: **867**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 
