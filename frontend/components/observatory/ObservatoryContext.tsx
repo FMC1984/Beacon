@@ -93,9 +93,13 @@ export function ObservatoryProvider({ children }: { children: ReactNode }) {
     };
   }, [attempt]);
 
-  // Default to the last property viewed, else the first property.
+  // Default to the last property viewed, else the first property. A URL id
+  // that no longer exists (a bookmark, or a Sample Portfolio rebuild that
+  // renumbered the properties) falls back the same way instead of leaving
+  // every tab querying a deleted property.
   useEffect(() => {
-    if (!loaded || propertyId !== null || properties.length === 0) return;
+    if (!loaded || properties.length === 0) return;
+    if (propertyId !== null && properties.some((p) => p.id === propertyId)) return;
     let saved: number | null = null;
     try {
       const raw = Number(localStorage.getItem(PROPERTY_KEY));

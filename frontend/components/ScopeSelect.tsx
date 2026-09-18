@@ -36,7 +36,20 @@ export function ScopeSelect({
         : p.company_id === scope
     );
 
-  const filtered = inScope(companyScope);
+  const scopeOf = (id: number | null): CompanyScope | null => {
+    const p = id === null ? undefined : properties.find((x) => x.id === id);
+    if (!p) return null;
+    return p.company_id === null ? "unassigned" : p.company_id;
+  };
+
+  // The selected property always wins over a remembered company: if a link or
+  // another page selected a property outside the current company, show that
+  // property's company instead of hiding the property (or switching away
+  // from it). Derived, so there is no render where the two disagree.
+  const valueScope = scopeOf(value);
+  const effectiveScope: CompanyScope =
+    valueScope !== null && !inScope(companyScope).some((p) => p.id === value) ? valueScope : companyScope;
+  const filtered = inScope(effectiveScope);
   const hasUnassigned = properties.some((p) => p.company_id === null);
 
   // Restore the shared company scope once properties are loaded (so a remembered
@@ -53,8 +66,11 @@ export function ScopeSelect({
     const scope: CompanyScope = saved === "unassigned" ? "unassigned" : Number(saved);
     setCompanyScope(scope);
     const next = inScope(scope);
-    if (value === null || !next.some((p) => p.id === value)) {
-      onChange(allowAll ? null : next[0]?.id ?? null);
+    // Only fill an empty selection from the remembered company. A property
+    // that is already selected (from the URL or a link) is kept; the company
+    // dropdown follows it via effectiveScope.
+    if (value === null && !allowAll) {
+      onChange(next[0]?.id ?? null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties]);
@@ -81,7 +97,7 @@ export function ScopeSelect({
       <select
         aria-label="Company"
         className="rounded-xl border border-line bg-surface px-3 py-2 text-sm"
-        value={companyScope === "" ? "" : String(companyScope)}
+        value={effectiveScope === "" ? "" : String(effectiveScope)}
         onChange={(e) => changeCompany(e.target.value)}
       >
         <option value="">All companies</option>
