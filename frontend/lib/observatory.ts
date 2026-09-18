@@ -740,6 +740,7 @@ export type ActionItem = {
   corroborating_sources?: string[];
   priority?: number;
   priority_score?: number;
+  action?: ActionRef;
 };
 
 export type ActionList = {
@@ -1022,3 +1023,75 @@ export async function saveFactProvenance(
   if (!res.ok) throw new Error(await errorText(res));
   return res.json();
 }
+
+// --- Tracked actions (lifecycle with retest) ----------------------------------------
+
+export type ActionStatus = "open" | "in_progress" | "implemented" | "retested" | "done" | "dismissed";
+export type ActionOutcome = "resolved" | "persists" | "improved" | "no_change" | "declined" | "inconclusive";
+export type ActionRef = { id: number; status: ActionStatus; outcome: ActionOutcome | null } | null;
+
+export type TrackedAction = {
+  id: number;
+  property_id: number;
+  kind: "listing_gap" | "content_gap" | "topic" | "fact" | "general";
+  target: Record<string, unknown>;
+  source: string | null;
+  source_label: string | null;
+  title: string;
+  reason: string | null;
+  evidence: { page?: string | null; source_ref?: string; evidence?: string[] }[];
+  status: ActionStatus;
+  owner: string | null;
+  notes: string | null;
+  started_at: string | null;
+  implemented_on: string | null;
+  retest_after: string | null;
+  retest_count: number;
+  retested_at: string | null;
+  baseline: Record<string, unknown> | null;
+  result: ({ sentence?: string } & Record<string, unknown>) | null;
+  outcome: ActionOutcome | null;
+  content_change_id: number | null;
+  automatic_retest: boolean;
+  retest_rule: string;
+  created?: boolean;
+};
+
+export type TrackedActions = {
+  property_id: number;
+  actions: TrackedAction[];
+  by_status: Partial<Record<ActionStatus, number>>;
+  by_outcome: Partial<Record<ActionOutcome, number>>;
+  note: string;
+};
+
+export type TrackPayload = {
+  property_id: number;
+  title: string;
+  source?: string | null;
+  source_label?: string | null;
+  reason?: string | null;
+  citations?: unknown[] | null;
+  kind?: TrackedAction["kind"];
+  target?: Record<string, unknown>;
+};
+
+export const fetchTrackedActions = (propertyId: number) =>
+  getJSON<TrackedActions>(`${BASE}/actions?${qs({ property_id: propertyId })}`);
+
+export const trackAction = (payload: TrackPayload) => postJSON<TrackedAction>(`${BASE}/actions`, payload);
+
+export async function updateTrackedAction(
+  actionId: number,
+  body: { status?: ActionStatus; owner?: string; notes?: string; implemented_on?: string; page_url?: string; change_type?: string }
+): Promise<TrackedAction> {
+  const res = await fetch(`${API_BASE}${BASE}/actions/${actionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await errorText(res));
+  return res.json();
+}
+
+export const retestTrackedAction = (actionId: number) => postJSON<TrackedAction>(`${BASE}/actions/${actionId}/retest`);

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { fetchConcernDetail, fetchConcerns, fmtRate, type ConcernDetail, type ConcernLevel, type ConcernTopic } from "@/lib/observatory";
+import { TrackButton } from "./ActionTracker";
 import { LoadState, Panel, ShareBar, useLoad } from "./ui";
 
 const LEVEL: Record<ConcernLevel, { text: string; cls: string }> = {
@@ -67,7 +68,16 @@ function Detail({ propertyId, topic, days }: { propertyId: number; topic: Concer
           </div>
           <div className="rounded-lg border border-line/60 px-3 py-2">
             <span className="text-xs font-medium">Recommended action</span>{" "}
-            <span className="rounded-full bg-violet-a/15 px-2 py-0.5 text-[11px] text-violet-a">{data.recommended_action.state}</span>
+            <span className="rounded-full bg-violet-a/15 px-2 py-0.5 text-[11px] text-violet-a">{data.recommended_action.state}</span>{" "}
+            {data.recommended_action.state !== "Suppressed" && (
+              <TrackButton
+                payload={{
+                  property_id: propertyId, title: `Improve AI visibility on ${data.label.toLowerCase()}`,
+                  source: "concerns", source_label: "Areas of concern", kind: "topic", target: { topic_key: data.topic_key },
+                  reason: data.recommended_action.text,
+                }}
+              />
+            )}
             <p className="mt-1 text-sm">{data.recommended_action.text}</p>
             {data.recommended_action.gate_reason && <p className="mt-1 text-xs text-amber-300">{data.recommended_action.gate_reason}</p>}
           </div>

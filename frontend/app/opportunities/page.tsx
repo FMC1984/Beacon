@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE, Company, Property, fetchCompanies, fetchProperties } from "@/lib/api";
 import { ScopeSelect } from "@/components/ScopeSelect";
+import { TrackButton } from "@/components/observatory/ActionTracker";
+import type { ActionRef } from "@/lib/observatory";
 
 type Opportunity = {
   source: string;
@@ -16,6 +18,7 @@ type Opportunity = {
   corroborating_sources: string[];
   priority: number;
   citations?: { page?: string | null; source_ref: string; evidence?: string[] }[];
+  action?: ActionRef;
 };
 
 type Analysis = {
@@ -38,7 +41,7 @@ const STATE_CHIP: Record<string, string> = {
 
 const SOURCE_CHIP = "bg-violet-a/15 text-violet-a";
 
-function OppCard({ o }: { o: Opportunity }) {
+function OppCard({ o, propertyId }: { o: Opportunity; propertyId: number | null }) {
   return (
     <div className="rounded-xl border border-line bg-surface-raised p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -67,6 +70,13 @@ function OppCard({ o }: { o: Opportunity }) {
           </span>
         )}
         <span className="font-medium">{o.title}</span>
+        {propertyId !== null && (
+          <TrackButton
+            current={o.action}
+            payload={{ property_id: propertyId, title: o.title, source: o.source, source_label: o.source_label,
+                       reason: o.reason, citations: o.citations ?? [] }}
+          />
+        )}
       </div>
       <p className="mt-1.5 text-sm text-muted">{o.reason}</p>
       {o.gate_reason && <p className="mt-1 text-xs text-amber-a">{o.gate_reason}</p>}
@@ -171,7 +181,7 @@ export default function OpportunitiesPage() {
                     {o.priority}
                   </span>
                   <div className="flex-1">
-                    <OppCard o={o} />
+                    <OppCard o={o} propertyId={propertyId} />
                   </div>
                 </div>
               ))}
@@ -189,7 +199,7 @@ export default function OpportunitiesPage() {
                 framing for this property, so Beacon is not recommending them.
               </p>
               {data.suppressed.map((o, i) => (
-                <OppCard key={i} o={o} />
+                <OppCard key={i} o={o} propertyId={propertyId} />
               ))}
             </section>
           )}
@@ -201,7 +211,7 @@ export default function OpportunitiesPage() {
                 Awaiting more data ({data.insufficient.length})
               </h2>
               {data.insufficient.map((o, i) => (
-                <OppCard key={i} o={o} />
+                <OppCard key={i} o={o} propertyId={propertyId} />
               ))}
             </section>
           )}

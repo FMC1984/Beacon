@@ -226,6 +226,14 @@ def build_opportunities(
             o["priority"] = i
         return items
 
+    # Tracked-action status, so every list that shows an opportunity also shows
+    # whether someone is already working on it.
+    from app.services.observatory.actions import action_key, status_by_key
+
+    tracked = status_by_key(db, property_id)
+    for opp in raw:
+        opp["action"] = tracked.get(action_key(opp["source"], opp["title"]))
+
     actionable = rank([o for o in raw if o["state"] in ("Actionable", "Requires confirmation", "Monitor")])
     suppressed = [o for o in raw if o["state"] == "Suppressed"]
     insufficient = [o for o in raw if o["state"] == "Insufficient data"]

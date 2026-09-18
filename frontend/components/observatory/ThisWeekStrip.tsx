@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { fetchActions, type ActionItem } from "@/lib/observatory";
+import { TrackButton } from "./ActionTracker";
 import { LoadState, Panel, useLoad } from "./ui";
 
 const STATE_CLS: Record<string, string> = {
@@ -15,7 +16,7 @@ const STATE_CLS: Record<string, string> = {
   Monitor: "bg-surface-raised text-muted",
 };
 
-function ActionRow({ action, rank }: { action: ActionItem; rank: number }) {
+function ActionRow({ action, rank, propertyId }: { action: ActionItem; rank: number; propertyId: number }) {
   const first = action.citations?.[0];
   return (
     <li className="flex gap-3 rounded-xl border border-line/60 px-3 py-2.5">
@@ -28,6 +29,11 @@ function ActionRow({ action, rank }: { action: ActionItem; rank: number }) {
           <span className={`rounded-full px-2 py-0.5 text-[11px] ${STATE_CLS[action.state] ?? STATE_CLS.Monitor}`}>{action.state}</span>
           <span className="text-[11px] text-muted">{action.source_label}</span>
           {action.impact && <span className="text-[11px] text-muted">Impact {action.impact.toLowerCase()}</span>}
+          <TrackButton
+            current={action.action}
+            payload={{ property_id: propertyId, title: action.title, source: action.source, source_label: action.source_label,
+                       reason: action.reason, citations: action.citations ?? [] }}
+          />
         </div>
         {action.reason && <p className="mt-0.5 line-clamp-2 text-xs text-muted">{action.reason}</p>}
         {first?.evidence?.[0] && <p className="mt-0.5 text-[11px] text-cyan-300">Evidence: {first.evidence[0]}</p>}
@@ -59,7 +65,7 @@ export function ThisWeekStrip({ propertyId }: { propertyId: number }) {
         {top.length > 0 && (
           <ol className="space-y-2">
             {top.map((a, i) => (
-              <ActionRow key={`${a.source}-${a.title}`} action={a} rank={i + 1} />
+              <ActionRow key={`${a.source}-${a.title}`} action={a} rank={i + 1} propertyId={propertyId} />
             ))}
           </ol>
         )}

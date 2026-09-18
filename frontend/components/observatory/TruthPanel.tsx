@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { fmtDate } from "@/lib/format";
 import { fetchTruth, saveFactProvenance, type TruthCell, type TruthFact } from "@/lib/observatory";
+import { TrackButton } from "./ActionTracker";
 import { LoadState, Panel, useLoad } from "./ui";
 
 const CELL: Record<TruthCell["state"], { text: string; cls: string }> = {
@@ -157,6 +158,18 @@ export function TruthPanel({ propertyId, days }: { propertyId: number; days: num
                             {f.provenance.status === "verified" ? "update" : "verify"}
                           </button>
                         </span>
+                        {f.conflicts > 0 && (
+                          <span className="mt-1 block">
+                            <TrackButton
+                              label="Track the fix"
+                              payload={{
+                                property_id: propertyId, title: `Correct what AI says about ${f.label.toLowerCase()}`,
+                                source: "truth", source_label: "Property truth", kind: "fact", target: { fact_key: f.fact_key },
+                                reason: `Recorded value: ${f.recorded_value}. ${f.conflicts} source(s) conflict with it.`,
+                              }}
+                            />
+                          </span>
+                        )}
                         {f.cited_sources_with_same_value.map((o) => (
                           <span key={o.url} className="mt-1 block text-[11px] text-rose-300" title={o.evidence}>
                             A page the conflicting answers cited shows the same value: {o.url} ({o.value})

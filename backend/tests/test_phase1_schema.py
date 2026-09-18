@@ -66,6 +66,7 @@ EXPECTED_TABLES = {
     "ai_cited_pages",
     "property_facts",
     "ai_readability_checks",
+    "ai_actions",
 }
 
 

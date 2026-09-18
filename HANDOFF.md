@@ -80,6 +80,42 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Competitive roadmap 7: action lifecycle with automatic retest (2026-09-18, 877 tests)
+- `ai_actions` (migration `0a1b2c3d4e5f`): one row per tracked action,
+  unique per property by `action_key` = sha256(source|title)[:40]. `kind`
+  listing_gap | content_gap | topic | fact | general with a `target`
+  (normalized_url; gap_id + cluster_id + topic_key; topic_key; fact_key).
+  Status open | in_progress | implemented | retested | done | dismissed;
+  outcome resolved | persists | improved | no_change | declined |
+  inconclusive. Stores baseline (at implementation) and result (latest
+  retest) JSON. Deleted with the property and with the Sample Portfolio.
+- `services/observatory/actions.py`: `track_action` (idempotent; derives
+  the kind from Observatory `source_ref`s: `listing_gap=` and `gap=`),
+  `update_action` (enforced transitions; no future implementation dates;
+  general actions close as done, automatic ones cannot be closed by hand;
+  implemented with a page URL writes a `ContentChange` for Content
+  Impact), `measure` / `_judge` / `retest` (listing: re-read cached page;
+  fact: re-run `claims.extract_claims` over AI answers since implementation,
+  needs 3 statements; content/topic: `_visibility` 30 days before vs since,
+  both sample-gated, +/-5 points = improved/declined, sentence says
+  association), inconclusive retests rescheduled 7 days later up to
+  `MAX_RETESTS` (4). `retest_due` runs daily from the startup loop (job
+  `retest_actions`) and re-fetches listing pages first (never for sample
+  properties). Waits: listing 3 days, fact and topic 21 days.
+- Opportunity Engine items now carry `action` = {id, status, outcome} when
+  tracked.
+- API: `GET/POST /ai-observatory/actions`, `PATCH /actions/{id}`,
+  `POST /actions/{id}/retest`.
+- UI: `components/observatory/ActionTracker.tsx` (`TrackButton`,
+  `ActionChip`, `ActionTrackerPanel` leading the Recommendations tab).
+  Track buttons on This week, the Opportunities page, Property truth
+  conflict rows ("Track the fix") and Areas of concern detail.
+- Sample Portfolio drives five actions through the real lifecycle: a
+  listing fix that still persists (the sample page cache still omits the
+  property), a topic fix measured as improved, a pets fact fix that still
+  persists, one in progress, one open.
+- Tests: `tests/test_flow_actions.py` (10).
+
 ### Competitive roadmap 6: AI Readability v1 (2026-09-17, 867 tests)
 - `ai_readability_checks` (migration `f1a2b3c4d5e6`): one row per check
   (pages, categories, robots, structured_data, findings JSON; source fetch
@@ -1566,7 +1602,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **867**, all passing. Always run the full
+change (shown on `/admin`). Current: **877**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

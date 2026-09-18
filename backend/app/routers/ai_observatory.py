@@ -53,6 +53,7 @@ from app.services.observatory.costs import cost_report
 from app.services.observatory.citation_pages import check_cited_pages, top_citation_pages
 from app.services.observatory.benchmark import property_benchmark
 from app.services.observatory.concerns import areas_of_concern, explain_concern
+from app.services.observatory.actions import action_out, list_actions, retest, track_action, update_action
 from app.services.observatory.derivation import backfill_observations
 from app.services.observatory.truth import set_provenance, truth_grid
 from app.services.observatory.platform_breakdown import platform_breakdown
@@ -1134,5 +1135,72 @@ def truth_provenance(fact_key: str, payload: ProvenanceIn, property_id: int = Qu
         return set_provenance(db, property_id, fact_key, **payload.model_dump())
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+# --- Action lifecycle with retest ------------------------------------------------
+
+
+class ActionIn(BaseModel):
+    property_id: int
+    title: str
+    source: str | None = None
+    source_label: str | None = None
+    reason: str | None = None
+    citations: list[dict] | None = None
+    kind: str | None = None
+    target: dict | None = None
+
+
+class ActionPatch(BaseModel):
+    status: str | None = None
+    owner: str | None = None
+    notes: str | None = None
+    implemented_on: date | None = None
+    page_url: str | None = None
+    change_type: str | None = None
+
+
+@router.get("/actions")
+def actions_list(property_id: int = Query(...), include_closed: bool = Query(default=True), db: Session = Depends(get_db)):
+    _require_property(db, property_id)
+    return list_actions(db, property_id, include_closed=include_closed)
+
+
+@router.post("/actions")
+def actions_track(payload: ActionIn, db: Session = Depends(get_db)):
+    """Track an action (idempotent per property by source + title)."""
+    _require_property(db, payload.property_id)
+    try:
+        row, created = track_action(db, payload.property_id, title=payload.title, source=payload.source,
+                                    source_label=payload.source_label, reason=payload.reason,
+                                    citations=payload.citations, kind=payload.kind, target=payload.target)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {**action_out(row), "created": created}
+
+
+@router.patch("/actions/{action_id}")
+def actions_update(action_id: int, payload: ActionPatch, db: Session = Depends(get_db)):
+    try:
+        row = update_action(db, action_id, **payload.model_dump(exclude_unset=True))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return action_out(row)
+
+
+@router.post("/actions/{action_id}/retest")
+def actions_retest(action_id: int, db: Session = Depends(get_db)):
+    """Retest now from stored evidence (the daily job also re-reads listing pages)."""
+    from app.models import AIAction
+
+    row = db.get(AIAction, action_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Action not found.")
+    try:
+        return action_out(retest(db, row))
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))

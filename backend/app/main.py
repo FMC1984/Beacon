@@ -248,6 +248,8 @@ async def start_observatory_daily():
                 enqueue(db, "check_cited_pages", {}, idempotency_key=f"check_cited_pages:{day}")
                 # Raw-HTML readability of each property's own site, re-run weekly per property.
                 enqueue(db, "check_ai_readability", {}, idempotency_key=f"check_ai_readability:{day}")
+                # Retest tracked actions whose wait has elapsed.
+                enqueue(db, "retest_actions", {}, idempotency_key=f"retest_actions:{day}")
                 if settings.ai_scheduler_enabled and now.hour >= settings.ai_scheduler_hour_utc:
                     enqueue(db, "schedule_ai_runs", {}, idempotency_key=f"schedule_ai_runs:{day}")
             except Exception:

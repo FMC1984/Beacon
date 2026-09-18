@@ -197,6 +197,14 @@ def check_ai_readability_job(db: Session, job: Job) -> dict:
     return check_due(db)
 
 
+@register("retest_actions")
+def retest_actions_job(db: Session, job: Job) -> dict:
+    """Retest every implemented action whose wait has elapsed."""
+    from app.services.observatory.actions import retest_due
+
+    return retest_due(db)
+
+
 @register("execute_ai_run")
 def execute_ai_run(db: Session, job: Job) -> dict:
     """Run one prompt against one platform through the Observatory ledger.

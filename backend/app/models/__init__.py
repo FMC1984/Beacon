@@ -61,6 +61,7 @@ from app.models.ai_intelligence import (
 from app.models.ai_cited_pages import AICitedPage
 from app.models.property_facts import PropertyFact
 from app.models.ai_readability import AIReadabilityCheck
+from app.models.ai_actions import AIAction
 from app.models.ai_rollups import (
     AICompetitorStat,
     AIRunCostDaily,
@@ -146,4 +147,5 @@ __all__ = [
     "AICitedPage",
     "PropertyFact",
     "AIReadabilityCheck",
+    "AIAction",
 ]

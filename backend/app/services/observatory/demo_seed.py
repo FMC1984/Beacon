@@ -37,6 +37,8 @@ from app.models import (
     AIClaim,
     AIClusterVisibilityDaily,
     AIReadabilityCheck,
+    AIAction,
+    PropertyFact,
     AIContentGap,
     AIDiscoveredEntity,
     AIEntityDecision,
@@ -628,6 +630,60 @@ def _seed_readability(db: Session, created: list, now: datetime) -> int:
     return rows
 
 
+def _seed_actions(db: Session, created: list, now: datetime) -> int:
+    """A few tracked actions in every lifecycle state, driven through the real
+    lifecycle so every baseline and retest result is computed, not scripted.
+    The page cache is sample data, so a listing fix reads as persisting: the
+    demo shows the retest being honest, not a made-up win."""
+    from app.services.observatory.actions import retest, track_action, update_action
+    from app.services.observatory.listing_gaps import listing_gap_opportunities
+
+    today = now.date()
+    props = {s.name: p for s, p in created}
+    made = 0
+    maple = props.get("Maple Ridge Flats")
+    if maple is not None:
+        gaps = listing_gap_opportunities(db, maple.id, days=28, today=today)
+        if gaps:
+            g = gaps[0]
+            a, _ = track_action(db, maple.id, title=g["title"], source="ai_observatory", source_label="AI Observatory",
+                                reason=g["reason"], citations=g["citations"])
+            update_action(db, a.id, status="in_progress", owner="Sample marketing specialist", today=today)
+            update_action(db, a.id, status="implemented", implemented_on=today - timedelta(days=5), today=today)
+            retest(db, a, today=today)
+            made += 1
+        # A topic fix measured before vs after from the sample answers.
+        t, _ = track_action(db, maple.id, title="Rewrite the pet policy page around renter questions",
+                            source="concerns", source_label="Areas of concern", kind="topic",
+                            target={"topic_key": "pets"},
+                            reason="Pet questions are where Maple Ridge Flats was named least often.")
+        update_action(db, t.id, status="implemented", implemented_on=today - timedelta(days=24), today=today)
+        retest(db, t, today=today)
+        made += 1
+    for name in ("Lakemont Senior Residences", "Stonebrook Commons"):
+        prop = props.get(name)
+        if prop is None:
+            continue
+        gap = (db.query(AIContentGap).filter_by(property_id=prop.id, status="open").order_by(AIContentGap.id).first())
+        if gap is None:
+            continue
+        a, _ = track_action(db, prop.id, title=gap.title, source="ai_observatory", source_label="AI Observatory",
+                            reason=gap.recommendation,
+                            citations=[{"source_ref": f"ai_observatory: gap={gap.id}, cluster={gap.cluster_id}"}])
+        if name == "Lakemont Senior Residences":
+            update_action(db, a.id, status="in_progress", owner="Sample content writer", today=today)
+        made += 1
+    stone = props.get("Stonebrook Commons")
+    if stone is not None:
+        a, _ = track_action(db, stone.id, title="Correct what AI says about pets",
+                            source="truth", source_label="Property truth", kind="fact", target={"fact_key": "pets"},
+                            reason="AI answers say pets are allowed; the recorded policy is no pets.")
+        update_action(db, a.id, status="implemented", implemented_on=today - timedelta(days=22), today=today)
+        retest(db, a, today=today)
+        made += 1
+    return made
+
+
 def sample_organization(db: Session) -> Organization | None:
     return db.query(Organization).filter_by(slug=SAMPLE_ORG_SLUG).one_or_none()
 
@@ -798,6 +854,7 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
         gaps += evaluate_gaps(db, prop.id, days=90, today=today)["gaps_open"]
         alerts += len(detect_property_alerts(db, prop.id, today=today))
     db.commit()
+    _seed_actions(db, created, now)
 
     status = sample_status(db)
     log_event("sample_portfolio.built", organization_id=org.id, runs=runs, gaps=gaps, alerts=alerts)
@@ -828,7 +885,7 @@ def remove_sample_portfolio(db: Session) -> dict:
                       PropertyContent, PropertyProfile, Competitor,
                       GA4SessionsDaily, GA4EventsDaily, GSCPerformanceDaily, GBPMetricsDaily,
                       CRMLead, PropertyReview, ContentChange, Upload,
-                      AISourceDomainRollup, AICompetitorStat):
+                      AISourceDomainRollup, AICompetitorStat, AIAction, PropertyFact, AIReadabilityCheck):
             db.query(model).filter(model.property_id.in_(prop_ids)).delete(synchronize_session=False)
     prompt_ids = [pid for (pid,) in db.query(AIVisibilityPrompt.id).filter_by(organization_id=org.id)]
     if prompt_ids:
