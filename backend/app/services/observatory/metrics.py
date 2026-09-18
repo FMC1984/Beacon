@@ -71,6 +71,12 @@ METRIC_DEFINITIONS = {
         "formula": "citations of a domain / all citations in eligible responses",
         "data_label": LABEL_MEASURED,
     },
+    "ai_sentiment": {
+        "label": "AI Sentiment",
+        "formula": "mentions the semantic layer reads as positive / mentions with a sentiment reading",
+        "data_label": LABEL_MODELED,
+        "note": "Rule-based wording match at the mention; neutral unless the wording carries sentiment.",
+    },
 }
 
 

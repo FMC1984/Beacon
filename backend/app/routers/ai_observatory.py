@@ -77,6 +77,7 @@ from app.services.observatory.discovery import (
 )
 from app.services.observatory.metrics import (
     METRIC_DEFINITIONS,
+    metric_from_counts,
     metrics_for_window,
     prompt_coverage,
     source_influence,
@@ -392,6 +393,17 @@ def overview(
     metrics["prompt_coverage"] = {**cov, "comparison": compare_points(cov["value"], prev_cov["value"])}
     pos = average_position(db, property_id, days=days, today=end)
     counts = current["counts"]
+    prev_counts = previous["counts"]
+    # AI Sentiment as a headline rate: positive / mentions with a sentiment
+    # reading (denominator always equals the mention count, since every
+    # mention gets a reading, neutral by default). Same counts as the
+    # "sentiment" block below, so the two can never disagree.
+    sent_num, sent_den = counts["sentiment_pos"], counts["sentiment_pos"] + counts["sentiment_neu"] + counts["sentiment_neg"]
+    prev_sent_num = prev_counts["sentiment_pos"]
+    prev_sent_den = prev_counts["sentiment_pos"] + prev_counts["sentiment_neu"] + prev_counts["sentiment_neg"]
+    sentiment_metric = metric_from_counts("ai_sentiment", sent_num, sent_den)
+    prev_sentiment_metric = metric_from_counts("ai_sentiment", prev_sent_num, prev_sent_den)
+    metrics["ai_sentiment"] = {**sentiment_metric, "comparison": compare_points(sentiment_metric["value"], prev_sentiment_metric["value"])}
     return {
         "property_id": prop.id,
         "property_name": prop.name,

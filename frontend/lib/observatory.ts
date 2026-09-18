@@ -72,7 +72,8 @@ export type Overview = {
     | "share_of_voice"
     | "recommendation_rate"
     | "competitor_win_rate"
-    | "prompt_coverage",
+    | "prompt_coverage"
+    | "ai_sentiment",
     ObsMetric
   >;
   sentiment: { data_label: DataLabel; positive: number; neutral: number; negative: number };

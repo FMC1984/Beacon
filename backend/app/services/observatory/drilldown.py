@@ -267,6 +267,9 @@ EVIDENCE_FILTERS = {
     "average_position": ("ranked", "Answers where the property was named, with its position"),
     "sentiment_positive": ("positive", "Mentions the semantic layer read as positive"),
     "sentiment_negative": ("negative", "Mentions the semantic layer read as negative"),
+    # Alias for the Overview's AI Sentiment card: same filter as sentiment_positive
+    # (its numerator), so clicking the headline number opens the rows behind it.
+    "ai_sentiment": ("positive", "Mentions the semantic layer read as positive"),
     "all": ("all", "Every eligible monitored answer"),
 }
 

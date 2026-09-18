@@ -17,6 +17,7 @@ const ORDER = [
   "citation_share",
   "share_of_voice",
   "recommendation_rate",
+  "ai_sentiment",
   "prompt_coverage",
   "competitor_win_rate",
 ] as const;

@@ -56,6 +56,7 @@ const SAMPLE_UNIT: Record<string, string> = {
   citation_share: "tracked citations",
   share_of_voice: "tracked mentions",
   prompt_coverage: "priority clusters",
+  ai_sentiment: "mentions",
 };
 
 function unit(key: string, n: number) {

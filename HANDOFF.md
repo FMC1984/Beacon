@@ -80,6 +80,35 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### AI Sentiment as a headline metric card (2026-09-18, 882 tests)
+- Requested directly off a screenshot of the Overview's metric grid: add
+  AI Sentiment alongside AI Visibility, Citation Rate, Citation Share,
+  Share of Voice, Recommendation Rate, Prompt Coverage and Competitor Win
+  Rate, in the same card style.
+- `services/observatory/metrics.py`: `METRIC_DEFINITIONS["ai_sentiment"]`
+  (label "AI Sentiment", data_label MODELED, formula "positive mentions /
+  mentions with a sentiment reading"). Computed in the `/overview` route
+  from the same `sentiment_pos/neu/neg` rollup counts the existing "How AI
+  talks about the property" breakdown panel reads (via
+  `metric_from_counts`), so the headline rate and the breakdown can never
+  disagree; denominator is always exactly the mention count, since every
+  mention gets a reading (neutral by default). Sample-gated
+  (`MIN_QUERIES_FOR_VISIBILITY`), comparison vs the previous period like
+  every other card.
+- `services/observatory/drilldown.py`: `EVIDENCE_FILTERS["ai_sentiment"]`
+  aliases the existing `sentiment_positive` filter, so clicking the card
+  opens the monitored answers behind its numerator through the same
+  evidence drawer every other metric uses. No new backend concept.
+- Frontend: `ai_sentiment` added to the `Overview.metrics` type, the
+  `ORDER` array on the Observatory Overview page (placed after
+  Recommendation Rate, the other MODELED/rule-based card), and
+  `SAMPLE_UNIT` in `ui.tsx` ("mentions"). No component changes; reuses
+  `ObsMetricCard` as-is.
+- Tests: `tests/test_flow_ai_sentiment.py` (5) — definition labeled
+  MODELED, reconciliation against raw rollup counts and against the
+  sentiment breakdown block, evidence-drawer wiring, sample-gate honesty,
+  404 on an unknown property.
+
 ### Competitive roadmap 7: action lifecycle with automatic retest (2026-09-18, 877 tests)
 - `ai_actions` (migration `0a1b2c3d4e5f`): one row per tracked action,
   unique per property by `action_key` = sha256(source|title)[:40]. `kind`
@@ -1602,7 +1631,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **877**, all passing. Always run the full
+change (shown on `/admin`). Current: **882**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 
