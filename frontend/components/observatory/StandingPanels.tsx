@@ -110,22 +110,28 @@ export function PlatformPanel({ propertyId, days }: { propertyId: number; days: 
               <tbody>
                 {data.platforms.map((p) => {
                   const live = p.availability.state === "live";
-                  const cell = (v: number | null) => (live ? (v !== null ? fmtRate(v) : <span className="text-xs text-muted">below sample</span>) : <span className="text-muted">·</span>);
+                  const showNumbers = live || p.is_sample_demo;
+                  const cell = (v: number | null) => (showNumbers ? (v !== null ? fmtRate(v) : <span className="text-xs text-muted">below sample</span>) : <span className="text-muted">·</span>);
                   return (
-                    <tr key={p.platform} className={`border-b border-line/60 align-top ${live ? "" : "opacity-70"}`}>
+                    <tr key={p.platform} className={`border-b border-line/60 align-top ${showNumbers ? "" : "opacity-70"}`}>
                       <td className="py-2 pr-3">
                         <span className="mr-2">{p.label}</span>
                         <span className={`rounded-full px-2 py-0.5 text-[11px] ${AVAIL[p.availability.state].cls}`} title={p.availability.detail}>
                           {AVAIL[p.availability.state].text}
                         </span>
+                        {p.is_sample_demo && (
+                          <span className="ml-1 rounded-full bg-violet-a/15 px-2 py-0.5 text-[11px] text-violet-a" title="Scripted sample answers on the Sample Portfolio, not a real connection.">
+                            Sample data
+                          </span>
+                        )}
                         {!live && <span className="mt-0.5 block max-w-xs text-[11px] text-muted">{p.availability.detail}</span>}
                       </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{live ? p.answers : <span className="text-muted">·</span>}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{showNumbers ? p.answers : <span className="text-muted">·</span>}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">{cell(p.ai_visibility.value)}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">{cell(p.citation_rate.value)}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">{cell(p.share_of_voice.value)}</td>
                       <td className="py-2 text-xs text-muted">
-                        {p.top_sources.length ? p.top_sources.map((s) => `${s.domain} ${fmtRate(s.share)}`).join(" · ") : live ? "no citations yet" : ""}
+                        {p.top_sources.length ? p.top_sources.map((s) => `${s.domain} ${fmtRate(s.share)}`).join(" · ") : showNumbers ? "no citations yet" : ""}
                       </td>
                     </tr>
                   );

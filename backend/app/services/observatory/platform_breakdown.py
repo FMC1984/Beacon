@@ -22,8 +22,10 @@ TOP_SOURCES = 3
 
 
 def platform_breakdown(db: Session, property_id: int, days: int = 30, today: date | None = None) -> dict:
-    if db.get(Property, property_id) is None:
+    prop = db.get(Property, property_id)
+    if prop is None:
         raise ValueError("Property not found.")
+    is_sample_property = bool((prop.attributes or {}).get("sample_data"))
     today = today or utc_today()
     start, end = _window(days, today)
     lo = datetime.combine(start, datetime.min.time())
@@ -47,10 +49,14 @@ def platform_breakdown(db: Session, property_id: int, days: int = 30, today: dat
         m = metrics_for_window(db, property_id, start, end, platform=key)
         cites = by_platform.get(key, Counter())
         total = sum(cites.values())
+        availability = platform_availability(key)
+        answers = m["counts"]["eligible_count"]
+        is_sample_demo = is_sample_property and availability["state"] != "live" and answers > 0
         rows.append({
             "platform": key, "label": p["label"],
-            "availability": platform_availability(key),
-            "answers": m["counts"]["eligible_count"],
+            "availability": availability,
+            "is_sample_demo": is_sample_demo,
+            "answers": answers,
             "ai_visibility": m["ai_visibility"], "citation_rate": m["citation_rate"],
             "share_of_voice": m["share_of_voice"], "recommendation_rate": m["recommendation_rate"],
             "top_sources": [{"domain": d, "citations": n, "share": round(n / total, 4)} for d, n in cites.most_common(TOP_SOURCES)],
@@ -63,5 +69,7 @@ def platform_breakdown(db: Session, property_id: int, days: int = 30, today: dat
         "platforms": rows,
         "live": sum(1 for r in rows if r["availability"]["state"] == "live"),
         "note": ("Each platform is measured from its own answers. A platform that is not connected shows why and "
-                 "contributes nothing to any number; Beacon never estimates a platform it did not query."),
+                 "contributes nothing to any number; Beacon never estimates a platform it did not query. Rows "
+                 "flagged is_sample_demo are scripted sample answers on the Sample Portfolio, shown so this screen "
+                 "is legible before a key is added; they are never real provider traffic."),
     }

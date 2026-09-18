@@ -49,14 +49,51 @@ def test_platform_breakdown_lists_the_whole_roster_and_reconciles(db):
     out = platform_breakdown(db, maple.id, days=28, today=TODAY)
     assert {r["platform"] for r in out["platforms"]} == set(platform_keys())
     start, end = _window(28, TODAY)
-    total = metrics_for_window(db, maple.id, start, end)["counts"]["eligible_count"]
+    total = metrics_for_window(db, maple.id, start, end, platform="chatgpt")["counts"]["eligible_count"]
     chat = next(r for r in out["platforms"] if r["platform"] == "chatgpt")
     assert chat["answers"] == total and chat["availability"]["state"] == "live"
+    # The "all platforms" rollup now reconciles across chatgpt plus the sample secondary
+    # platforms, not chatgpt alone; this is the intended effect of adding their sample data.
+    all_platforms_total = metrics_for_window(db, maple.id, start, end)["counts"]["eligible_count"]
+    assert all_platforms_total > chat["answers"]
+    assert chat["is_sample_demo"] is False, "a live platform is never labeled a sample demo"
     assert chat["top_sources"] and abs(sum(s["share"] for s in chat["top_sources"])) <= 1.0001
     for r in out["platforms"]:
-        if r["platform"] != "chatgpt":
+        if r["platform"] in ("gemini", "claude", "perplexity"):
+            # Sample Portfolio: scripted secondary-platform answers exist even without a key,
+            # clearly labeled is_sample_demo so nobody mistakes them for a real connection.
+            assert r["answers"] > 0 and r["availability"]["state"] != "live" and r["is_sample_demo"] is True
+        elif r["platform"] != "chatgpt":
             assert r["answers"] == 0 and r["ai_visibility"]["value"] is None and r["availability"]["state"] != "live"
+            assert r["is_sample_demo"] is False
     assert out["platforms"][0]["platform"] == "chatgpt", "live platforms first"
+
+
+def test_platform_breakdown_never_flags_sample_demo_for_a_real_property(db):
+    p = Property(name="Real Court", slug="real-court", city="Denver", state="CO")
+    db.add(p)
+    db.commit()
+    out = platform_breakdown(db, p.id, days=28, today=TODAY)
+    for r in out["platforms"]:
+        assert r["is_sample_demo"] is False and r["answers"] == 0
+
+
+def test_secondary_platform_sample_data_is_counted_separately_from_chatgpt(db):
+    maple = _seeded(db)
+    start, end = _window(28, TODAY)
+    chat_count = db.query(AIPropertyObservation).filter_by(
+        property_id=maple.id, eligible=True, platform="chatgpt").count()
+    secondary_count = db.query(AIPropertyObservation).filter(
+        AIPropertyObservation.property_id == maple.id, AIPropertyObservation.eligible.is_(True),
+        AIPropertyObservation.platform.in_(["gemini", "claude", "perplexity"])).count()
+    assert secondary_count > 0, "secondary platforms must contribute real sample observations"
+    out = platform_breakdown(db, maple.id, days=28, today=TODAY)
+    chat = next(r for r in out["platforms"] if r["platform"] == "chatgpt")
+    assert chat["answers"] == chat_count == metrics_for_window(db, maple.id, start, end, platform="chatgpt")["counts"]["eligible_count"]
+    for key in ("gemini", "claude", "perplexity"):
+        row = next(r for r in out["platforms"] if r["platform"] == key)
+        assert row["answers"] == db.query(AIPropertyObservation).filter_by(
+            property_id=maple.id, eligible=True, platform=key).count()
 
 
 def test_source_matrix_reconciles_and_never_calls_an_unread_source_absent(db):
@@ -68,7 +105,7 @@ def test_source_matrix_reconciles_and_never_calls_an_unread_source_absent(db):
     assert own["presence"] == "owned" and own["action"] in ("expand", "strengthen")
     assert all(s["accuracy"] is None for s in out["sources"]), "accuracy is not graded without the Truth layer"
     for s in out["sources"]:
-        assert s["by_platform"].keys() <= {"chatgpt"}
+        assert s["by_platform"].keys() <= {"chatgpt", "gemini", "claude", "perplexity"}
         if s["presence"] == "absent":
             assert s["pages"]["read"] >= 1 and s["action"] in ("fix", "opportunity")
     # Make every page of one absent/present directory unreadable: it becomes unknown, not absent.
@@ -85,6 +122,10 @@ def test_competitor_advantage_needs_a_competitor_on_a_page_that_omits_you(db):
     comp = db.query(Competitor).filter_by(property_id=maple.id).first()
     page = db.query(AICitedPage).filter(AICitedPage.normalized_url == "rent.com/lakemont-co").one()
     page.body = f"Featured communities: {comp.name} and others."
+    # Sample secondary platforms may also cite the property's own rent.com listing page in
+    # this window; block it so this domain's "named" evidence comes only from the page above.
+    for other in db.query(AICitedPage).filter(AICitedPage.domain == "rent.com", AICitedPage.id != page.id).all():
+        other.status, other.error, other.body = "blocked", "HTTP 403", None
     db.commit()
     row = next(s for s in source_matrix(db, maple.id, days=28, today=TODAY)["sources"] if s["domain"] == "rent.com")
     assert comp.name in row["competitors_named"]

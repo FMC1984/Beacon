@@ -1,6 +1,6 @@
 # Beacon — Session Handoff
 
-Last updated: 2026-07-12. Read this first in a new session before touching anything.
+Last updated: 2026-09-18. Read this first in a new session before touching anything.
 
 ## What Beacon is
 
@@ -79,6 +79,44 @@ run it again without checking which direction data should flow first.
   `NotImplementedError: No support for ALTER of constraints`.
 
 ## What's built (reverse chronological, most recent first)
+
+### Sample data for the other platforms (2026-09-18, 884 tests)
+- Requested directly: "Create sample data for the other LLMs even though I
+  don't have keys yet." No keys were added and no real Gemini/Claude/
+  Perplexity calls are made; this only extends the existing Sample Portfolio
+  (fictional, `attributes.sample_data=True`) so the platform-ready screens
+  have real (if scripted) secondary-platform data to show instead of being
+  permanently blank until Tina pays for keys.
+- `services/observatory/demo_seed.py`: `SECONDARY_PLATFORMS` (gemini, claude,
+  perplexity) run through the same `execute_market_prompt` /
+  `execute_observation` pipeline as ChatGPT, using each call's `platform=`
+  override rather than new prompt rows, at a lower cadence than ChatGPT
+  (every 3rd week for market/feature prompts, every 4th for brand prompts,
+  matching the real scheduler's validation-run intent for a platform with no
+  key yet). `PLATFORM_FLAVOR` gives each platform its own fictional citation
+  mix (labeled as scripted, not a claim about real vendor behavior).
+  Isolation is structural: secondary platforms get their own `random.Random`
+  seed and their own `_Pacer` instance per platform, entirely separate from
+  ChatGPT's, and `_answer`/`_brand_answer` reproduce ChatGPT's exact
+  pre-existing probabilities when `platform="chatgpt"`, so ChatGPT's sample
+  history is provably unchanged whether or not this code runs.
+- `services/observatory/platform_breakdown.py`: each platform row now carries
+  `is_sample_demo` (true only when the property is a sample property, the
+  platform's real `platform_availability()` state is not `"live"`, and it now
+  has eligible answers) — the real availability/connectivity logic in
+  `ai_visibility/reference.py` is untouched.
+- `components/observatory/StandingPanels.tsx` (`PlatformPanel`): rows with
+  `is_sample_demo` now show their real numbers with a distinct "Sample data"
+  badge next to the honest "Ready, no key" badge, instead of being hidden
+  behind the `·` placeholder that only truly-live platforms used to clear.
+  Source Influence Matrix needed no change — it already aggregates citations
+  across every platform's observations with no live-only gate.
+- Tests: `tests/test_flow_platforms_matrix_standing.py` gained
+  `test_platform_breakdown_never_flags_sample_demo_for_a_real_property` and
+  `test_secondary_platform_sample_data_is_counted_separately_from_chatgpt`;
+  the existing roster/reconciliation and competitor-advantage tests were
+  updated for the new intended behavior (secondary platforms now have
+  answers; the "all platforms" rollup total now exceeds ChatGPT's alone).
 
 ### AI Sentiment as a headline metric card (2026-09-18, 882 tests)
 - Requested directly off a screenshot of the Overview's metric grid: add
@@ -1631,7 +1669,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **882**, all passing. Always run the full
+change (shown on `/admin`). Current: **884**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

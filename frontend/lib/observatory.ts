@@ -818,6 +818,7 @@ export type PlatformRow = {
   platform: string;
   label: string;
   availability: PlatformAvailability;
+  is_sample_demo: boolean;
   answers: number;
   ai_visibility: ObsMetric;
   citation_rate: ObsMetric;

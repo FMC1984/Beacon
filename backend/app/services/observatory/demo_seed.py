@@ -90,6 +90,28 @@ SAMPLE_BUDGET_RUNS = 20000
 WEEKS = 13
 DIRECTORIES = ("apartments.com", "zillow.com", "rent.com", "apartmentlist.com")
 
+# Platforms beyond ChatGPT run far less often in the sample data, matching
+# the real scheduler's intent (Slice 7: validation runs, lower frequency,
+# once a key is added). Market/feature topics run every 3rd week; brand
+# questions every 4th, both far rarer than ChatGPT's weekly/biweekly cadence.
+SECONDARY_PLATFORMS = ("gemini", "claude", "perplexity")
+SECONDARY_MARKET_CADENCE_WEEKS = 3
+SECONDARY_BRAND_CADENCE_WEEKS = 4
+
+# Fictional, deterministic "flavor" per platform for the SAMPLE DATA ONLY:
+# which sources that platform's scripted answers lean on. This is not a
+# claim about how ChatGPT, Gemini, Claude or Perplexity actually behave;
+# it exists so the Platform Breakdown and Source Influence Matrix have
+# something real (if scripted) to show once more platforms are connected.
+# ChatGPT's own numbers below match its existing hardcoded probabilities
+# exactly, so its generated answers are unchanged bit for bit.
+PLATFORM_FLAVOR = {
+    "chatgpt": {"own_site_cite_prob_market": 0.7, "own_site_cite_prob_brand": 0.65, "directory_count": 2},
+    "gemini": {"own_site_cite_prob_market": 0.82, "own_site_cite_prob_brand": 0.78, "directory_count": 1},
+    "claude": {"own_site_cite_prob_market": 0.6, "own_site_cite_prob_brand": 0.55, "directory_count": 1},
+    "perplexity": {"own_site_cite_prob_market": 0.45, "own_site_cite_prob_brand": 0.4, "directory_count": 3},
+}
+
 
 @dataclass
 class SampleProperty:
@@ -248,9 +270,13 @@ class _Pacer:
 
 
 def _answer(rng: random.Random, pacer: _Pacer, market_props: list[tuple[SampleProperty, Property]], topic: str,
-            city: str, state: str, progress: float) -> tuple[str, list[tuple[str, str]], list[str]]:
+            city: str, state: str, progress: float, platform: str = "chatgpt") -> tuple[str, list[tuple[str, str]], list[str]]:
     """One scripted market answer: which communities it names, in what order,
-    with claims and citations. Shares drift across the window so trends move."""
+    with claims and citations. Shares drift across the window so trends move.
+    `platform` only selects the citation flavor (PLATFORM_FLAVOR); which
+    communities are named is decided by `pacer` before this is ever called,
+    so passing a platform never changes who is visible, only what gets cited."""
+    flavor = PLATFORM_FLAVOR[platform]
     named: list[tuple[SampleProperty, Property]] = []
     for sample, prop in market_props:
         share = _share(sample, progress)
@@ -280,17 +306,18 @@ def _answer(rng: random.Random, pacer: _Pacer, market_props: list[tuple[SamplePr
         if not bits:
             bits.append(f"{sample.unit_count} apartment homes near downtown {city}")
         lines.append(f"- **{sample.name}**: {', '.join(b for b in bits if b)}.")
-        if sample.cited and rng.random() < 0.7:
+        if sample.cited and rng.random() < flavor["own_site_cite_prob_market"]:
             citations.append((f"https://www.{sample.domain}/", sample.name))
     for extra in extras:
         lines.append(f"- {extra} is another option renters mention in {city}.")
-    for directory in rng.sample(DIRECTORIES, k=2):
+    for directory in rng.sample(DIRECTORIES, k=flavor["directory_count"]):
         citations.append((f"https://www.{directory}/{city.lower().replace(' ', '-')}-{state.lower()}", directory))
     queries = [f"{topic.replace('_', ' ')} apartments {city} {state}".strip(), f"best apartments {city}"]
     return "\n".join(lines), citations, queries
 
 
-def _brand_answer(rng: random.Random, sample: SampleProperty, progress: float) -> tuple[str, list[tuple[str, str]], list[str]]:
+def _brand_answer(rng: random.Random, sample: SampleProperty, progress: float,
+                  platform: str = "chatgpt") -> tuple[str, list[tuple[str, str]], list[str]]:
     lines = [f"{sample.name} is an apartment community in {sample.city}, {sample.state}."]
     if "pool" in sample.claims and "Pool" in sample.amenities:
         lines.append(f"{sample.name} has a pool and a fitness center on site.")
@@ -311,8 +338,9 @@ def _brand_answer(rng: random.Random, sample: SampleProperty, progress: float) -
     # A brand question nearly always names the property, but whether the answer
     # reaches for the property's OWN site varies: a flat 100% citation rate
     # would be the kind of too-clean number nobody should believe.
+    own_prob = PLATFORM_FLAVOR[platform]["own_site_cite_prob_brand"]
     citations = []
-    if sample.cited and rng.random() < 0.65:
+    if sample.cited and rng.random() < own_prob:
         citations.append((f"https://www.{sample.domain}/", sample.name))
     elif not sample.cited and rng.random() < 0.1:
         citations.append((f"https://www.{sample.domain}/", sample.name))
@@ -717,6 +745,11 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
         remove_sample_portfolio(db)
     rng = random.Random(1984)
     pacer = _Pacer()
+    # Secondary platforms get their own rng and pacer, seeded independently,
+    # so adding them never shifts a single draw ChatGPT's generation makes;
+    # ChatGPT's exact history is unchanged whether or not this runs.
+    secondary_rng = random.Random(2718)
+    secondary_pacers = {p: _Pacer() for p in SECONDARY_PLATFORMS}
 
     org = Organization(name=SAMPLE_ORG_NAME, slug=SAMPLE_ORG_SLUG, is_active=True,
                        settings={"sample_data": True, "note": "Labeled demo portfolio; not real monitoring."})
@@ -828,6 +861,19 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
                     execute_market_prompt(db, prompt_id, provider=ScriptedSampleProvider(script),
                                           now=when + timedelta(hours=6 * repeat), repeat_index=repeat)
                     runs += 1
+                # Validation-cadence runs on the platforms without a live key
+                # yet: their own rng and pacer (never the ones above), so
+                # ChatGPT's history is identical whether or not this runs.
+                if week % SECONDARY_MARKET_CADENCE_WEEKS == 0:
+                    secondary_script = (
+                        lambda _p, plat, t=topic, c=city, st=state, mp=market_props, pr=progress: _answer(
+                            secondary_rng, secondary_pacers[plat], mp, t, c, st, pr, plat
+                        )
+                    )
+                    for plat in SECONDARY_PLATFORMS:
+                        execute_market_prompt(db, prompt_id, platform=plat, provider=ScriptedSampleProvider(secondary_script),
+                                              now=when + timedelta(hours=12), repeat_index=0)
+                        runs += 1
         if week % 2 == 0:  # brand prompts run every other week
             for s, prop in created:
                 brand = db.query(AIVisibilityPrompt).filter_by(property_id=prop.id, scope="brand").first()
@@ -838,6 +884,17 @@ def build_sample_portfolio(db: Session, now: datetime | None = None, weeks: int 
                     provider=ScriptedSampleProvider(script), now=when,
                 )
                 runs += 1
+        if week % SECONDARY_BRAND_CADENCE_WEEKS == 0:  # secondary platforms: rarer still
+            for s, prop in created:
+                brand = db.query(AIVisibilityPrompt).filter_by(property_id=prop.id, scope="brand").first()
+                secondary_brand_script = lambda _p, plat, sp=s, pr=progress: _brand_answer(secondary_rng, sp, pr, plat)
+                for plat in SECONDARY_PLATFORMS:
+                    execute_observation(
+                        db, property_id=prop.id, prompt_text=brand.prompt_text, platform=plat,
+                        run_scope="brand", prompt_id=brand.id, organization_id=org.id, market_id=prop.market_id,
+                        provider=ScriptedSampleProvider(secondary_brand_script), now=when + timedelta(hours=18),
+                    )
+                    runs += 1
 
     first_party = _seed_first_party(db, created, now)
     _seed_cited_pages(db, created, now)
