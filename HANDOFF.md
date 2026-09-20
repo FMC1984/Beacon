@@ -103,12 +103,17 @@ run it again without checking which direction data should flow first.
   parks these tokens, replaces, then restores them is the way to do this
   safely; that is how this pass was done.
 - **Logo**: `components/CiteRollLogo.tsx` exports `CiteRollMark` (inline SVG)
-  and `CiteRollLogo` (mark plus wordmark). The mark is a speech bubble (the AI
-  answer) whose middle line is highlighted (the citation) beside a multifamily
-  building (the community). The wordmark is real text in Outfit, not baked into
-  an image, because external fonts never load inside an `<img>` SVG. Favicon is
-  `public/icon.svg`; `public/citeroll-mark.svg` is the standalone mark. The old
-  `beacon-logo.png`, `beacon-mark.png` and `icon.png` are deleted.
+  and `CiteRollLogo` (mark plus wordmark). The mark is the AI answer as a
+  speech bubble with its middle line highlighted: the citation the product is
+  named for. A first version set a multifamily building beside the bubble for
+  "the community"; it turned to noise at nav and favicon sizes, so the bubble
+  carries the idea alone and is the single mark everywhere. The wordmark is
+  real text in Outfit, not baked into an image, because external fonts never
+  load inside an `<img>` SVG. Favicon is `public/icon.svg`;
+  `public/citeroll-mark.svg` is the standalone mark. The old
+  `beacon-logo.png`, `beacon-mark.png` and `icon.png` are deleted. Gotcha in
+  `icon.svg`: the gradient is `userSpaceOnUse` inside a transformed group, so
+  its coordinates are the bubble's own space, not the 512 canvas.
 - **Motif**: `BeaconSweep` (radiating arcs, the lighthouse metaphor) is gone.
   `components/CiteRollMotif.tsx` replaces it: a few faint lines of an answer
   with one highlighted citation. It is a small bottom-left corner mark, not a
