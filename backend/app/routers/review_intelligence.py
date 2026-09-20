@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Property
 from app.services.review_intelligence import analyze_property_reviews
@@ -13,14 +14,14 @@ from app.services.review_intelligence import analyze_property_reviews
 router = APIRouter(prefix="/review-intelligence", tags=["review-intelligence"])
 
 
-@router.get("/{property_id}")
+@router.get("/{property_id}", dependencies=[Depends(require_property)])
 def get_analysis(property_id: int, db: Session = Depends(get_db)):
     if db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return analyze_property_reviews(db, property_id)
 
 
-@router.post("/{property_id}/analyze")
+@router.post("/{property_id}/analyze", dependencies=[Depends(require_property)])
 def analyze(property_id: int, db: Session = Depends(get_db)):
     if db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")

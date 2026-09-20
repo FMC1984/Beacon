@@ -10,3 +10,5 @@ chromadb>=1.0
 openai>=1.60
 beautifulsoup4>=4.12
 anthropic>=1.5,<2
+argon2-cffi>=23
+stripe>=10

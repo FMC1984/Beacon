@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Property, PropertyProfile
 from app.services.property_context import (
@@ -42,14 +43,14 @@ def vocabulary():
     }
 
 
-@router.get("/{property_id}")
+@router.get("/{property_id}", dependencies=[Depends(require_property)])
 def read_context(property_id: int, db: Session = Depends(get_db)):
     if db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return get_property_context(db, property_id)
 
 
-@router.put("/{property_id}")
+@router.put("/{property_id}", dependencies=[Depends(require_property)])
 def upsert_context(
     property_id: int, payload: PropertyContextIn, db: Session = Depends(get_db)
 ):

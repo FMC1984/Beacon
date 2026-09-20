@@ -48,3 +48,43 @@ def org_property_ids(db: Session, organization_id: int) -> list[int]:
     else:
         q = q.filter(Property.company_id.in_(company_ids))
     return [pid for (pid,) in q.all()]
+
+
+def company_org_id(db: Session, company_id: int) -> int:
+    company = db.get(Company, company_id)
+    if company is not None and company.organization_id is not None:
+        return company.organization_id
+    return default_organization_id(db)
+
+
+def acting_org_id(db: Session) -> int | None:
+    """The organization the request is acting as, or None when there is no
+    request principal (background work) or a platform admin is looking across
+    every organization."""
+    from app.auth.context import get_current
+
+    principal = get_current()
+    if principal is None:
+        return None
+    return principal.org_id
+
+
+def restrict_to_principal(db: Session, property_ids: list[int] | None) -> list[int] | None:
+    """Apply the request's organization to a resolved scope. None (the whole
+    portfolio) becomes the organization's properties; a list is intersected.
+    A signed-in user with no organization gets nothing. No principal, or a
+    platform admin across all organizations, leaves the scope untouched."""
+    from app.auth.context import get_current
+
+    principal = get_current()
+    if principal is None:
+        return property_ids
+    if principal.org_id is None:
+        if principal.is_platform_admin:
+            return property_ids
+        return []
+    allowed = org_property_ids(db, principal.org_id)
+    if property_ids is None:
+        return allowed
+    allowed_set = set(allowed)
+    return [pid for pid in property_ids if pid in allowed_set]

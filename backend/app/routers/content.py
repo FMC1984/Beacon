@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import CANONICAL_PAGES, Property, PropertyContent
 from app.schemas.content import (
@@ -72,7 +73,7 @@ def _save_page(
     return row
 
 
-@router.get("/{property_id}", response_model=list[ContentPageOut])
+@router.get("/{property_id}", response_model=list[ContentPageOut], dependencies=[Depends(require_property)])
 def list_content(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     return (
@@ -83,7 +84,7 @@ def list_content(property_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.put("/{property_id}", response_model=ContentPageOut, status_code=200)
+@router.put("/{property_id}", response_model=ContentPageOut, status_code=200, dependencies=[Depends(require_property)])
 def upsert_content(
     property_id: int, payload: ContentPageIn, db: Session = Depends(get_db)
 ):
@@ -101,7 +102,7 @@ def upsert_content(
     )
 
 
-@router.post("/{property_id}/{page}/fetch", response_model=ContentFetchOut, status_code=200)
+@router.post("/{property_id}/{page}/fetch", response_model=ContentFetchOut, status_code=200, dependencies=[Depends(require_property)])
 def fetch_content(
     property_id: int, page: str, payload: ContentFetchIn, db: Session = Depends(get_db)
 ):

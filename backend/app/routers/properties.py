@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.auth.context import get_current
+from app.auth.deps import require_property
 from app.models import (
     Company,
     CRMLead,
@@ -44,7 +46,21 @@ def slugify(name: str) -> str:
 
 
 def _require_company(db: Session, company_id: int | None) -> None:
-    if company_id is not None and db.get(Company, company_id) is None:
+    """The company must exist and belong to the acting organization."""
+    from app.services.observatory.tenancy import company_org_id
+
+    if company_id is None:
+        principal = get_current()
+        if principal is not None and principal.org_id is not None and not principal.is_platform_admin:
+            from app.services.observatory.tenancy import default_organization_id
+
+            if principal.org_id != default_organization_id(db):
+                raise HTTPException(status_code=422, detail="Choose a company for this property.")
+        return
+    if db.get(Company, company_id) is None:
+        raise HTTPException(status_code=422, detail="Company not found.")
+    principal = get_current()
+    if principal is not None and principal.org_id is not None and company_org_id(db, company_id) != principal.org_id:
         raise HTTPException(status_code=422, detail="Company not found.")
 
 
@@ -117,10 +133,16 @@ def _derive_observatory_fields(db: Session, prop: Property) -> None:
 
 @router.get("", response_model=list[PropertyOut])
 def list_properties(db: Session = Depends(get_db)):
-    return db.query(Property).order_by(Property.name).all()
+    from app.services.observatory.tenancy import restrict_to_principal
+
+    allowed = restrict_to_principal(db, None)
+    q = db.query(Property)
+    if allowed is not None:
+        q = q.filter(Property.id.in_(allowed))
+    return q.order_by(Property.name).all()
 
 
-@router.get("/{property_id}", response_model=PropertyOut)
+@router.get("/{property_id}", response_model=PropertyOut, dependencies=[Depends(require_property)])
 def get_property(property_id: int, db: Session = Depends(get_db)):
     prop = db.get(Property, property_id)
     if prop is None:
@@ -128,7 +150,7 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
     return prop
 
 
-@router.get("/{property_id}/setup")
+@router.get("/{property_id}/setup", dependencies=[Depends(require_property)])
 def get_property_setup(property_id: int, db: Session = Depends(get_db)):
     """Setup checklist: six dependency-ordered steps, each a deterministic
     check over existing rows, with what it unlocks and where to do it."""
@@ -137,7 +159,7 @@ def get_property_setup(property_id: int, db: Session = Depends(get_db)):
     return property_setup(db, property_id)
 
 
-@router.patch("/{property_id}", response_model=PropertyOut)
+@router.patch("/{property_id}", response_model=PropertyOut, dependencies=[Depends(require_property)])
 def update_property(
     property_id: int, payload: PropertyUpdate, db: Session = Depends(get_db)
 ):
@@ -168,7 +190,7 @@ def update_property(
     return prop
 
 
-@router.delete("/{property_id}", status_code=200)
+@router.delete("/{property_id}", status_code=200, dependencies=[Depends(require_property)])
 def delete_property(property_id: int, db: Session = Depends(get_db)):
     """Cascading delete: every row scoped to this property, its uploaded files,
     and its RAG vectors. Irreversible; intended for clearing test/demo data."""

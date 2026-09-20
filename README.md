@@ -40,11 +40,53 @@ First-time setup: `python3 -m venv backend/.venv`, then
 - `BEACON_DEMO_MODE` - `1` for keyless demo mode (currently ON)
 - `BEACON_NORA_MODEL` - generation model, default `gpt-5-mini`
 - `BEACON_DATABASE_URL`, `BEACON_CHROMA_DIR`, `BEACON_DATA_DIR` - defaults fine
-- `BEACON_ACCESS_KEY` - hosted deployments only: when set, every /api request
-  except /api/health must send it in the X-Beacon-Key header; the frontend
-  asks for it once and remembers it. Leave unset locally (no login).
+- `BEACON_ACCESS_KEY` - a shared key that still works as a break-glass
+  credential for scripts (`X-Beacon-Key` header). Real sign-in is by user
+  account now (see 2e). Leave unset locally.
 - `BEACON_CORS_ORIGINS` - hosted deployments only: extra allowed origins,
   comma-separated (the Render frontend URL).
+- `BEACON_BOOTSTRAP_ADMIN_EMAIL` / `BEACON_BOOTSTRAP_ADMIN_PASSWORD` - creates
+  the founder's platform-admin login once at startup if it does not exist.
+- `BEACON_STRIPE_SECRET_KEY`, `BEACON_STRIPE_WEBHOOK_SECRET`,
+  `BEACON_STRIPE_PRICE_STANDARD`, `BEACON_STRIPE_PRICE_ADVANCED`,
+  `BEACON_STRIPE_PRICE_AUDIT` - Stripe billing; blank = billing off.
+- `BEACON_EMAIL_PROVIDER` (`resend`), `BEACON_EMAIL_API_KEY`,
+  `BEACON_EMAIL_FROM` - optional outbound email for invites and resets.
+
+## 2e. Login, teams and billing
+
+**Three ways in.** A signed-in user (`Authorization: Bearer <session>`, an
+opaque token stored hashed with a 30-day sliding expiry); the shared
+`BEACON_ACCESS_KEY` (scripts, break-glass; acts as a platform admin); or
+**open mode**, which applies only while no user exists AND no access key is
+set, so a fresh local checkout and the test suite behave exactly as before.
+The moment a user exists, sign-in is required.
+
+**Organizations and roles.** A user belongs to organizations through
+memberships: `owner` (billing, team, everything), `admin` (edit properties,
+facts, competitors, prompts, uploads), `viewer` (read everything). Platform
+admins (`users.is_platform_admin`) see every organization and can act as one
+with the `X-Beacon-Org: <id>` header, which the frontend sets from the sidebar
+switcher. Everything else is pinned to an organization the user belongs to.
+A property of another organization answers 404, never 403.
+
+**Creating logins.** Invite-only. On Render, set the two
+`BEACON_BOOTSTRAP_ADMIN_*` vars once. Locally:
+`python -m app.cli.create_user --email you@example.com --platform-admin`.
+From then on, Settings > Team creates invite links (14 days) and reset links
+(24 hours); with no email provider configured the links are shown to the admin
+to pass on by hand. Organizations are created by a platform admin at
+`POST /api/admin/orgs` (the Team page's switcher lists them).
+
+**Billing.** Stripe Checkout and the Customer Portal, priced per monitored
+community per month (quantity), two tiers (standard, advanced) plus a one-time
+audit. Webhooks (`/api/billing/webhook`, signed) keep the `subscriptions`
+table current and are idempotent by event id. Entitlement is soft: over
+quantity shows a banner; an organization with no active subscription and no
+override is read-only (writes answer 402). The default organization carries a
+`billing_override` from the migration so the founding client is never gated;
+the sample portfolio is always active. Local testing:
+`stripe listen --forward-to localhost:8600/api/billing/webhook`.
 
 ## 2b. Deploying to Render
 

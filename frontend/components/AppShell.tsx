@@ -7,6 +7,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { isPublicPath } from "@/lib/auth";
+import { EntitlementBanner } from "./EntitlementBanner";
 import { Sidebar } from "./Sidebar";
 
 function MenuIcon() {
@@ -23,6 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Close the drawer on navigation.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to a route change
     setOpen(false);
   }, [pathname]);
 
@@ -34,8 +37,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [open]);
 
-  // Public share routes (Phase 17D) render bare: no sidebar, no app chrome.
-  if (pathname.startsWith("/shared/")) {
+  // Public routes render bare: shared briefings (Phase 17D), sign-in, invites, resets.
+  if (isPublicPath(pathname)) {
     return <>{children}</>;
   }
 
@@ -75,6 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="min-w-0 flex-1">
+        <EntitlementBanner />
         <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/80 px-4 py-2.5 backdrop-blur md:hidden">
           <button
             onClick={() => setOpen(true)}

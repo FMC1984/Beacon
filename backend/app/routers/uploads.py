@@ -44,7 +44,14 @@ async def run_upload(
     source_account: str | None = None,
     background: BackgroundTasks | None = None,
 ) -> UploadResult:
-    prop = db.get(Property, property_id)
+    from app.auth.context import get_current
+    from app.auth.deps import assert_property_access
+
+    principal = get_current()
+    if principal is not None:
+        prop = assert_property_access(db, principal, property_id)
+    else:
+        prop = db.get(Property, property_id)
     if prop is None:
         raise HTTPException(status_code=404, detail="Property not found.")
 
@@ -228,4 +235,10 @@ async def upload_crm(
 
 @router.get("", response_model=list[UploadOut])
 def list_uploads(db: Session = Depends(get_db)):
-    return db.query(Upload).order_by(Upload.uploaded_at.desc(), Upload.id.desc()).all()
+    from app.services.observatory.tenancy import restrict_to_principal
+
+    allowed = restrict_to_principal(db, None)
+    q = db.query(Upload)
+    if allowed is not None:
+        q = q.filter(Upload.property_id.in_(allowed))
+    return q.order_by(Upload.uploaded_at.desc(), Upload.id.desc()).all()

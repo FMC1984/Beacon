@@ -87,10 +87,15 @@ def _recency(period_end: date | None, anchor: date | None) -> float:
     return max(0.0, min(1.0, 1.0 - age_days / 365))
 
 
-def _where(property_id: int | None, source: str | None, topics: list[str] | None):
+def _where(property_id: int | None, source: str | None, topics: list[str] | None,
+           property_ids: list[int] | None = None):
     clauses = []
     if property_id is not None:
         clauses.append({"property_id": property_id})
+    elif property_ids is not None:
+        # Tenant scope for portfolio-wide questions: only this organization's
+        # properties. An empty list must match nothing, never everything.
+        clauses.append({"property_id": {"$in": list(property_ids) or [-1]}})
     if source:
         clauses.append({"source": source})
     if topics:
@@ -110,6 +115,7 @@ def retrieve(
     chroma_dir: str | None = None,
     source: str | None = None,
     topics: list[str] | None = None,
+    property_ids: list[int] | None = None,
 ) -> list[RetrievedChunk]:
     collection = get_collection(chroma_dir, embedder.key)
     if collection.count() == 0:
@@ -121,7 +127,7 @@ def retrieve(
     result = collection.query(
         query_embeddings=[query_vector],
         n_results=min(pool, collection.count()),
-        where=_where(property_id, source, topics),
+        where=_where(property_id, source, topics, property_ids),
     )
 
     ids = result["ids"][0]

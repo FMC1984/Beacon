@@ -69,6 +69,20 @@ APP_PHASE = (
     "random state so ChatGPT's own sample history is unchanged; the Platform Breakdown and "
     "Source Influence Matrix show these platforms' real (if scripted) numbers under a Sample "
     "data badge alongside their honest Ready, no key state, so nobody mistakes them for a live "
-    "connection, and this stays off for every non-sample property until a key is added."
+    "connection, and this stays off for every non-sample property until a key is added. "
+    "Accounts, organizations and billing: people sign in with an email and password "
+    "(invite-only, invites and resets are links an admin can pass on by hand), a user "
+    "belongs to organizations through memberships with an owner, admin or viewer role, "
+    "and a platform admin sees every organization and can act as one. Every API route "
+    "carries an authorization dependency, checked by a test that walks the route table, "
+    "and a property of another organization answers not found rather than forbidden so "
+    "its existence never leaks. The shared access key stays valid for scripts, and a "
+    "checkout with no key and no users still runs open. Billing is Stripe Checkout and "
+    "the Customer Portal priced per monitored community per month, two tiers plus a "
+    "one-time audit, with webhooks keeping a local subscription table current and every "
+    "event recorded once by its Stripe id. Entitlement is soft: monitoring more "
+    "communities than the plan covers shows a banner, and an organization with no "
+    "subscription and no override is read-only rather than locked out, which is why the "
+    "founding client carries an override and the sample portfolio is always active."
 )
-TEST_COUNT = 884
+TEST_COUNT = 925

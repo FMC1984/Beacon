@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import AITopic, AIVisibilityPrompt, AIVisibilityQuery, Property
 from app.providers.base import MissingAPIKeyError
@@ -69,7 +70,7 @@ def meta():
     }
 
 
-@router.post("/{property_id}/query")
+@router.post("/{property_id}/query", dependencies=[Depends(require_property)])
 def execute(property_id: int, payload: AIVisibilityQueryIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     try:
@@ -94,7 +95,7 @@ def execute(property_id: int, payload: AIVisibilityQueryIn, db: Session = Depend
     }
 
 
-@router.get("/{property_id}/analysis")
+@router.get("/{property_id}/analysis", dependencies=[Depends(require_property)])
 def analysis(property_id: int, db: Session = Depends(get_db)):
     """Phase 12 deterministic AI Visibility analysis: per-platform mention rates,
     source landscape, interpreted fact-checks, an explainable (sample-gated)
@@ -103,7 +104,7 @@ def analysis(property_id: int, db: Session = Depends(get_db)):
     return analyze_ai_visibility(db, property_id)
 
 
-@router.post("/{property_id}/analyze")
+@router.post("/{property_id}/analyze", dependencies=[Depends(require_property)])
 def analyze(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     result = analyze_ai_visibility(db, property_id)
@@ -114,7 +115,7 @@ def analyze(property_id: int, db: Session = Depends(get_db)):
     return {"analysis": result, "sync_job_id": job.id}
 
 
-@router.get("/{property_id}")
+@router.get("/{property_id}", dependencies=[Depends(require_property)])
 def list_queries(
     property_id: int,
     platform: str | None = None,
@@ -163,7 +164,7 @@ class PromptIn(BaseModel):
     tags: list[str] | None = None
 
 
-@router.post("/{property_id}/import-question-set")
+@router.post("/{property_id}/import-question-set", dependencies=[Depends(require_property)])
 def import_prompts_question_set(
     property_id: int, payload: dict, db: Session = Depends(get_db)
 ):
@@ -180,7 +181,7 @@ def import_prompts_question_set(
         raise HTTPException(status_code=422, detail=str(exc))
 
 
-@router.get("/{property_id}/prompts")
+@router.get("/{property_id}/prompts", dependencies=[Depends(require_property)])
 def list_prompts(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     rows = (
@@ -214,7 +215,7 @@ def list_prompts(property_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{property_id}/topics")
+@router.get("/{property_id}/topics", dependencies=[Depends(require_property)])
 def list_topics(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     rows = (
@@ -240,7 +241,7 @@ class TopicIn(BaseModel):
     priority: str = "medium"
 
 
-@router.post("/{property_id}/topics", status_code=201)
+@router.post("/{property_id}/topics", status_code=201, dependencies=[Depends(require_property)])
 def add_topic(property_id: int, payload: TopicIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     name = (payload.topic_name or "").strip()
@@ -263,7 +264,7 @@ def add_topic(property_id: int, payload: TopicIn, db: Session = Depends(get_db))
     }
 
 
-@router.delete("/{property_id}/topics/{topic_id}")
+@router.delete("/{property_id}/topics/{topic_id}", dependencies=[Depends(require_property)])
 def delete_topic(property_id: int, topic_id: int, db: Session = Depends(get_db)):
     row = db.query(AITopic).filter_by(id=topic_id, property_id=property_id).one_or_none()
     if row is None:
@@ -273,13 +274,13 @@ def delete_topic(property_id: int, topic_id: int, db: Session = Depends(get_db))
     return {"ok": True}
 
 
-@router.get("/{property_id}/prompt-suggestions")
+@router.get("/{property_id}/prompt-suggestions", dependencies=[Depends(require_property)])
 def suggestions(property_id: int, db: Session = Depends(get_db)):
     prop = _require_property(db, property_id)
     return {"suggestions": prompt_suggestions(prop)}
 
 
-@router.post("/{property_id}/prompts", status_code=201)
+@router.post("/{property_id}/prompts", status_code=201, dependencies=[Depends(require_property)])
 def add_prompt(property_id: int, payload: PromptIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     text = (payload.prompt_text or "").strip()
@@ -302,7 +303,7 @@ def add_prompt(property_id: int, payload: PromptIn, db: Session = Depends(get_db
     }
 
 
-@router.delete("/{property_id}/prompts/{prompt_id}")
+@router.delete("/{property_id}/prompts/{prompt_id}", dependencies=[Depends(require_property)])
 def delete_prompt(property_id: int, prompt_id: int, db: Session = Depends(get_db)):
     row = db.query(AIVisibilityPrompt).filter_by(id=prompt_id, property_id=property_id).one_or_none()
     if row is None:
@@ -312,7 +313,7 @@ def delete_prompt(property_id: int, prompt_id: int, db: Session = Depends(get_db
     return {"ok": True}
 
 
-@router.post("/{property_id}/run-standing")
+@router.post("/{property_id}/run-standing", dependencies=[Depends(require_property)])
 def run_standing(property_id: int, db: Session = Depends(get_db)):
     """Run every active standing prompt now, then snapshot the score. This
     spends OpenAI budget; it is user-initiated (a button) or scheduled."""
@@ -326,13 +327,13 @@ def run_standing(property_id: int, db: Session = Depends(get_db)):
     return result
 
 
-@router.get("/{property_id}/score-history")
+@router.get("/{property_id}/score-history", dependencies=[Depends(require_property)])
 def get_score_history(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     return {"history": score_history(db, property_id)}
 
 
-@router.post("/{property_id}/backfill-mentions")
+@router.post("/{property_id}/backfill-mentions", dependencies=[Depends(require_property)])
 def backfill_property_mentions(property_id: int, db: Session = Depends(get_db)):
     """One-time (safely re-runnable) pass over this property's existing
     AIVisibilityQuery history to populate Share of Voice Mention rows, so
@@ -344,7 +345,7 @@ def backfill_property_mentions(property_id: int, db: Session = Depends(get_db)):
     return backfill_mentions(db, property_id=property_id)
 
 
-@router.get("/{property_id}/{query_id}")
+@router.get("/{property_id}/{query_id}", dependencies=[Depends(require_property)])
 def get_query(property_id: int, query_id: int, db: Session = Depends(get_db)):
     prop = _require_property(db, property_id)
     row = (

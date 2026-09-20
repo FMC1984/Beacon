@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Property
 from app.services.ai_query_signals import analyze_ai_query_signals
@@ -29,7 +30,7 @@ def _parse_date(value: str | None, label: str) -> date | None:
         raise HTTPException(status_code=422, detail=f"{label} must be YYYY-MM-DD.")
 
 
-@router.get("/{property_id}")
+@router.get("/{property_id}", dependencies=[Depends(require_property)])
 def get_signals(
     property_id: int,
     start: str | None = Query(default=None, description="ISO date, inclusive"),
@@ -50,7 +51,7 @@ def get_signals(
     )
 
 
-@router.post("/{property_id}/analyze")
+@router.post("/{property_id}/analyze", dependencies=[Depends(require_property)])
 def analyze(property_id: int, db: Session = Depends(get_db)):
     if db.get(Property, property_id) is None:
         raise HTTPException(status_code=404, detail="Property not found.")

@@ -1,6 +1,7 @@
 """Company CRUD. A company groups properties; deleting one unassigns its
 properties (sets company_id NULL) rather than deleting them, so no property
-data is ever lost by removing a company."""
+data is ever lost by removing a company. Every route sees only the acting
+organization's companies."""
 
 import re
 
@@ -8,9 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.auth.deps import Principal, current_principal
 from app.db import get_db
 from app.models import Company, Property
 from app.schemas.companies import CompanyCreate, CompanyOut, CompanyUpdate
+from app.services.observatory.tenancy import company_org_id, default_organization_id
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -38,17 +41,39 @@ def _to_out(company: Company, counts: dict[int, int]) -> CompanyOut:
     return out
 
 
+def _visible(db: Session, principal: Principal):
+    q = db.query(Company)
+    if principal.org_id is not None:
+        if principal.org_id == default_organization_id(db):
+            q = q.filter((Company.organization_id == principal.org_id) | (Company.organization_id.is_(None)))
+        else:
+            q = q.filter(Company.organization_id == principal.org_id)
+    elif not principal.is_platform_admin:
+        q = q.filter(Company.id < 0)
+    return q
+
+
+def _own_company(db: Session, principal: Principal, company_id: int) -> Company:
+    company = db.get(Company, company_id)
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found.")
+    if principal.org_id is None:
+        if not principal.is_platform_admin:
+            raise HTTPException(status_code=404, detail="Company not found.")
+    elif company_org_id(db, company_id) != principal.org_id:
+        raise HTTPException(status_code=404, detail="Company not found.")
+    return company
+
+
 @router.get("", response_model=list[CompanyOut])
-def list_companies(db: Session = Depends(get_db)):
+def list_companies(db: Session = Depends(get_db), principal: Principal = Depends(current_principal)):
     counts = _counts(db)
-    return [
-        _to_out(c, counts)
-        for c in db.query(Company).order_by(Company.name).all()
-    ]
+    return [_to_out(c, counts) for c in _visible(db, principal).order_by(Company.name).all()]
 
 
 @router.post("", response_model=CompanyOut, status_code=201)
-def create_company(payload: CompanyCreate, db: Session = Depends(get_db)):
+def create_company(payload: CompanyCreate, db: Session = Depends(get_db),
+                   principal: Principal = Depends(current_principal)):
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=422, detail="Company name is required.")
@@ -62,9 +87,10 @@ def create_company(payload: CompanyCreate, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=409, detail="A company with that name already exists."
         )
-    from app.services.observatory.tenancy import default_organization_id
-
-    company = Company(name=name, slug=slug, organization_id=default_organization_id(db))
+    # A platform admin looking across every organization creates in the
+    # default one, which is what the single-tenant app always did.
+    organization_id = principal.org_id if principal.org_id is not None else default_organization_id(db)
+    company = Company(name=name, slug=slug, organization_id=organization_id)
     db.add(company)
     db.commit()
     db.refresh(company)
@@ -73,11 +99,10 @@ def create_company(payload: CompanyCreate, db: Session = Depends(get_db)):
 
 @router.patch("/{company_id}", response_model=CompanyOut)
 def update_company(
-    company_id: int, payload: CompanyUpdate, db: Session = Depends(get_db)
+    company_id: int, payload: CompanyUpdate, db: Session = Depends(get_db),
+    principal: Principal = Depends(current_principal),
 ):
-    company = db.get(Company, company_id)
-    if company is None:
-        raise HTTPException(status_code=404, detail="Company not found.")
+    company = _own_company(db, principal, company_id)
     if payload.name is not None:
         name = payload.name.strip()
         if not name:
@@ -99,12 +124,11 @@ def update_company(
 
 
 @router.delete("/{company_id}", status_code=200)
-def delete_company(company_id: int, db: Session = Depends(get_db)):
+def delete_company(company_id: int, db: Session = Depends(get_db),
+                   principal: Principal = Depends(current_principal)):
     """Remove the company and unassign its properties (company_id -> NULL).
     Property data is untouched."""
-    company = db.get(Company, company_id)
-    if company is None:
-        raise HTTPException(status_code=404, detail="Company not found.")
+    company = _own_company(db, principal, company_id)
     unassigned = (
         db.query(Property)
         .filter(Property.company_id == company_id)

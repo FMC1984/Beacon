@@ -1,16 +1,16 @@
-import secrets
-
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.auth.deps import require_platform_admin, role_gate, scope_property
 
 from app.routers import (
     admin,
     ai_observatory,
     ai_query_signals,
     ai_visibility,
+    auth,
+    billing,
     companies,
     competitor_intelligence,
     competitors,
@@ -24,6 +24,7 @@ from app.routers import (
     health,
     opportunities,
     nora,
+    orgs,
     properties,
     property_context,
     reports_v2,
@@ -35,35 +36,14 @@ from app.routers import (
 app = FastAPI(title="Beacon", version="0.1.0")
 
 
-@app.middleware("http")
-async def require_access_key(request: Request, call_next):
-    """Shared-key gate for hosted deployments. Inert when BEACON_ACCESS_KEY is
-    unset (local single-user use). /api/health stays open so the key screen and
-    Render's health checks can reach the server; OPTIONS passes so CORS
-    preflights (which never carry custom headers) keep working."""
-    if (
-        settings.access_key
-        and request.url.path.startswith("/api")
-        # /api/google/callback: Google's browser redirect cannot carry the
-        # key header; the endpoint verifies its own HMAC-signed state instead.
-        and request.url.path not in ("/api/health", "/api/google/callback")
-        # /api/briefing/shared/<token>: the public share route (Phase 17D).
-        # The unguessable token IS the authorization; the payload is a frozen,
-        # client-safe snapshot. GET only - share/revoke stay key-protected.
-        and not (
-            request.method == "GET"
-            and request.url.path.startswith("/api/briefing/shared/")
-        )
-        and request.method != "OPTIONS"
-        and not secrets.compare_digest(
-            request.headers.get("x-beacon-key", ""), settings.access_key
-        )
-    ):
-        return JSONResponse(
-            status_code=401, content={"detail": "Missing or invalid access key."}
-        )
-    return await call_next(request)
-
+# Authentication is dependency-based (app.auth.deps): every data router below
+# carries role_gate (reads need viewer, writes need admin), admin routes need a
+# platform admin, and the few public routes (health, the briefing share link,
+# Google's OAuth callback, the Stripe webhook, sign-in/invite/reset) declare
+# nothing. tests/test_auth_coverage.py walks every route to keep it that way.
+# BEACON_ACCESS_KEY still works as a break-glass credential for scripts, and a
+# checkout with no key and no users runs open, exactly as before.
+_gated = [Depends(role_gate)]
 
 # Local dev origins plus any hosted origins from BEACON_CORS_ORIGINS.
 _origins = [
@@ -80,28 +60,39 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
-app.include_router(companies.router, prefix="/api")
-app.include_router(properties.router, prefix="/api")
-app.include_router(uploads.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
+app.include_router(orgs.router, prefix="/api")
+app.include_router(companies.router, prefix="/api", dependencies=_gated)
+app.include_router(properties.router, prefix="/api", dependencies=_gated)
+app.include_router(uploads.router, prefix="/api", dependencies=_gated)
+app.include_router(dashboard.router, prefix="/api", dependencies=_gated)
 app.include_router(nora.router, prefix="/api")
-app.include_router(admin.router, prefix="/api")
-app.include_router(content.router, prefix="/api")
-app.include_router(content_intelligence.router, prefix="/api")
-app.include_router(ai_query_signals.router, prefix="/api")
-app.include_router(ai_visibility.router, prefix="/api")
-app.include_router(ai_observatory.router, prefix="/api")
-app.include_router(competitors.router, prefix="/api")
-app.include_router(competitor_intelligence.router, prefix="/api")
-app.include_router(opportunities.router, prefix="/api")
-app.include_router(property_context.router, prefix="/api")
-app.include_router(reviews.router, prefix="/api")
-app.include_router(review_intelligence.router, prefix="/api")
-app.include_router(export.router, prefix="/api")
+app.include_router(admin.router, prefix="/api", dependencies=[Depends(require_platform_admin)])
+app.include_router(content.router, prefix="/api", dependencies=_gated)
+app.include_router(content_intelligence.router, prefix="/api", dependencies=_gated)
+app.include_router(ai_query_signals.router, prefix="/api", dependencies=_gated)
+app.include_router(ai_visibility.router, prefix="/api", dependencies=_gated)
+app.include_router(ai_observatory.router, prefix="/api", dependencies=_gated)
+app.include_router(competitors.router, prefix="/api", dependencies=_gated)
+app.include_router(competitor_intelligence.router, prefix="/api", dependencies=_gated)
+app.include_router(opportunities.router, prefix="/api", dependencies=_gated)
+app.include_router(property_context.router, prefix="/api", dependencies=_gated)
+app.include_router(reviews.router, prefix="/api", dependencies=_gated)
+app.include_router(review_intelligence.router, prefix="/api", dependencies=_gated)
+app.include_router(export.router, prefix="/api", dependencies=_gated + [Depends(scope_property)])
 app.include_router(google.router, prefix="/api")
-app.include_router(reports_v2.router, prefix="/api")
-app.include_router(content_changes.router, prefix="/api")
+app.include_router(reports_v2.router, prefix="/api", dependencies=_gated + [Depends(scope_property)])
+app.include_router(content_changes.router, prefix="/api", dependencies=_gated)
 app.include_router(briefing.router, prefix="/api")
+
+
+@app.on_event("startup")
+async def bootstrap_admin_user():
+    """Create the founder's login from BEACON_BOOTSTRAP_ADMIN_* once, if set."""
+    from app.auth.bootstrap import bootstrap_admin
+
+    bootstrap_admin()
 
 
 @app.on_event("startup")

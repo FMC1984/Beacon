@@ -57,24 +57,29 @@ def _resolve_scope(
 ) -> list[int] | None:
     """Turn a scope request into an explicit id filter. Precedence:
     property_id, then unassigned (properties with no company), then a company's
-    properties; otherwise None = the whole portfolio."""
+    properties; otherwise None = the whole portfolio. The request's
+    organization, when there is one, then narrows whatever was asked for."""
+    from app.services.observatory.tenancy import restrict_to_principal
+
     if property_id is not None:
-        return [property_id]
-    if unassigned:
-        return [
+        ids: list[int] | None = [property_id]
+    elif unassigned:
+        ids = [
             pid
             for (pid,) in db.query(Property.id)
             .filter(Property.company_id.is_(None))
             .all()
         ]
-    if company_id is not None:
-        return [
+    elif company_id is not None:
+        ids = [
             pid
             for (pid,) in db.query(Property.id)
             .filter(Property.company_id == company_id)
             .all()
         ]
-    return None
+    else:
+        ids = None
+    return restrict_to_principal(db, ids)
 
 
 def _freshness_warning(source_label: str, newest: date, today: date) -> str | None:

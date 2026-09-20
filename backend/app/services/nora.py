@@ -154,13 +154,15 @@ def ask(
     property_id: int | None = None,
     conversation_id: int | None = None,
     chroma_dir: str | None = None,
+    property_ids: list[int] | None = None,
+    organization_id: int | None = None,
 ) -> dict:
     conversation = (
         db.get(NoraConversation, conversation_id) if conversation_id else None
     )
     if conversation is None:
         conversation = NoraConversation(
-            title=question[:200], property_id=property_id
+            title=question[:200], property_id=property_id, organization_id=organization_id
         )
         db.add(conversation)
         db.flush()
@@ -181,7 +183,8 @@ def ask(
     unmet = [] if gate_passed else unmet_requirements(inputs)
 
     chunks = retrieve(
-        db, embedder, question, property_id=property_id, chroma_dir=chroma_dir
+        db, embedder, question, property_id=property_id, chroma_dir=chroma_dir,
+        property_ids=property_ids,
     )
     citations = [asdict(c.citation) for c in chunks]
     ga4_grounded = any(

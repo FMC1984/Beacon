@@ -67,6 +67,15 @@ EXPECTED_TABLES = {
     "property_facts",
     "ai_readability_checks",
     "ai_actions",
+    "users",
+    "org_memberships",
+    "sessions",
+    "invites",
+    "password_resets",
+    "stripe_customers",
+    "subscriptions",
+    "billing_purchases",
+    "billing_events",
 }
 
 

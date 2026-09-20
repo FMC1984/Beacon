@@ -23,6 +23,19 @@ def _isolate_settings(monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "")
     for attr in ("gemini_api_key", "anthropic_api_key", "perplexity_api_key"):
         monkeypatch.setattr(settings, attr, "")
+    # Auth and billing: tests start in "open mode" (no access key, no users),
+    # exactly like a fresh local checkout; tests that want a gate set one up.
+    for attr in (
+        "access_key", "bootstrap_admin_email", "bootstrap_admin_password", "email_provider",
+        "email_api_key", "email_from", "stripe_secret_key", "stripe_webhook_secret",
+        "stripe_price_standard", "stripe_price_advanced", "stripe_price_audit", "stripe_portal_return_url",
+    ):
+        monkeypatch.setattr(settings, attr, "")
+    monkeypatch.setattr(settings, "frontend_url", "http://localhost:3100")
+    from app.auth.ratelimit import login_limiter, reset_limiter
+
+    login_limiter.clear()
+    reset_limiter.clear()
 
 
 @pytest.fixture()

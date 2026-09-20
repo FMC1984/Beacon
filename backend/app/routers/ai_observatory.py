@@ -95,7 +95,10 @@ from app.services.observatory.scheduler import config as scheduler_config
 from app.services.observatory.scheduler import effective_tier, plan_runs, sync_schedule
 from app.services.observatory.taxonomy import topics
 from app.services.reporting import compare_points, previous_window
-from app.services.observatory.tenancy import property_org_id
+from app.services.observatory.tenancy import acting_org_id, property_org_id, restrict_to_principal
+from app.auth.context import get_current
+from app.auth.deps import assert_property_access
+from app.models import AIAction
 
 router = APIRouter(prefix="/ai-observatory", tags=["ai-observatory"])
 
@@ -143,12 +146,15 @@ def taxonomy():
 @router.get("/markets")
 def list_markets(db: Session = Depends(get_db)):
     rows = db.query(Market).order_by(Market.name).all()
+    org = acting_org_id(db)
+    if org is not None:
+        rows = [m for m in rows if m.organization_id in (None, org)]
     return {
         "markets": [
             {
                 "id": m.id, "slug": m.slug, "name": m.name, "city": m.city, "state": m.state,
                 "organization_id": m.organization_id, "is_active": m.is_active,
-                "property_count": len(market_members(db, m.id)),
+                "property_count": len(_visible_members(db, market_members(db, m.id))),
             }
             for m in rows
         ]
@@ -157,10 +163,8 @@ def list_markets(db: Session = Depends(get_db)):
 
 @router.get("/markets/{market_id}")
 def get_market(market_id: int, db: Session = Depends(get_db)):
-    m = db.get(Market, market_id)
-    if m is None:
-        raise HTTPException(status_code=404, detail="Market not found.")
-    members = market_members(db, m.id)
+    m = _require_market(db, market_id)
+    members = _visible_members(db, market_members(db, m.id))
     clusters = db.query(AIPromptCluster).filter(
         AIPromptCluster.market_id == m.id, AIPromptCluster.property_id.is_(None)
     ).order_by(AIPromptCluster.scope, AIPromptCluster.importance.desc()).all()
@@ -183,15 +187,14 @@ def list_prompts(
         raise HTTPException(status_code=422, detail="property_id or market_id is required.")
     q = db.query(AIVisibilityPrompt)
     if property_id is not None:
-        prop = db.get(Property, property_id)
-        if prop is None:
-            raise HTTPException(status_code=404, detail="Property not found.")
+        prop = _require_property(db, property_id)
         # A property's universe = its brand prompts + its market's shared prompts.
         cond = AIVisibilityPrompt.property_id == property_id
         if prop.market_id is not None:
             cond = cond | ((AIVisibilityPrompt.market_id == prop.market_id) & AIVisibilityPrompt.property_id.is_(None))
         q = q.filter(cond)
     else:
+        _require_market(db, market_id)
         q = q.filter(AIVisibilityPrompt.market_id == market_id, AIVisibilityPrompt.property_id.is_(None))
     if scope:
         q = q.filter(AIVisibilityPrompt.scope == scope)
@@ -228,7 +231,11 @@ def create_prompt(payload: PromptIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=422, detail="Brand and sentinel prompts need a property_id.")
     if payload.scope in ("market", "feature") and payload.market_id is None:
         raise HTTPException(status_code=422, detail="Market and feature prompts need a market_id.")
-    org_id = property_org_id(db, payload.property_id) if payload.property_id else None
+    if payload.property_id is not None:
+        _require_property(db, payload.property_id)
+    if payload.market_id is not None:
+        _require_market(db, payload.market_id)
+    org_id = property_org_id(db, payload.property_id) if payload.property_id else acting_org_id(db)
     draft = PromptDraft(
         text=text, scope=payload.scope, topic_key=payload.topic_key, intent=payload.intent,
         importance=max(1, min(5, payload.importance)), funnel_stage=None,
@@ -257,6 +264,7 @@ def update_prompt(prompt_id: int, payload: PromptPatch, db: Session = Depends(ge
     row = db.get(AIVisibilityPrompt, prompt_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Prompt not found.")
+    _require_prompt_access(db, row)
     changes = payload.model_dump(exclude_unset=True)
     if "scope" in changes and changes["scope"] not in PROMPT_SCOPES:
         raise HTTPException(status_code=422, detail=f"scope must be one of {', '.join(PROMPT_SCOPES)}.")
@@ -272,8 +280,7 @@ def update_prompt(prompt_id: int, payload: PromptPatch, db: Session = Depends(ge
 def generate(property_id: int = Query(...), db: Session = Depends(get_db)):
     """Build the property's prompt universe: brand prompts, the shared market
     universe, clusters for both, and the property's assignments. Idempotent."""
-    if db.get(Property, property_id) is None:
-        raise HTTPException(status_code=404, detail="Property not found.")
+    _require_property(db, property_id)
     try:
         gen = generate_property_prompts(db, property_id)
         brand_report = cluster_prompts(db, property_id=property_id)
@@ -304,6 +311,10 @@ def recluster(
 ):
     if property_id is None and market_id is None:
         raise HTTPException(status_code=422, detail="property_id or market_id is required.")
+    if property_id is not None:
+        _require_property(db, property_id)
+    if market_id is not None:
+        _require_market(db, market_id)
     report = cluster_prompts(db, property_id=property_id, market_id=market_id)
     return {
         "clusters_total": report.clusters_total, "clusters_created": report.clusters_created,
@@ -322,9 +333,7 @@ def list_clusters(
         raise HTTPException(status_code=422, detail="property_id or market_id is required.")
     q = db.query(AIPromptCluster)
     if property_id is not None:
-        prop = db.get(Property, property_id)
-        if prop is None:
-            raise HTTPException(status_code=404, detail="Property not found.")
+        prop = _require_property(db, property_id)
         assigned = {a.cluster_id for a in assignments_for_property(db, property_id)}
         cond = AIPromptCluster.property_id == property_id
         if prop.market_id is not None:
@@ -332,6 +341,7 @@ def list_clusters(
         rows = q.filter(cond).order_by(AIPromptCluster.scope, AIPromptCluster.importance.desc()).all()
         out = [{**_cluster_out(c), "assigned": c.id in assigned} for c in rows]
     else:
+        _require_market(db, market_id)
         rows = q.filter(AIPromptCluster.market_id == market_id, AIPromptCluster.property_id.is_(None)).all()
         out = [_cluster_out(c) for c in rows]
     return {"clusters": out, "total": len(out)}
@@ -343,10 +353,51 @@ MAX_PAGE = 200
 
 
 def _require_property(db: Session, property_id: int) -> Property:
+    """404 unless the property exists and belongs to the acting organization."""
+    principal = get_current()
+    if principal is not None:
+        return assert_property_access(db, principal, property_id)
     prop = db.get(Property, property_id)
     if prop is None:
         raise HTTPException(status_code=404, detail="Property not found.")
     return prop
+
+
+def _require_market(db: Session, market_id: int) -> Market:
+    """404 unless the market exists and is shared or owned by the acting organization."""
+    m = db.get(Market, market_id)
+    if m is None:
+        raise HTTPException(status_code=404, detail="Market not found.")
+    org = acting_org_id(db)
+    principal = get_current()
+    if principal is not None and org is None and not principal.is_platform_admin:
+        raise HTTPException(status_code=404, detail="Market not found.")
+    if org is not None and m.organization_id not in (None, org):
+        raise HTTPException(status_code=404, detail="Market not found.")
+    return m
+
+
+def _visible_members(db: Session, members: list[Property]) -> list[Property]:
+    allowed = restrict_to_principal(db, [p.id for p in members])
+    keep = set(allowed) if allowed is not None else None
+    return members if keep is None else [p for p in members if p.id in keep]
+
+
+def _require_prompt_access(db: Session, prompt: AIVisibilityPrompt) -> None:
+    if prompt.property_id is not None:
+        _require_property(db, prompt.property_id)
+        return
+    org = acting_org_id(db)
+    if org is not None and prompt.organization_id not in (None, org):
+        raise HTTPException(status_code=404, detail="Prompt not found.")
+    if prompt.market_id is not None:
+        _require_market(db, prompt.market_id)
+
+
+def _require_platform_admin() -> None:
+    principal = get_current()
+    if principal is not None and not principal.is_platform_admin:
+        raise HTTPException(status_code=403, detail="Platform admins only.")
 
 
 def _today(today: date | None) -> date:
@@ -567,15 +618,13 @@ def market_summary(
 ):
     """Shared market view: how many observations the market's runs
     produced and how each member property fared in them."""
-    m = db.get(Market, market_id)
-    if m is None:
-        raise HTTPException(status_code=404, detail="Market not found.")
+    m = _require_market(db, market_id)
     end = _today(today)
     start = end - timedelta(days=days - 1)
     daily = db.query(AIMarketDaily).filter(
         AIMarketDaily.market_id == market_id, AIMarketDaily.day >= start, AIMarketDaily.day <= end
     ).all()
-    members = market_members(db, market_id)
+    members = _visible_members(db, market_members(db, market_id))
     leaderboard = []
     for p in members:
         mm = metrics_for_window(db, p.id, start, end)
@@ -612,6 +661,7 @@ def run_market_prompt(
         raise HTTPException(status_code=404, detail="Prompt not found.")
     if prompt.property_id is not None or prompt.market_id is None:
         raise HTTPException(status_code=422, detail="Only market-scope prompts run as shared market runs.")
+    _require_prompt_access(db, prompt)
     try:
         plat = validate_platform(platform or prompt.platform)
     except InvalidPlatformError as exc:
@@ -640,6 +690,10 @@ def competitor_standings(
 
 @router.post("/rollups/rebuild")
 def rollups_rebuild(property_id: int | None = Query(default=None), db: Session = Depends(get_db)):
+    if property_id is not None:
+        _require_property(db, property_id)
+    else:
+        _require_platform_admin()
     ids = [property_id] if property_id is not None else None
     derived = backfill_observations(db, property_id=property_id)
     rolled = rebuild_rollups(db, property_ids=ids)
@@ -694,6 +748,7 @@ def discovered_competitors(
 
 @router.post("/competitors/discovered/{entity_id}/decision")
 def decide_competitor(entity_id: int, payload: DecisionIn, db: Session = Depends(get_db)):
+    _require_property(db, payload.property_id)
     try:
         row = decide(db, entity_id, payload.property_id, payload.decision, payload.domain)
     except ValueError as exc:
@@ -704,8 +759,7 @@ def decide_competitor(entity_id: int, payload: DecisionIn, db: Session = Depends
 
 @router.post("/competitors/discover")
 def run_discovery(market_id: int = Query(...), db: Session = Depends(get_db)):
-    if db.get(Market, market_id) is None:
-        raise HTTPException(status_code=404, detail="Market not found.")
+    _require_market(db, market_id)
     return backfill_discovery(db, market_id)
 
 
@@ -738,6 +792,7 @@ def dismiss_claim(claim_id: int, db: Session = Depends(get_db)):
     c = db.get(AIClaim, claim_id)
     if c is None:
         raise HTTPException(status_code=404, detail="Claim not found.")
+    _require_property(db, c.property_id)
     c.status = "dismissed"
     db.commit()
     return _claim_out(c)
@@ -768,6 +823,7 @@ def set_alert_status(alert_id: int, payload: StatusIn, db: Session = Depends(get
     a = db.get(AIVisibilityAlert, alert_id)
     if a is None:
         raise HTTPException(status_code=404, detail="Alert not found.")
+    _require_property(db, a.property_id)
     if payload.status not in ("open", "acknowledged", "resolved"):
         raise HTTPException(status_code=422, detail="Status must be open, acknowledged or resolved.")
     a.status = payload.status
@@ -793,7 +849,15 @@ def costs(
 ):
     # Usage is an organization figure: a property selects its organization
     # rather than filtering to its own runs (shared market runs have none).
-    organization_id = property_org_id(db, property_id) if property_id is not None else None
+    if property_id is not None:
+        _require_property(db, property_id)
+        organization_id = property_org_id(db, property_id)
+    else:
+        if market_id is not None:
+            _require_market(db, market_id)
+        organization_id = acting_org_id(db)
+        if organization_id is None:
+            _require_platform_admin()
     return cost_report(db, days=days, today=_today(today), market_id=market_id, organization_id=organization_id)
 
 
@@ -825,7 +889,10 @@ def schedule(
         q = q.filter((AIRunSchedule.property_id == property_id)
                      | ((AIRunSchedule.market_id == prop.market_id) & AIRunSchedule.property_id.is_(None)))
     elif market_id is not None:
+        _require_market(db, market_id)
         q = q.filter(AIRunSchedule.market_id == market_id)
+    else:
+        _require_platform_admin()
     now = utcnow()
     rows = q.order_by(AIRunSchedule.next_run_at, AIRunSchedule.id).limit(MAX_PAGE).all()
     return {"enabled": settings.ai_scheduler_enabled, "tiers": scheduler_config()["tiers"],
@@ -834,6 +901,7 @@ def schedule(
 
 @router.post("/schedule/sync")
 def schedule_sync(db: Session = Depends(get_db)):
+    _require_platform_admin()
     return sync_schedule(db)
 
 
@@ -841,6 +909,7 @@ def schedule_sync(db: Session = Depends(get_db)):
 def schedule_plan(dry_run: bool = Query(default=True), db: Session = Depends(get_db)):
     """Dry run by default: shows what the scheduler would enqueue and why,
     without spending. dry_run=false enqueues real provider runs."""
+    _require_platform_admin()
     sync_schedule(db)
     return plan_runs(db, dry_run=dry_run)
 
@@ -848,6 +917,7 @@ def schedule_plan(dry_run: bool = Query(default=True), db: Session = Depends(get
 @router.get("/schedule/decisions")
 def schedule_decisions(plan_key: str | None = Query(default=None), limit: int = Query(default=100, ge=1, le=MAX_PAGE),
                        db: Session = Depends(get_db)):
+    _require_platform_admin()
     q = db.query(AIScheduleDecision)
     if plan_key:
         q = q.filter(AIScheduleDecision.plan_key == plan_key)
@@ -902,6 +972,7 @@ def set_gap_status(gap_id: int, payload: StatusIn, db: Session = Depends(get_db)
     g = db.get(AIContentGap, gap_id)
     if g is None:
         raise HTTPException(status_code=404, detail="Recommendation not found.")
+    _require_property(db, g.property_id)
     if payload.status not in ("open", "dismissed", "resolved"):
         raise HTTPException(status_code=422, detail="Status must be open, dismissed or resolved.")
     g.status = payload.status
@@ -1195,6 +1266,10 @@ def actions_track(payload: ActionIn, db: Session = Depends(get_db)):
 
 @router.patch("/actions/{action_id}")
 def actions_update(action_id: int, payload: ActionPatch, db: Session = Depends(get_db)):
+    existing = db.get(AIAction, action_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Action not found.")
+    _require_property(db, existing.property_id)
     try:
         row = update_action(db, action_id, **payload.model_dump(exclude_unset=True))
     except LookupError as exc:
@@ -1207,11 +1282,10 @@ def actions_update(action_id: int, payload: ActionPatch, db: Session = Depends(g
 @router.post("/actions/{action_id}/retest")
 def actions_retest(action_id: int, db: Session = Depends(get_db)):
     """Retest now from stored evidence (the daily job also re-reads listing pages)."""
-    from app.models import AIAction
-
     row = db.get(AIAction, action_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Action not found.")
+    _require_property(db, row.property_id)
     try:
         return action_out(retest(db, row))
     except ValueError as exc:

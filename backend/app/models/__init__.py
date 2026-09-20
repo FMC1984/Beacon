@@ -74,8 +74,19 @@ from app.models.ai_observations import (
     AIPropertyObservation,
     AIVisibilityDaily,
 )
+from app.models.user import Invite, OrgMembership, PasswordReset, User, UserSession
+from app.models.billing import BillingEvent, BillingPurchase, StripeCustomer, Subscription
 
 __all__ = [
+    "User",
+    "OrgMembership",
+    "UserSession",
+    "Invite",
+    "PasswordReset",
+    "StripeCustomer",
+    "Subscription",
+    "BillingPurchase",
+    "BillingEvent",
     "Company",
     "Property",
     "Upload",

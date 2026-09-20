@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Competitor, Property
 from app.schemas.competitors import CompetitorIn, CompetitorOut
@@ -29,7 +30,7 @@ def _clean(payload: CompetitorIn) -> dict:
     return {"name": name, "aliases": aliases, "domain": (payload.domain or "").strip() or None}
 
 
-@router.get("/{property_id}", response_model=list[CompetitorOut])
+@router.get("/{property_id}", response_model=list[CompetitorOut], dependencies=[Depends(require_property)])
 def list_competitors(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     return (
@@ -40,7 +41,7 @@ def list_competitors(property_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/{property_id}", response_model=CompetitorOut, status_code=201)
+@router.post("/{property_id}", response_model=CompetitorOut, status_code=201, dependencies=[Depends(require_property)])
 def create_competitor(property_id: int, payload: CompetitorIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     row = Competitor(property_id=property_id, **_clean(payload))
@@ -57,7 +58,7 @@ def create_competitor(property_id: int, payload: CompetitorIn, db: Session = Dep
     return row
 
 
-@router.put("/{property_id}/{competitor_id}", response_model=CompetitorOut)
+@router.put("/{property_id}/{competitor_id}", response_model=CompetitorOut, dependencies=[Depends(require_property)])
 def update_competitor(
     property_id: int, competitor_id: int, payload: CompetitorIn, db: Session = Depends(get_db)
 ):
@@ -83,7 +84,7 @@ def update_competitor(
     return row
 
 
-@router.delete("/{property_id}/{competitor_id}", status_code=200)
+@router.delete("/{property_id}/{competitor_id}", status_code=200, dependencies=[Depends(require_property)])
 def delete_competitor(property_id: int, competitor_id: int, db: Session = Depends(get_db)):
     row = (
         db.query(Competitor)

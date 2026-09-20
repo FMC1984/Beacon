@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BeaconSweep } from "@/components/BeaconSweep";
+import { useSession } from "@/components/SessionProvider";
+import { ROLE_LABELS } from "@/lib/auth";
 import { useEffect, useState, type ReactNode } from "react";
 
 function Icon({ children }: { children: ReactNode }) {
@@ -37,11 +39,13 @@ const ICONS: Record<string, ReactNode> = {
   nora: <><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6Z" /><path d="M19 14l.7 1.8L21.5 17l-1.8.7L19 19.5l-.7-1.8L16.5 17l1.8-.7Z" /></>,
   properties: <><path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01" /></>,
   uploads: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></>,
+  team: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20v-1a6.5 6.5 0 0 1 13 0v1" /><circle cx="17.5" cy="9" r="2.5" /><path d="M21.5 20v-1a4.5 4.5 0 0 0-3.5-4.4" /></>,
+  billing: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><path d="M6 15h4" /></>,
   admin: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" /></>,
 };
 
 type Item = { href: string; label: string; icon: keyof typeof ICONS };
-type Group = { label: string; hint?: string; items: Item[] };
+type Group = { label: string; hint?: string; items: Item[]; platformAdminOnly?: boolean };
 
 // Groups follow the flow a property team works through, in order: set the
 // property up, watch AI answers, understand why, act, prove it, brief the
@@ -90,7 +94,14 @@ const GROUPS: Group[] = [
     items: [{ href: "/reports", label: "Reports", icon: "reports" }],
   },
   { label: "Assistant", hint: "Ask Nora about any of it.", items: [{ href: "/nora", label: "Nora", icon: "nora" }] },
-  { label: "System", items: [{ href: "/admin", label: "Admin", icon: "admin" }] },
+  {
+    label: "Settings",
+    items: [
+      { href: "/settings/team", label: "Team", icon: "team" },
+      { href: "/settings/billing", label: "Billing", icon: "billing" },
+    ],
+  },
+  { label: "System", items: [{ href: "/admin", label: "Admin", icon: "admin" }], platformAdminOnly: true },
 ];
 
 const COLLAPSE_KEY = "beacon.sidebarCollapsed";
@@ -112,6 +123,63 @@ function Chevron({ dir }: { dir: "left" | "right" | "down" }) {
   );
 }
 
+/** Which organization the user is acting as. Shown to platform admins (who can
+ * also pick "All organizations") and to anyone who belongs to more than one. */
+function OrgSwitcher({ compact }: { compact: boolean }) {
+  const { me, org, orgs, isPlatformAdmin, setOrg } = useSession();
+  if (!me?.user) return null;
+  if (!isPlatformAdmin && orgs.length <= 1) {
+    if (compact || !org) return null;
+    return (
+      <div className="px-3 pb-2 text-xs text-muted" title={ROLE_LABELS[org.role]}>
+        {org.name}
+      </div>
+    );
+  }
+  if (compact) return null;
+  return (
+    <div className="px-3 pb-2">
+      <label htmlFor="org-switcher" className="sr-only">Organization</label>
+      <select
+        id="org-switcher"
+        value={org ? String(org.id) : ""}
+        onChange={(e) => setOrg(e.target.value === "" ? null : Number(e.target.value))}
+        className="w-full rounded-lg border border-line bg-surface-raised px-2 py-1.5 text-xs"
+      >
+        {isPlatformAdmin && <option value="">All organizations</option>}
+        {orgs.map((o) => (
+          <option key={o.id} value={String(o.id)}>
+            {o.name}{o.sample_data ? " (sample)" : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SignOut({ compact }: { compact: boolean }) {
+  const { me, logout } = useSession();
+  if (!me?.user) return null;
+  return (
+    <div className={`relative z-10 border-t border-line/60 ${compact ? "px-2 py-3" : "px-3 py-3"}`}>
+      <button
+        type="button"
+        onClick={logout}
+        title={compact ? `Sign out ${me.user.email}` : undefined}
+        className={`flex w-full items-center gap-3 rounded-lg py-2 text-sm text-muted transition-colors hover:bg-surface-raised hover:text-foreground ${compact ? "justify-center px-0" : "px-3"}`}
+      >
+        <Icon><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></Icon>
+        {!compact && (
+          <span className="min-w-0 flex-1 text-left">
+            <span className="block truncate text-xs text-muted">{me.user.email}</span>
+            <span className="block text-xs">Sign out</span>
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar({
   mobile = false,
   onNavigate,
@@ -123,6 +191,7 @@ export function Sidebar({
   onNavigate?: () => void;
 } = {}) {
   const pathname = usePathname();
+  const { isPlatformAdmin } = useSession();
   const [collapsedState, setCollapsed] = useState(false);
   const collapsed = mobile ? false : collapsedState;
   const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({});
@@ -130,6 +199,7 @@ export function Sidebar({
   // Restore persisted state after mount (avoids SSR hydration mismatch).
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- post-mount restore from localStorage
       setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
       const raw = localStorage.getItem(GROUPS_KEY);
       if (raw) setClosedGroups(JSON.parse(raw));
@@ -155,6 +225,8 @@ export function Sidebar({
       return next;
     });
   }
+
+  const groups = GROUPS.filter((g) => !g.platformAdminOnly || isPlatformAdmin);
 
   return (
     <aside
@@ -204,8 +276,10 @@ export function Sidebar({
         </div>
       )}
 
+      <OrgSwitcher compact={collapsed} />
+
       <nav className={`flex-1 space-y-4 overflow-y-auto pb-4 pt-1 ${collapsed ? "px-2" : "px-3"}`}>
-        {GROUPS.map((group, gi) => {
+        {groups.map((group, gi) => {
           const closed = !collapsed && closedGroups[group.label];
           return (
             <div key={group.label} className={collapsed && gi > 0 ? "border-t border-line/60 pt-3" : ""}>
@@ -255,6 +329,7 @@ export function Sidebar({
         })}
       </nav>
 
+      <SignOut compact={collapsed} />
     </aside>
   );
 }

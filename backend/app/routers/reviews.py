@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.auth.deps import require_property
 from app.extensions.hooks import trigger_rag_sync
 from app.models import Property, PropertyReview
 from app.schemas.reviews import ReviewIn, ReviewOut
@@ -34,7 +35,7 @@ def _require_property(db: Session, property_id: int):
         raise HTTPException(status_code=404, detail="Property not found.")
 
 
-@router.get("/{property_id}", response_model=list[ReviewOut])
+@router.get("/{property_id}", response_model=list[ReviewOut], dependencies=[Depends(require_property)])
 def list_reviews(
     property_id: int,
     provider: str | None = None,
@@ -66,7 +67,7 @@ def list_reviews(
     )
 
 
-@router.post("/{property_id}", response_model=ReviewOut, status_code=201)
+@router.post("/{property_id}", response_model=ReviewOut, status_code=201, dependencies=[Depends(require_property)])
 def create_review(property_id: int, payload: ReviewIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     review = PropertyReview(property_id=property_id, **payload.model_dump())
@@ -84,7 +85,7 @@ def create_review(property_id: int, payload: ReviewIn, db: Session = Depends(get
     return review
 
 
-@router.post("/{property_id}/import", status_code=201)
+@router.post("/{property_id}/import", status_code=201, dependencies=[Depends(require_property)])
 async def import_reviews(
     property_id: int,
     background: BackgroundTasks,
@@ -114,7 +115,7 @@ async def import_reviews(
     return summary
 
 
-@router.put("/{property_id}/{review_id}", response_model=ReviewOut)
+@router.put("/{property_id}/{review_id}", response_model=ReviewOut, dependencies=[Depends(require_property)])
 def update_review(
     property_id: int, review_id: int, payload: ReviewIn, db: Session = Depends(get_db)
 ):
@@ -134,7 +135,7 @@ def update_review(
     return review
 
 
-@router.delete("/{property_id}/{review_id}", status_code=200)
+@router.delete("/{property_id}/{review_id}", status_code=200, dependencies=[Depends(require_property)])
 def delete_review(property_id: int, review_id: int, db: Session = Depends(get_db)):
     review = (
         db.query(PropertyReview)

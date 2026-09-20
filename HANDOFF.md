@@ -1,6 +1,6 @@
 # Beacon — Session Handoff
 
-Last updated: 2026-09-18. Read this first in a new session before touching anything.
+Last updated: 2026-09-20. Read this first in a new session before touching anything.
 
 ## What Beacon is
 
@@ -79,6 +79,77 @@ run it again without checking which direction data should flow first.
   `NotImplementedError: No support for ALTER of constraints`.
 
 ## What's built (reverse chronological, most recent first)
+
+### User login, organizations and Stripe billing (2026-09-20, 925 tests)
+- Replaces the shared access key as the way people get in. **Three ways in**:
+  a signed-in user (`Authorization: Bearer`), the old `BEACON_ACCESS_KEY`
+  (scripts, break-glass, acts as a platform admin), or **open mode**, which
+  applies only while no user exists AND no access key is set. That last one is
+  what keeps a fresh local checkout and the whole test suite working unchanged;
+  the moment a user exists, sign-in is required.
+- **Migration `1b2c3d4e5f60`**: `users`, `org_memberships`, `sessions`,
+  `invites`, `password_resets`, `stripe_customers`, `subscriptions`,
+  `billing_purchases`, `billing_events`, plus `nora_conversations.organization_id`
+  (batch alter, backfilled to the default org). It also writes a
+  `billing_override` onto the default organization so DCHP is never gated by a
+  subscription it never had.
+- **Roles per organization**: owner (billing, team, everything), admin (edit
+  properties, facts, competitors, prompts, uploads), viewer (read everything).
+  Memberships, not a role on the user, because agencies hold several client orgs
+  with one login and the founder sits in all of them. `users.is_platform_admin`
+  sees every organization and acts as one with `X-Beacon-Org`.
+- **Sessions** are opaque tokens (`secrets.token_urlsafe(32)`) stored as a
+  sha256 hash with a 30-day sliding expiry, chosen over JWT for instant
+  revocation on one SQLite database and one worker. argon2 for passwords.
+  Login failures are rate-limited in-process (10 per email and IP per 15 min).
+- **The access-key middleware in `main.py` is gone.** Authorization is
+  dependency-based (`app/auth/deps.py`): `role_gate` on every data router (reads
+  need viewer, writes need admin), `require_platform_admin` on the admin router,
+  `require_property` on every route naming a property. `tests/test_auth_coverage.py`
+  walks the route table and fails if any route ships without an auth dependency,
+  with an explicit allowlist for the five public ones (health, the briefing share
+  link, Google's OAuth callback, the Stripe webhook, sign-in/invite/reset).
+- **Tenant isolation**: `scope_for` / `restrict_to_principal` narrow
+  `services/metrics.py:_resolve_scope`, so every portfolio-level endpoint is
+  organization-filtered without touching call sites. A property belonging to
+  another organization answers **404, never 403**, so its existence never leaks.
+  Nora's retrieval is filtered to the organization's property ids and
+  conversations carry an organization. `tests/test_tenancy_isolation.py` walks
+  every property-bearing route and asserts the cross-tenant answer is 404.
+- **Invite-only accounts**: Settings > Team creates invite links (14 days) and
+  reset links (24 hours). `services/email.py` is a seam: with no provider
+  configured nothing is sent and the endpoint hands the link back for the admin
+  to pass on, which is the intended launch state. An invite to an email that
+  already has an account attaches the new organization to it after that account's
+  own password is entered.
+- **Billing**: Stripe Checkout and the Customer Portal (no card form in Beacon),
+  priced per monitored community per month with quantity, two tiers plus a
+  one-time audit. `/billing/webhook` verifies the signature and is idempotent by
+  Stripe event id. Entitlement is computed from local state only, never a live
+  Stripe call, and is soft: over quantity shows a banner; an organization with no
+  subscription and no override is read-only (writes answer 402) rather than
+  locked out. `/admin/orgs` lets a platform admin create organizations and set
+  overrides, merging `organizations.settings` rather than replacing it.
+- **Frontend**: `SessionProvider` replaces `AccessGate`, keeping the single
+  `window.fetch` patch (68 raw call sites never changed) and injecting the
+  session token and acting organization; a 401 clears the session and returns to
+  `/login`. New pages: `/login`, `/invite/[token]`, `/reset/[token]`,
+  `/settings/team`, `/settings/billing`. The sidebar gained an organization
+  switcher, a Settings group and a sign-out row, and hides Admin from
+  non-platform-admins.
+- **Bootstrap**: `python -m app.cli.create_user --email ... --platform-admin`
+  locally; on Render, `BEACON_BOOTSTRAP_ADMIN_EMAIL` / `_PASSWORD` create the
+  founder's account once at startup. **Set those before deploying**: Render has
+  `BEACON_ACCESS_KEY` set, so open mode does not apply there, and the frontend no
+  longer has a key screen, so without a user there is no way in.
+- Two bugs caught by browsing rather than by tests: the saved company scope
+  (`beacon.companyScope`) survived a session change, so the next person asked for
+  a company they could not see and got a misleading "backend unreachable" error
+  (now cleared on sign-in, sign-out and organization switch); and the billing page
+  said "Matches the plan" when there was no plan at all.
+- `tests/test_phase105_context_api.py::test_vocabulary_endpoint` built its own
+  `TestClient` and so ran against the developer's real `beacon.db`. It passed only
+  while that database had no users. Now uses the `client` fixture.
 
 ### Sample data for the other platforms (2026-09-18, 884 tests)
 - Requested directly: "Create sample data for the other LLMs even though I
@@ -1669,7 +1740,7 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **884**, all passing. Always run the full
+change (shown on `/admin`). Current: **925**, all passing. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

@@ -16,10 +16,22 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import assert_property_access, role_gate, scope_property
+from app.auth.context import get_current
 from app.models import MonthlyBriefing, Property
 from app.services.reporting_briefing import _latest_data_month, compose_briefing
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
+
+
+def _own_snapshot(db: Session, row: MonthlyBriefing) -> None:
+    """404 unless the snapshot's property belongs to the acting organization."""
+    principal = get_current()
+    if principal is not None and row.property_id is not None:
+        try:
+            assert_property_access(db, principal, row.property_id)
+        except HTTPException:
+            raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
 
 
 def _resolve_month(db, property_id, year, month, today):
@@ -30,7 +42,7 @@ def _resolve_month(db, property_id, year, month, today):
     return _latest_data_month(db, property_id, today)
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(role_gate), Depends(scope_property)])
 def get_briefing(
     property_id: int | None = Query(default=None),
     year: int | None = Query(default=None),
@@ -49,7 +61,7 @@ def get_briefing(
     return {"scope_required": False, **compose_briefing(db, property_id, y, m, today=today)}
 
 
-@router.post("/generate")
+@router.post("/generate", dependencies=[Depends(role_gate), Depends(scope_property)])
 def generate_briefing(
     property_id: int = Query(...),
     year: int | None = Query(default=None),
@@ -93,7 +105,7 @@ def generate_briefing(
     }
 
 
-@router.get("/history")
+@router.get("/history", dependencies=[Depends(role_gate), Depends(scope_property)])
 def briefing_history(
     property_id: int = Query(...),
     db: Session = Depends(get_db),
@@ -121,7 +133,7 @@ def briefing_history(
     }
 
 
-@router.post("/strategist")
+@router.post("/strategist", dependencies=[Depends(role_gate), Depends(scope_property)])
 def strategist(
     property_id: int = Query(...),
     year: int | None = Query(default=None),
@@ -168,13 +180,14 @@ def get_shared_snapshot(token: str, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/{briefing_id}/share")
+@router.post("/{briefing_id}/share", dependencies=[Depends(role_gate)])
 def share_snapshot(briefing_id: int, db: Session = Depends(get_db)):
     """Mint (or re-mint) the share token for a frozen snapshot. Re-sharing
     rotates the token, which invalidates any previously shared link."""
     row = db.get(MonthlyBriefing, briefing_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
+    _own_snapshot(db, row)
     row.share_token = secrets.token_urlsafe(24)
     db.commit()
     return {
@@ -185,21 +198,23 @@ def share_snapshot(briefing_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.delete("/{briefing_id}/share")
+@router.delete("/{briefing_id}/share", dependencies=[Depends(role_gate)])
 def revoke_share(briefing_id: int, db: Session = Depends(get_db)):
     row = db.get(MonthlyBriefing, briefing_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
+    _own_snapshot(db, row)
     row.share_token = None
     db.commit()
     return {"status": "revoked", "id": row.id}
 
 
-@router.get("/{briefing_id}")
+@router.get("/{briefing_id}", dependencies=[Depends(role_gate)])
 def get_snapshot(briefing_id: int, db: Session = Depends(get_db)):
     row = db.get(MonthlyBriefing, briefing_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Briefing snapshot not found.")
+    _own_snapshot(db, row)
     return {
         "scope_required": False,
         "snapshot_id": row.id,

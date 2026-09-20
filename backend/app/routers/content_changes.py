@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.auth.deps import require_property
 from app.models import ContentChange, Property
 from app.schemas.content_changes import ContentChangeIn, ContentChangeOut
 
@@ -32,7 +33,7 @@ def _clean(payload: ContentChangeIn) -> dict:
     return data
 
 
-@router.get("/{property_id}", response_model=list[ContentChangeOut])
+@router.get("/{property_id}", response_model=list[ContentChangeOut], dependencies=[Depends(require_property)])
 def list_changes(property_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     return (
@@ -43,7 +44,7 @@ def list_changes(property_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/{property_id}", response_model=ContentChangeOut, status_code=201)
+@router.post("/{property_id}", response_model=ContentChangeOut, status_code=201, dependencies=[Depends(require_property)])
 def create_change(property_id: int, payload: ContentChangeIn, db: Session = Depends(get_db)):
     prop = _require_property(db, property_id)
     row = ContentChange(property_id=property_id, company_id=prop.company_id, **_clean(payload))
@@ -53,7 +54,7 @@ def create_change(property_id: int, payload: ContentChangeIn, db: Session = Depe
     return row
 
 
-@router.put("/{property_id}/{change_id}", response_model=ContentChangeOut)
+@router.put("/{property_id}/{change_id}", response_model=ContentChangeOut, dependencies=[Depends(require_property)])
 def update_change(property_id: int, change_id: int, payload: ContentChangeIn, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     row = db.get(ContentChange, change_id)
@@ -66,7 +67,7 @@ def update_change(property_id: int, change_id: int, payload: ContentChangeIn, db
     return row
 
 
-@router.delete("/{property_id}/{change_id}")
+@router.delete("/{property_id}/{change_id}", dependencies=[Depends(require_property)])
 def delete_change(property_id: int, change_id: int, db: Session = Depends(get_db)):
     _require_property(db, property_id)
     row = db.get(ContentChange, change_id)

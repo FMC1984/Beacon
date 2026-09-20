@@ -103,6 +103,32 @@ class Settings(BaseSettings):
     # ON by default: composing a briefing is deterministic and costs nothing
     # (no LLM, no external API) - unlike the AI Visibility autorun above.
     briefing_autosnapshot: bool = True
+    # Sessions: opaque bearer tokens with a sliding expiry.
+    session_days: int = 30
+    # One-time bootstrap of the founder's login on a hosted instance. When both
+    # are set and no user with that email exists, startup creates a platform
+    # admin who owns the default organization, then never touches it again.
+    bootstrap_admin_email: str = ""
+    bootstrap_admin_password: str = ""
+    bootstrap_admin_name: str = "Platform admin"
+    # Outbound email. Empty provider = nothing is sent and every invite or
+    # reset endpoint hands the link back for the admin to pass on by hand.
+    # "resend" uses the Resend HTTP API with email_api_key and email_from.
+    email_provider: str = ""
+    email_api_key: str = ""
+    email_from: str = ""
+    # Stripe (Checkout + Customer Portal). All empty = billing not configured:
+    # status endpoints say so and checkout is refused with a clear message.
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_standard: str = ""
+    stripe_price_advanced: str = ""
+    stripe_price_audit: str = ""
+    # Where the Customer Portal sends people back; empty = frontend_url/settings/billing.
+    stripe_portal_return_url: str = ""
+    # When on, changing the number of monitored communities updates the Stripe
+    # subscription quantity automatically (prorations). Off = drift is reported.
+    stripe_auto_quantity: bool = False
 
     model_config = SettingsConfigDict(
         env_prefix="BEACON_", env_file=".env", extra="ignore"

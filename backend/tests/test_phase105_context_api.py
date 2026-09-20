@@ -10,11 +10,11 @@ def put_ctx(client, property_id, **fields):
     return client.put(f"/api/property-context/{property_id}", json=fields)
 
 
-def test_vocabulary_endpoint():
-    from fastapi.testclient import TestClient
-    from app.main import app
-
-    body = TestClient(app).get("/api/property-context/vocabulary").json()
+def test_vocabulary_endpoint(client):
+    # The `client` fixture, not a bare TestClient: a bare one would run against
+    # the developer's real beacon.db, where a login exists and the request is
+    # rejected before it reaches the vocabulary.
+    body = client.get("/api/property-context/vocabulary").json()
     assert set(body["property_types"]) == set(config()["property_types"])
     assert "LIHTC" in body["regulatory_programs"]
 

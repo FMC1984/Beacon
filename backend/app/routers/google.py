@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db import get_db
+from app.auth.context import get_current
+from app.auth.deps import assert_property_access, require_property, require_role, role_gate
 from app.models import DataConnection, OAuthStatus, Property, SourceType
 from app.services.google_sync import auth_url, exchange_code, run_google_sync, verify_state
 from app.services.google_sync import gapi
@@ -48,7 +50,7 @@ def _conn_out(c: DataConnection) -> dict:
     }
 
 
-@router.get("/status")
+@router.get("/status", dependencies=[Depends(role_gate), Depends(require_property)])
 def status(property_id: int, db: Session = Depends(get_db)):
     """Connection state for a property, plus whether OAuth is configured at
     all (the frontend uses this to show setup instructions honestly)."""
@@ -68,10 +70,8 @@ def status(property_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/connect")
+@router.get("/connect", dependencies=[Depends(require_role("admin")), Depends(require_property)])
 def connect(property_id: int, db: Session = Depends(get_db)):
-    if db.get(Property, property_id) is None:
-        raise HTTPException(status_code=404, detail="Property not found.")
     try:
         return {"auth_url": auth_url(property_id)}
     except GoogleOAuthError as exc:
@@ -125,13 +125,25 @@ def callback(state: str, code: str = "", error: str = "", db: Session = Depends(
     return RedirectResponse(f"{frontend}/uploads?google=connected")
 
 
-@router.get("/connections/{connection_id}/resources")
-def list_resources(connection_id: int, db: Session = Depends(get_db)):
-    """The GA4 properties, GSC sites, or GBP locations the connected account can
-    read, so the operator picks which one feeds this Beacon property."""
+def _own_connection(db: Session, connection_id: int) -> DataConnection:
+    """404 unless the connection's property belongs to the acting organization."""
     conn = db.get(DataConnection, connection_id)
     if conn is None:
         raise HTTPException(status_code=404, detail="Connection not found.")
+    principal = get_current()
+    if principal is not None and conn.property_id is not None:
+        try:
+            assert_property_access(db, principal, conn.property_id)
+        except HTTPException:
+            raise HTTPException(status_code=404, detail="Connection not found.")
+    return conn
+
+
+@router.get("/connections/{connection_id}/resources", dependencies=[Depends(role_gate)])
+def list_resources(connection_id: int, db: Session = Depends(get_db)):
+    """The GA4 properties, GSC sites, or GBP locations the connected account can
+    read, so the operator picks which one feeds this Beacon property."""
+    conn = _own_connection(db, connection_id)
     if conn.oauth_status != OAuthStatus.CONNECTED or not conn.refresh_token:
         raise HTTPException(status_code=400, detail="Connection is not authorized.")
     try:
@@ -150,21 +162,20 @@ class ResourceChoice(BaseModel):
     resource_name: str | None = None
 
 
-@router.post("/connections/{connection_id}/resource")
+@router.post("/connections/{connection_id}/resource", dependencies=[Depends(role_gate)])
 def set_resource(connection_id: int, choice: ResourceChoice, db: Session = Depends(get_db)):
-    conn = db.get(DataConnection, connection_id)
-    if conn is None:
-        raise HTTPException(status_code=404, detail="Connection not found.")
+    conn = _own_connection(db, connection_id)
     conn.resource_id = choice.resource_id
     conn.resource_name = choice.resource_name or choice.resource_id
     db.commit()
     return _conn_out(conn)
 
 
-@router.post("/connections/{connection_id}/sync")
+@router.post("/connections/{connection_id}/sync", dependencies=[Depends(role_gate)])
 def sync_now(
     connection_id: int, background: BackgroundTasks, db: Session = Depends(get_db)
 ):
+    _own_connection(db, connection_id)
     try:
         job = run_google_sync(db, connection_id)
     except ValueError as exc:
@@ -187,13 +198,11 @@ def sync_now(
     }
 
 
-@router.delete("/connections/{connection_id}")
+@router.delete("/connections/{connection_id}", dependencies=[Depends(role_gate)])
 def disconnect(connection_id: int, db: Session = Depends(get_db)):
     """Remove the connection. Synced DATA stays (it is real history with
     sync_job provenance); only the credential and mapping are removed."""
-    conn = db.get(DataConnection, connection_id)
-    if conn is None:
-        raise HTTPException(status_code=404, detail="Connection not found.")
+    conn = _own_connection(db, connection_id)
     if conn.refresh_token:
         revoke(conn.refresh_token)
     conn.refresh_token = None

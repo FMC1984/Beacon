@@ -20,6 +20,8 @@ class NoraConversation(Base):
     title: Mapped[str | None] = mapped_column(String(300))
     # Scope: null means portfolio-wide conversation.
     property_id: Mapped[int | None] = mapped_column(ForeignKey("properties.id"))
+    # Tenant the conversation belongs to, so portfolio-wide chats never cross orgs.
+    organization_id: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )
