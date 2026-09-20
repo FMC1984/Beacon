@@ -1,8 +1,8 @@
 """Content change log (Phase 16F).
 
-An operator-recorded record of a website or optimization change, so Beacon can
+An operator-recorded record of a website or optimization change, so CiteRoll can
 show performance around the change date. Recording a change never implies
-Beacon caused or measured causation; the Content Impact report attaches the
+CiteRoll caused or measured causation; the Content Impact report attaches the
 mandatory external-factors caveat to every before-and-after view.
 """
 

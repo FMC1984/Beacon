@@ -61,7 +61,7 @@ function PrintBody() {
     <div className="print-doc">
       <header className="print-header">
         <div>
-          <p className="print-brand">Beacon</p>
+          <p className="print-brand">CiteRoll</p>
           <h1>Monthly Strategic Briefing</h1>
         </div>
         <div className="print-meta">
@@ -204,7 +204,7 @@ function PrintBody() {
       <section className="print-methodology">
         <h2>Methodology and notes</h2>
         <p>
-          Composed from Beacon&apos;s ingested data for {b.period.label}, compared
+          Composed from CiteRoll&apos;s ingested data for {b.period.label}, compared
           with {b.comparison_period.label}. Module health statuses follow fixed,
           explainable rules; overall health is a count of healthy modules, not a
           combined score. Story items and insights are observed movements from
@@ -214,7 +214,7 @@ function PrintBody() {
       </section>
 
       <footer className="print-footer">
-        Beacon Monthly Strategic Briefing · {b.property_name} · {b.period.label} ·
+        CiteRoll Monthly Strategic Briefing · {b.property_name} · {b.period.label} ·
         Generated {fmtDate(b.generated_on)}
       </footer>
     </div>

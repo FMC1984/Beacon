@@ -3,7 +3,7 @@
 Deterministic extraction of apartment-community names from stored AI answers
 in a market: Title Case phrases that end in a multifamily naming suffix
 ("Flats", "Apartments", "Commons", "at <Place>"...) or that an answer sets in
-bold as a list item. Names Beacon already knows (the market's properties,
+bold as a list item. Names CiteRoll already knows (the market's properties,
 their aliases and tracked competitors) are excluded, as are directories,
 brands with a domain in them and generic phrases ("Luxury Apartments").
 

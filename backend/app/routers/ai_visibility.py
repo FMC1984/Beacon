@@ -62,10 +62,10 @@ def meta():
         "provider": provider_name(),
         "capability_keys": capability_keys(),
         "data_labels": {
-            "OBSERVED": "Beacon directly observed this in a provider execution.",
+            "OBSERVED": "CiteRoll directly observed this in a provider execution.",
             "MEASURED": "Calculated from observed data.",
             "MODELED": "Estimated from available signals; inputs are shown.",
-            "UNAVAILABLE": "The platform does not expose this; Beacon does not guess.",
+            "UNAVAILABLE": "The platform does not expose this; CiteRoll does not guess.",
         },
     }
 

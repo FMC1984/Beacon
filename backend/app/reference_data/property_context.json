@@ -1,6 +1,6 @@
 {
   "version": "2026-07-05",
-  "notes": "Vocabulary and gating rules for operator-asserted property context. Property type, regulatory status, and programs are ALWAYS operator-provided and NEVER inferred by Beacon. Add a property type, program, restriction flag, theme, or gating rule here without a code change. Gating is deterministic: identical (context, theme) always yields identical output.",
+  "notes": "Vocabulary and gating rules for operator-asserted property context. Property type, regulatory status, and programs are ALWAYS operator-provided and NEVER inferred by CiteRoll. Add a property type, program, restriction flag, theme, or gating rule here without a code change. Gating is deterministic: identical (context, theme) always yields identical output.",
   "property_types": [
     "affordable",
     "conventional",

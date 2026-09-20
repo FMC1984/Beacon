@@ -5,7 +5,7 @@ external scraping yet). Content flows into the RAG index via the Phase 9
 ContentProvider seam, and the Content Intelligence engine reasons over it.
 
 `mapped_keyword` is the target keyword for the page (the SEO keyword mapping
-Beacon already works with); `updated_at` is the freshness signal.
+CiteRoll already works with); `updated_at` is the freshness signal.
 """
 
 from datetime import datetime

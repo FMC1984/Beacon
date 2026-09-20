@@ -5,7 +5,7 @@ of four independent sources and shows where they disagree:
 
   site content   what the property says about itself
   reviews        what residents say, with clause-scoped sentiment
-  AI answers     what AI platforms said in Beacon's monitored runs
+  AI answers     what AI platforms said in CiteRoll's monitored runs
   search         what people actually typed into Google (Search Console)
 
 The gaps between those columns are the point. A topic residents praise that

@@ -1,19 +1,17 @@
 "use client";
 
-import Image from "next/image";
-import { BeaconSweep } from "@/components/BeaconSweep";
+import { CiteRollLogo } from "@/components/CiteRollLogo";
 
 /** The centered card used by sign-in, invite and reset screens. */
 export function AuthCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="relative w-full max-w-sm space-y-4 overflow-hidden rounded-2xl border border-line bg-surface p-6">
-        <BeaconSweep className="opacity-70" />
-        <div className="relative">
-          <Image src="/beacon-logo.png" alt="Beacon" width={130} height={26} priority className="h-7 w-auto" />
+      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-line bg-surface p-6">
+        <div>
+          <CiteRollLogo size={28} />
           {title && <h1 className="mt-3 text-lg font-semibold">{title}</h1>}
         </div>
-        <div className="relative space-y-4">{children}</div>
+        <div className="space-y-4">{children}</div>
       </div>
     </div>
   );

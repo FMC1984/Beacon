@@ -66,7 +66,7 @@ export function TrackButton({ payload, current, label = "Track" }: { payload: Tr
         onClick={go}
         disabled={busy}
         className="rounded-full border border-violet-a/50 px-2 py-0.5 text-[11px] text-violet-a hover:bg-violet-a/10 disabled:opacity-50"
-        title="Track this action and have Beacon retest it after you implement it"
+        title="Track this action and have CiteRoll retest it after you implement it"
       >
         {busy ? "Tracking..." : `${label} ›`}
       </button>
@@ -184,7 +184,7 @@ export function ActionTrackerPanel({ propertyId }: { propertyId: number }) {
   return (
     <Panel
       title="Tracked actions"
-      subtitle="What your team is working on. Once an action is marked implemented, Beacon waits a set number of days and re-measures the evidence it came from."
+      subtitle="What your team is working on. Once an action is marked implemented, CiteRoll waits a set number of days and re-measures the evidence it came from."
       actions={
         closedCount > 0 ? (
           <button type="button" onClick={() => setShowClosed((v) => !v)} className="text-xs text-violet-a hover:underline">

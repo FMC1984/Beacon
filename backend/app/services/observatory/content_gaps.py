@@ -167,7 +167,7 @@ def evaluate_gaps(db: Session, property_id: int, days: int = 30, today: date | N
 
         page_label = None
         if not pages:
-            state, gate_reason = "Insufficient data", "No site content is imported, so Beacon cannot tell what the pages already cover."
+            state, gate_reason = "Insufficient data", "No site content is imported, so CiteRoll cannot tell what the pages already cover."
             target, exists, covered, missing = TOPIC_PAGE.get(cluster.topic_key or "", "homepage"), False, [], terms
         else:
             target, exists, covered, missing = _page_coverage(pages, terms, cluster.topic_key)

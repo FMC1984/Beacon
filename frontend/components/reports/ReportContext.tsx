@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared state for the Reports section: scope (kept in sync with Beacon's
+/** Shared state for the Reports section: scope (kept in sync with CiteRoll's
  * global company scope via ScopeSelect/SCOPE_STORAGE_KEY), date range, and
  * the previous-period comparison toggle. */
 

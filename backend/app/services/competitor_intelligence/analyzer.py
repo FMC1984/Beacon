@@ -1,13 +1,13 @@
 """Competitor Intelligence (Phase 13): deterministic AI-answer share of voice.
 
-The one competitive question Beacon can answer HONESTLY today: across the AI
+The one competitive question CiteRoll can answer HONESTLY today: across the AI
 Visibility responses already collected for a property, how often does an AI
 platform mention the property versus each operator-named competitor? Competitors
 are operator-asserted (never discovered/scraped), mention detection reuses the
 same literal, negation-unaware matching as brand detection, and every share
 figure is sample-size gated exactly like AI Visibility.
 
-Deliberately NOT built (declared, not silently skipped - each needs data Beacon
+Deliberately NOT built (declared, not silently skipped - each needs data CiteRoll
 does not hold): automated competitor discovery, competitive pricing / occupancy,
 and positioning / unit-mix comparison against competitor properties.
 """
@@ -44,10 +44,10 @@ SENSITIVE_KEYWORDS = (
 )
 DEFERRED = [
     "Automated competitor discovery - competitors are operator-named, never "
-    "inferred or scraped by Beacon.",
-    "Competitive pricing / occupancy comparison - Beacon holds no data on "
+    "inferred or scraped by CiteRoll.",
+    "Competitive pricing / occupancy comparison - CiteRoll holds no data on "
     "competitor properties.",
-    "Positioning / unit-mix comparison - needs competitor property data Beacon "
+    "Positioning / unit-mix comparison - needs competitor property data CiteRoll "
     "does not have.",
 ]
 
@@ -102,7 +102,7 @@ def analyze_share_of_voice(
             "recommendations": [],
             "limitations": [
                 "No competitors are tracked for this property yet. Add the "
-                "competitors you want compared (Beacon never guesses them)."
+                "competitors you want compared (CiteRoll never guesses them)."
             ],
         }
 
@@ -274,7 +274,7 @@ def _topic_recommendations(db: Session, property_id: int, today: date | None) ->
     (a competitor leads by a large margin on a topic that is also declining
     for this property), everything else is Monitor/Low Priority and is
     intentionally NOT surfaced as a recommendation - not every topic needs
-    an action item. Never reads prompt-volume or demand data Beacon does
+    an action item. Never reads prompt-volume or demand data CiteRoll does
     not reliably have; "priority" here is only the operator-asserted
     AITopic.priority field."""
     from app.services.reporting_share_of_voice import build_sov_report

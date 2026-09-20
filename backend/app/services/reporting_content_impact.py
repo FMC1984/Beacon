@@ -25,7 +25,7 @@ DEFAULT_WINDOW = 30
 
 EXTERNAL_FACTORS_CAVEAT = (
     "Observed changes may be influenced by seasonality, competition, demand, "
-    "tracking changes, and other external factors. Beacon does not claim the "
+    "tracking changes, and other external factors. CiteRoll does not claim the "
     "content change caused the result."
 )
 

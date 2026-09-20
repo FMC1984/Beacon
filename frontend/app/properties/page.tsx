@@ -82,7 +82,7 @@ export default function PropertiesPage() {
           startEdit(target);
         }
       })
-      .catch(() => setError("Could not reach the Beacon API."))
+      .catch(() => setError("Could not reach the CiteRoll API."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -113,7 +113,7 @@ export default function PropertiesPage() {
         load();
       }
     } catch {
-      setCompanyError("Could not reach the Beacon API.");
+      setCompanyError("Could not reach the CiteRoll API.");
     } finally {
       setCompanyBusy(false);
     }
@@ -125,7 +125,7 @@ export default function PropertiesPage() {
       await fetch(`${API_BASE}/companies/${id}`, { method: "DELETE" });
       load();
     } catch {
-      setError("Could not reach the Beacon API.");
+      setError("Could not reach the CiteRoll API.");
     }
   }
 
@@ -161,7 +161,7 @@ export default function PropertiesPage() {
         load();
       }
     } catch {
-      setCreateError("Could not reach the Beacon API.");
+      setCreateError("Could not reach the CiteRoll API.");
     } finally {
       setCreating(false);
     }
@@ -174,7 +174,7 @@ export default function PropertiesPage() {
       setConfirmDeleteId(null);
       load();
     } catch {
-      setError("Could not reach the Beacon API.");
+      setError("Could not reach the CiteRoll API.");
     } finally {
       setDeleting(false);
     }
@@ -224,7 +224,7 @@ export default function PropertiesPage() {
         load();
       }
     } catch {
-      setSaveError("Could not reach the Beacon API.");
+      setSaveError("Could not reach the CiteRoll API.");
     } finally {
       setSaving(false);
     }

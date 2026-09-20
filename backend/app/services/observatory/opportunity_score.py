@@ -1,4 +1,4 @@
-"""Beacon Prompt Opportunity Score (Phase 19, slice 3). MODELED, 0-100,
+"""CiteRoll Prompt Opportunity Score (Phase 19, slice 3). MODELED, 0-100,
 configurable weights, every contributor listed with its value or marked
 UNAVAILABLE. This is explicitly NOT prompt search volume."""
 

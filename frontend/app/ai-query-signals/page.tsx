@@ -129,7 +129,7 @@ export default function AIQuerySignalsPage() {
         setProperties(p);
         if (p.length) setPropertyId(p[0].id);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetchCompanies().then(setCompanies).catch(() => {});
   }, []);
 
@@ -138,7 +138,7 @@ export default function AIQuerySignalsPage() {
     fetch(`${API_BASE}/ai-query-signals/${id}`)
       .then((r) => r.json())
       .then(setData)
-      .catch(() => setError("Could not reach the Beacon API."))
+      .catch(() => setError("Could not reach the CiteRoll API."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -169,7 +169,7 @@ export default function AIQuerySignalsPage() {
       {/* Persistent limitation note (always visible). */}
       <div className="rounded-2xl border border-violet-a/30 bg-violet-a/5 px-4 py-3 text-sm text-muted">
         AI platforms generally do not pass the exact question or prompt used by a
-        visitor. Beacon shows observed referral data, related search signals, and
+        visitor. CiteRoll shows observed referral data, related search signals, and
         clearly labeled topic inferences.
       </div>
 

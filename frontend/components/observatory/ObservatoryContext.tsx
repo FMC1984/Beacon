@@ -84,7 +84,7 @@ export function ObservatoryProvider({ children }: { children: ReactNode }) {
         setProperties(ps);
         setLoaded(true);
       })
-      .catch(() => !cancelled && setLoadError("Could not reach the Beacon API."));
+      .catch(() => !cancelled && setLoadError("Could not reach the CiteRoll API."));
     fetchObservatoryMeta()
       .then((m) => !cancelled && setMeta(m))
       .catch(() => {});

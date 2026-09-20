@@ -33,7 +33,7 @@ from app.services.observatory import LABEL_MEASURED
 from app.services.observatory.observability import log_event
 from app.services.observatory.tenancy import property_org_id
 
-USER_AGENT = "Mozilla/5.0 (compatible; BeaconReadability/1.0; +internal tool)"
+USER_AGENT = "Mozilla/5.0 (compatible; CiteRollReadability/1.0; +internal tool)"
 TIMEOUT = 15
 MAX_PAGES = 5
 MAX_TEXT = 40_000
@@ -289,7 +289,7 @@ def readability_report(db: Session, property_id: int) -> dict:
         "categories_spec": {k: {"label": v["label"], "severity": v["severity"]} for k, v in categories_for(prop).items()},
         "agents": list(AI_AGENTS),
         "note": ("Checked the way a plain crawler reads the site: no JavaScript run. A fact that is missing here may be "
-                 "rendered by a script or not published; Beacon does not claim which. Comparing raw and rendered pages "
+                 "rendered by a script or not published; CiteRoll does not claim which. Comparing raw and rendered pages "
                  "is a later version."),
     }
     if row is None:

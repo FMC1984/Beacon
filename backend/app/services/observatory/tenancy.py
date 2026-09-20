@@ -14,7 +14,7 @@ from app.models.organization import DEFAULT_ORGANIZATION_SLUG
 def default_organization(db: Session) -> Organization:
     org = db.query(Organization).filter_by(slug=DEFAULT_ORGANIZATION_SLUG).one_or_none()
     if org is None:
-        org = Organization(name="Beacon", slug=DEFAULT_ORGANIZATION_SLUG, is_active=True)
+        org = Organization(name="CiteRoll", slug=DEFAULT_ORGANIZATION_SLUG, is_active=True)
         db.add(org)
         db.commit()
         db.refresh(org)

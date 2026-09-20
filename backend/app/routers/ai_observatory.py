@@ -411,12 +411,12 @@ def observatory_meta():
         "data_labels": [LABEL_OBSERVED, LABEL_MEASURED, LABEL_MODELED, LABEL_UNAVAILABLE],
         "opportunity_score": {
             "weights": opportunity_weights(),
-            "note": "Beacon Prompt Opportunity Score is MODELED (0-100). It is not prompt search volume.",
+            "note": "CiteRoll Prompt Opportunity Score is MODELED (0-100). It is not prompt search volume.",
         },
         "limitations": [
-            "AI platforms do not publish prompt volume; Beacon never reports AI search volume.",
-            "Monitoring runs are Beacon's own API calls, not consumer impressions.",
-            "Retrieval queries are what the provider reported issuing for Beacon's call, not what renters typed.",
+            "AI platforms do not publish prompt volume; CiteRoll never reports AI search volume.",
+            "Monitoring runs are CiteRoll's own API calls, not consumer impressions.",
+            "Retrieval queries are what the provider reported issuing for CiteRoll's call, not what renters typed.",
             "Recommendation Rate is MODELED by a rule-based classifier.",
         ],
     }
@@ -644,7 +644,7 @@ def market_summary(
         "properties_scored": sum(d.properties_scored for d in daily),
         "citations": sum(d.citations_count for d in daily),
         "data_label": LABEL_MEASURED,
-        "note": "One market answer scores every subscribed property; runs are Beacon monitoring calls, not consumer impressions.",
+        "note": "One market answer scores every subscribed property; runs are CiteRoll monitoring calls, not consumer impressions.",
         "leaderboard": leaderboard,
     }
 

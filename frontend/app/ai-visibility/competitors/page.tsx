@@ -32,7 +32,7 @@ export default function CompetitorsPage() {
 
       <Panel
         title="Tracked competitors"
-        subtitle="Competitor metrics count only competitors you track for this property. Beacon never guesses who the competition is."
+        subtitle="Competitor metrics count only competitors you track for this property. CiteRoll never guesses who the competition is."
       >
         <div className="flex flex-wrap gap-2">
           <Link

@@ -33,7 +33,7 @@ from app.routers import (
     uploads,
 )
 
-app = FastAPI(title="Beacon", version="0.1.0")
+app = FastAPI(title="CiteRoll", version="0.1.0")
 
 
 # Authentication is dependency-based (app.auth.deps): every data router below

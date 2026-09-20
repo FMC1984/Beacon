@@ -288,7 +288,7 @@ export function DashboardView({ propertyId }: { propertyId: number | null }) {
 
       {error && (
         <div className="rounded-2xl border border-pink-a/40 bg-pink-a/10 p-4 text-sm text-pink-a">
-          Could not reach the Beacon API. Is the backend running on port 8600?
+          Could not reach the CiteRoll API. Is the backend running on port 8600?
         </div>
       )}
 

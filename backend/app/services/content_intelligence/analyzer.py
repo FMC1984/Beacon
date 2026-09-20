@@ -412,7 +412,7 @@ def analyze_property(
             "opportunities": [
                 {
                     "title": "Add website content",
-                    "reason": "Beacon has no ingested content for this property. Add homepage, amenities, floor plans, neighborhood, and FAQ content to enable analysis.",
+                    "reason": "CiteRoll has no ingested content for this property. Add homepage, amenities, floor plans, neighborhood, and FAQ content to enable analysis.",
                     "citations": [],
                     "impact": "High",
                     "effort": "Medium",

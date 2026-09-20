@@ -1,4 +1,4 @@
-"""Provider abstraction: Beacon is provider-agnostic for both generation and
+"""Provider abstraction: CiteRoll is provider-agnostic for both generation and
 embeddings. Business logic depends only on the LLMProvider / EmbeddingProvider
 interfaces in `base`; concrete providers are selected by `registry` from
 settings. Add a new provider by implementing the interface and wiring it into

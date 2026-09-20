@@ -31,13 +31,13 @@ MAX_RECOMMENDATIONS = 5
 MIN_FACTS_FOR_SYNTHESIS = 3
 
 MODEL_DISCLOSURE = (
-    "Drafted by Beacon's assistant from the numbered facts shown; every "
-    "recommendation cites the facts it rests on. Beacon drops any "
+    "Drafted by CiteRoll's assistant from the numbered facts shown; every "
+    "recommendation cites the facts it rests on. CiteRoll drops any "
     "recommendation that does not cite them."
 )
 
 INSUFFICIENT_TEMPLATE = (
-    "Beacon does not have enough grounded signal this month to act as your "
+    "CiteRoll does not have enough grounded signal this month to act as your "
     "strategist honestly. Connect more data sources or wait for another month "
     "of history, then generate again."
 )

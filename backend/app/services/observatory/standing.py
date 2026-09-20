@@ -1,7 +1,7 @@
 """Where the property stands: in its market, and against its own comp set.
 
 Two different questions a regional manager asks. The comp set is the
-competitors a person confirmed; the market is every community Beacon
+competitors a person confirmed; the market is every community CiteRoll
 monitors in the same city. Both ranks are MEASURED from monitored answers,
 ties share a rank, and nothing is ranked below the sample minimum.
 """
@@ -72,7 +72,7 @@ def _comp_set(db: Session, prop: Property, days: int, today: date) -> dict:
 
 def _market(db: Session, prop: Property, days: int, today: date) -> dict:
     if prop.market_id is None:
-        return {"available": False, "reason": "Add a city and state so Beacon can place this property in a market."}
+        return {"available": False, "reason": "Add a city and state so CiteRoll can place this property in a market."}
     start, end = today - timedelta(days=days - 1), today
     members = market_members(db, prop.market_id, property_org_id(db, prop.id))
     rows = []
@@ -104,6 +104,6 @@ def property_standing(db: Session, property_id: int, days: int = 30, today: date
         "window": {"start": (today - timedelta(days=days - 1)).isoformat(), "end": today.isoformat(), "days": days},
         "market": _market(db, prop, days, today),
         "comp_set": _comp_set(db, prop, days, today),
-        "note": ("Market rank compares AI Visibility across the communities Beacon monitors in this city. Comp set rank "
+        "note": ("Market rank compares AI Visibility across the communities CiteRoll monitors in this city. Comp set rank "
                  "counts monitored answers naming you and each competitor you confirmed. Ties share a rank."),
     }

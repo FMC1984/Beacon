@@ -117,7 +117,7 @@ export function ContentEditor({
         onChanged();
       }
     } catch {
-      setResult({ ok: false, message: "Could not reach the Beacon API." });
+      setResult({ ok: false, message: "Could not reach the CiteRoll API." });
     } finally {
       setBusy(false);
     }
@@ -150,7 +150,7 @@ export function ContentEditor({
         onChanged();
       }
     } catch {
-      setResult({ ok: false, message: "Could not reach the Beacon API." });
+      setResult({ ok: false, message: "Could not reach the CiteRoll API." });
     } finally {
       setBusy(false);
     }

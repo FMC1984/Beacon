@@ -3,7 +3,7 @@
 Builds a property's initial prompt universe without a marketer writing a
 hundred prompts, from: templates (market / feature / brand), the taxonomy,
 the property's own attributes and site content topics, tracked competitors,
-and Search Console queries when connected (as a topic signal only - Beacon
+and Search Console queries when connected (as a topic signal only - CiteRoll
 does not turn keyword strings into fabricated questions). Every generated
 prompt keeps provenance (generated_from, generation_method) and is
 de-duplicated by text hash within its scope, so re-generation is idempotent.

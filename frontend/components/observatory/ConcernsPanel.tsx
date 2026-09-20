@@ -53,7 +53,7 @@ function Detail({ propertyId, topic, days }: { propertyId: number; topic: Concer
               <h4 className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">What your own site says</h4>
               <p className="text-xs text-muted">
                 {data.own_content.pages === 0
-                  ? "No site pages are loaded into Beacon for this property."
+                  ? "No site pages are loaded into CiteRoll for this property."
                   : `Best matching page: ${data.own_content.target_page}. Covers ${data.own_content.covered_terms.length} topic term${data.own_content.covered_terms.length === 1 ? "" : "s"}${
                       data.own_content.missing_terms.length ? `; missing: ${data.own_content.missing_terms.slice(0, 5).join(", ")}` : ""
                     }.`}

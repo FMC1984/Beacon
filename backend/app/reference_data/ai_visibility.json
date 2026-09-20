@@ -1,9 +1,9 @@
 {
   "version": "2026-09-11",
-  "notes": "Vocabulary + methodology for AI Visibility (Phase 11.5 foundation; Phase 19 adds per-platform capability flags). Platforms are a controlled vocabulary validated on assignment (same pattern as property_context property_types). Capability flags say what each platform's API actually exposes: a false flag means that signal is UNAVAILABLE for the platform and Beacon must never synthesize it. property_type_synonyms drives the deterministic hallucination-check for property type.",
+  "notes": "Vocabulary + methodology for AI Visibility (Phase 11.5 foundation; Phase 19 adds per-platform capability flags). Platforms are a controlled vocabulary validated on assignment (same pattern as property_context property_types). Capability flags say what each platform's API actually exposes: a false flag means that signal is UNAVAILABLE for the platform and CiteRoll must never synthesize it. property_type_synonyms drives the deterministic hallucination-check for property type.",
   "query_methodology": {
     "approach": "api",
-    "statement": "Beacon executes AI Visibility queries by calling AI-platform APIs directly (not by simulating a person using the consumer chat product). API results can differ from what a real user sees in the consumer app, which may use a different model version, system prompt, retrieval, or personalization. Treat all results as directional, from a stated sample size and date, never as an exact visibility percentage.",
+    "statement": "CiteRoll executes AI Visibility queries by calling AI-platform APIs directly (not by simulating a person using the consumer chat product). API results can differ from what a real user sees in the consumer app, which may use a different model version, system prompt, retrieval, or personalization. Treat all results as directional, from a stated sample size and date, never as an exact visibility percentage.",
     "known_limitations": [
       "API responses may differ from the consumer product for the same prompt.",
       "LLM outputs vary by phrasing, session, and model version, so a single query does not generalize.",
@@ -77,7 +77,7 @@
       "supports_model_selection": false,
       "supports_raw_response": false,
       "availability": "no_api",
-      "availability_note": "Microsoft offers no API for Copilot answers. Beacon shows it as unavailable rather than guessing."
+      "availability_note": "Microsoft offers no API for Copilot answers. CiteRoll shows it as unavailable rather than guessing."
     },
     {
       "key": "claude",

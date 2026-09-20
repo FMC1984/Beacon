@@ -3,13 +3,13 @@
 This is data collection, not analysis: a plain HTTP GET plus HTML text
 extraction, no external AI involved (consistent with Content Intelligence's
 "no external calls for analysis" rule - this only gathers the source text,
-the same role a manual copy-paste or a CSV upload plays elsewhere in Beacon).
+the same role a manual copy-paste or a CSV upload plays elsewhere in CiteRoll).
 
 Known limitations, stated plainly rather than silently masked:
 - JavaScript-rendered pages (SPAs) will extract little or no text, since this
   does not run a browser. The response says how many characters were found so
   a suspiciously empty fetch is visible immediately.
-- No crawling: exactly one URL is fetched per call. Beacon does not guess or
+- No crawling: exactly one URL is fetched per call. CiteRoll does not guess or
   discover subpages; the operator supplies each page's URL explicitly, same as
   it never infers property type or regulatory status.
 - Sites that block automated requests (403s, bot walls) will fail with a
@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 
 MAX_BODY_CHARS = 20_000
 FETCH_TIMEOUT_SECONDS = 15
-USER_AGENT = "Mozilla/5.0 (compatible; BeaconContentFetch/1.0; +internal tool)"
+USER_AGENT = "Mozilla/5.0 (compatible; CiteRollContentFetch/1.0; +internal tool)"
 
 # Tags whose text is never part of the visible reading content.
 _STRIP_TAGS = ("script", "style", "noscript", "nav", "header", "footer", "svg", "form")

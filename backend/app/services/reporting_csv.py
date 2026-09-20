@@ -102,8 +102,8 @@ def _card_row(card: dict) -> list[str]:
 
 
 def _preamble(writer, title, prop_name, window, today):
-    writer.writerow([f"Beacon {title}"])
-    writer.writerow(["Beacon version", APP_VERSION])
+    writer.writerow([f"CiteRoll {title}"])
+    writer.writerow(["CiteRoll version", APP_VERSION])
     writer.writerow(["Property", prop_name])
     if window:
         writer.writerow(["Window", f"{window['start']} to {window['end']}"])
@@ -375,7 +375,7 @@ def build_audience_csv(
     w.writerow([])
 
     # No "users" column: unique users cannot be derived from the stored
-    # per-dimension aggregates (summing rows overcounts), so Beacon does not
+    # per-dimension aggregates (summing rows overcounts), so CiteRoll does not
     # export a number it cannot support. Sessions are exact.
     w.writerow([
         "City", "Region", "sessions", "share_of_sessions",

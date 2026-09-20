@@ -1,6 +1,6 @@
 """GA4 traffic export parser + ingester.
 
-Tolerant by design: Beacon adapts to the many shapes a GA4 CSV can take rather
+Tolerant by design: CiteRoll adapts to the many shapes a GA4 CSV can take rather
 than rejecting on formatting. It handles preamble comment lines, a segment
 header row above the real header, duplicate metric columns (one per segment),
 extra dimensions it does not need (Event name, Search term), combined
@@ -10,7 +10,7 @@ leading 8 digits).
 
 The one thing it will NOT do is silently produce wrong numbers. A GA4 export
 broken down by Event name repeats each session across many event rows, so naive
-summing overcounts sessions several-fold. When Beacon detects that shape it
+summing overcounts sessions several-fold. When CiteRoll detects that shape it
 collapses to TRUE sessions using the once-per-session `session_start` event
 (this reproduces GA4's own Grand Total exactly) and reports that it did so.
 
@@ -106,7 +106,7 @@ def parse_ga4_csv(data: bytes) -> ParseResult:
             raise UploadValidationError(
                 "This GA4 export uses a relative 'Nth day' dimension, which has no "
                 "real calendar dates. Re-export the report with the 'Date' (or "
-                "'Date + hour') dimension so Beacon can place the data in time."
+                "'Date + hour') dimension so CiteRoll can place the data in time."
             )
         missing.append("Date")
     if "sessions" not in col_index:
@@ -184,7 +184,7 @@ def parse_ga4_csv(data: bytes) -> ParseResult:
         result.rows = _collapse_event_level(records)
         result.warnings.append(
             "This GA4 export is broken down by event, so each visit appears on "
-            "several rows. Beacon counted true sessions from the once-per-session "
+            "several rows. CiteRoll counted true sessions from the once-per-session "
             "'session_start' event (which matches GA4's own totals) instead of "
             "summing every row, which would multiply the session count."
         )
@@ -240,7 +240,7 @@ def _collapse_event_level(records: list[dict]) -> list[dict]:
     if not saw_session_marker:
         raise UploadValidationError(
             "This GA4 export is broken down by event but has no 'session_start' "
-            "rows, so Beacon cannot recover an honest session count from it "
+            "rows, so CiteRoll cannot recover an honest session count from it "
             "(summing would count each visit many times). Re-export the report "
             "without the 'Event name' dimension, or include session_start events."
         )

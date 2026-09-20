@@ -49,7 +49,7 @@ export function ThisWeekStrip({ propertyId }: { propertyId: number }) {
   return (
     <Panel
       title="This week"
-      subtitle="The three actions Beacon ranks highest for this property, with the evidence behind each. Every module feeds this list; the Observatory adds listing gaps, fact conflicts and content gaps."
+      subtitle="The three actions CiteRoll ranks highest for this property, with the evidence behind each. Every module feeds this list; the Observatory adds listing gaps, fact conflicts and content gaps."
       actions={
         <Link href={`/opportunities?property_id=${propertyId}`} className="text-xs text-violet-a hover:underline">
           All actions{data ? ` (${data.opportunities.length})` : ""} ›
@@ -60,7 +60,7 @@ export function ThisWeekStrip({ propertyId }: { propertyId: number }) {
         loading={loading && !data}
         error={error}
         retry={retry}
-        empty={{ when: data !== null && top.length === 0, title: "Nothing to act on yet", body: "Actions appear once monitored answers, Property Context and first-party data give Beacon evidence to point at." }}
+        empty={{ when: data !== null && top.length === 0, title: "Nothing to act on yet", body: "Actions appear once monitored answers, Property Context and first-party data give CiteRoll evidence to point at." }}
       >
         {top.length > 0 && (
           <ol className="space-y-2">

@@ -6,7 +6,7 @@ reference_data/ai_alert_thresholds.json:
   visibility_drop      AI Visibility fell by >= N points week over week
   citation_lost        the owned site was cited last window and not at all now
   competitor_surge     Competitor Win Rate rose by >= N points
-  claim_conflict       an AI answer contradicts a fact Beacon holds
+  claim_conflict       an AI answer contradicts a fact CiteRoll holds
 
 Both windows must meet the minimum response sample. Alerts are deduplicated
 by a key that includes the window end, so re-running detection the same day

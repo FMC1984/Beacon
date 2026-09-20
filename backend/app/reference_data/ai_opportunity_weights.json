@@ -1,6 +1,6 @@
 {
   "version": "2026-09-11",
-  "notes": "Beacon Prompt Opportunity Score (0-100, MODELED). Not search volume: no AI platform exposes prompt volume, and Beacon never fabricates it. Each contributor is 0-1; a cluster with no monitored answers for the property is not scored; otherwise the score is the weighted sum of the contributors that are AVAILABLE, with the weights of unavailable ones (for example search_demand without a Search Console connection) redistributed proportionally and listed as unavailable in the explanation. Weights are configurable here and per call (weight_overrides); per-organization overrides are not wired yet.",
+  "notes": "CiteRoll Prompt Opportunity Score (0-100, MODELED). Not search volume: no AI platform exposes prompt volume, and CiteRoll never fabricates it. Each contributor is 0-1; a cluster with no monitored answers for the property is not scored; otherwise the score is the weighted sum of the contributors that are AVAILABLE, with the weights of unavailable ones (for example search_demand without a Search Console connection) redistributed proportionally and listed as unavailable in the explanation. Weights are configurable here and per call (weight_overrides); per-organization overrides are not wired yet.",
   "weights": {
     "competitor_presence": 0.25,
     "visibility_gap": 0.25,

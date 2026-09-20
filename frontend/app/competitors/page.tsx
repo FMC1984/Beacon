@@ -68,7 +68,7 @@ export default function CompetitorsPage() {
         if (wanted !== null && p.some((x) => x.id === wanted)) setPropertyId(wanted);
         else if (p.length) setPropertyId(p[0].id);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetchCompanies().then(setCompanies).catch(() => {});
   }, []);
 
@@ -112,7 +112,7 @@ export default function CompetitorsPage() {
         load(propertyId);
       }
     } catch {
-      setError("Could not reach the Beacon API.");
+      setError("Could not reach the CiteRoll API.");
     } finally {
       setBusy(false);
     }
@@ -159,7 +159,7 @@ export default function CompetitorsPage() {
       <section className="space-y-3 rounded-2xl border border-line bg-surface p-5">
         <h2 className="text-sm font-medium text-muted">Tracked competitors</h2>
         <p className="text-xs text-muted">
-          You name your competitors. Beacon never guesses or scrapes them.
+          You name your competitors. CiteRoll never guesses or scrapes them.
         </p>
         <form onSubmit={addCompetitor} className="flex flex-wrap items-end gap-2">
           <label className="block text-sm">

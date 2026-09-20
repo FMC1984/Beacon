@@ -1,11 +1,11 @@
 "use client";
 
-/** Truth layer: each fact Beacon holds about the property, against every
+/** Truth layer: each fact CiteRoll holds about the property, against every
  * place that fact can be stated (your site, the listing pages AI cites, the
  * AI answers), with who vouches for the recorded value and when.
  *
  * Cell states are the same deterministic check in every column. A source
- * Beacon could not read is "unread" or "unreachable", never silent. Rent is
+ * CiteRoll could not read is "unread" or "unreachable", never silent. Rent is
  * volatile and is never graded as a conflict. */
 
 import { useState } from "react";
@@ -118,7 +118,7 @@ export function TruthPanel({ propertyId, days }: { propertyId: number; days: num
         empty={{
           when: data !== null && data.facts.length === 0,
           title: "No facts recorded yet",
-          body: "Record pets, rent range and amenities on the property, and the property type on Property Context. Beacon compares sources only against facts you gave it.",
+          body: "Record pets, rent range and amenities on the property, and the property type on Property Context. CiteRoll compares sources only against facts you gave it.",
         }}
       >
         {data && data.facts.length > 0 && (

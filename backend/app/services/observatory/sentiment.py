@@ -11,7 +11,7 @@ SCORES = {"positive": 1.0, "mixed": 0.0, "neutral": 0.0, "negative": -1.0}
 
 def mention_sentiment(text: str, position: int | None, terms: list[str]) -> tuple[str, float, str]:
     """(label, score, excerpt). Neutral when nothing around the mention
-    carries sentiment; never inferred from tone Beacon cannot see."""
+    carries sentiment; never inferred from tone CiteRoll cannot see."""
     if position is None:
         return "neutral", 0.0, ""
     start = max(0, position - WINDOW_CHARS)

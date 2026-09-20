@@ -1,7 +1,7 @@
 """Cross-property benchmarks (flow P3).
 
 A property's Observatory metrics beside the average of the OTHER monitored
-properties Beacon holds, so a leasing team can tell "40% AI Visibility" from
+properties CiteRoll holds, so a leasing team can tell "40% AI Visibility" from
 "40% when comparable communities average 55%". Two pools: every other
 property, and the ones with the same Property Context type (segment).
 
@@ -108,6 +108,6 @@ def property_benchmark(db: Session, property_id: int, days: int = 30, today: dat
         "segment_pool": ({"pool": {"properties": seg_pool["properties"], "organizations": seg_pool["organizations"]},
                           "metrics": compare(seg_pool)} if seg_pool else {"pool": {"properties": 0, "organizations": 0},
                                                                           "metrics": compare(None)}),
-        "note": ("Benchmarks average the other monitored properties Beacon holds (sample communities only against "
+        "note": ("Benchmarks average the other monitored properties CiteRoll holds (sample communities only against "
                  "sample ones), counting only properties with enough answers in the window. Members are never named."),
     }

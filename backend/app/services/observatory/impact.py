@@ -1,4 +1,4 @@
-"""AI visibility alongside site traffic (Phase 19, slice 6). Beacon AI + Search.
+"""AI visibility alongside site traffic (Phase 19, slice 6). CiteRoll AI + Search.
 
 Places the property's AI Visibility (MEASURED from monitoring runs) next to
 first-party Google data for the same two windows: GA4 sessions referred by AI
@@ -7,8 +7,8 @@ events, and Search Console clicks and impressions. Google enhances the
 picture; it is never required, and every missing source is UNAVAILABLE.
 
 Hard wording rule: this is association, never attribution. AI referral
-sessions come from people using AI products, which Beacon does not observe;
-Beacon's monitoring runs are its own API calls. The Search Console API does
+sessions come from people using AI products, which CiteRoll does not observe;
+CiteRoll's monitoring runs are its own API calls. The Search Console API does
 not report AI Overviews or other generative-AI impressions separately, so
 that step of the chain is always UNAVAILABLE.
 """
@@ -26,11 +26,11 @@ from app.services.reporting import compare, compare_points, previous_window
 ASSOCIATION_NOTE = (
     "These figures are shown side by side for context. Moving together is an association, not evidence that one "
     "caused the other: AI referral sessions come from people using AI products, while AI Visibility comes from "
-    "Beacon's own monitoring calls."
+    "CiteRoll's own monitoring calls."
 )
 GSC_AI_NOTE = (
     "Search Console does not report AI Overviews or other generative-AI impressions separately through its API, so "
-    "Beacon cannot show them."
+    "CiteRoll cannot show them."
 )
 
 
@@ -114,7 +114,7 @@ def impact_summary(db: Session, property_id: int, days: int = 30, today: date | 
     chain = [
         {"step": "AI Visibility in monitored answers", "label": LABEL_MEASURED if cur["ai_visibility"]["value"] is not None else LABEL_UNAVAILABLE,
          "current": cur["ai_visibility"]["value"], "previous": prev["ai_visibility"]["value"], "comparison": vis,
-         "source": "Beacon monitoring runs"},
+         "source": "CiteRoll monitoring runs"},
         {"step": "AI Overviews and generative-AI impressions", "label": LABEL_UNAVAILABLE, "current": None,
          "previous": None, "comparison": None, "source": "Search Console", "note": GSC_AI_NOTE},
         {"step": "Sessions referred by AI platforms", "label": LABEL_MEASURED if ga_cur else LABEL_UNAVAILABLE,

@@ -11,7 +11,7 @@ Two seams, both pluggable without touching business logic:
   yields incremental text so a future streaming UI needs no interface change.
 
 Future providers (Gemini, Claude, Cohere embeddings, a local model) implement
-these and register in `registry`. Nothing else in Beacon changes.
+these and register in `registry`. Nothing else in CiteRoll changes.
 """
 
 from abc import ABC, abstractmethod

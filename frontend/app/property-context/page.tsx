@@ -56,7 +56,7 @@ export default function PropertyContextPage() {
         if (wanted !== null && p.some((x) => x.id === wanted)) setPropertyId(wanted);
         else if (p.length) setPropertyId(p[0].id);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetchCompanies().then(setCompanies).catch(() => {});
     fetch(`${API_BASE}/property-context/vocabulary`)
       .then((r) => r.json())
@@ -83,7 +83,7 @@ export default function PropertyContextPage() {
         setNotes(c.marketing_restriction_notes ?? "");
         setSaved(false);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
   }, []);
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function PropertyContextPage() {
         load(propertyId);
       }
     } catch {
-      setError("Could not reach the Beacon API.");
+      setError("Could not reach the CiteRoll API.");
     } finally {
       setSaving(false);
     }
@@ -234,7 +234,7 @@ export default function PropertyContextPage() {
               ))}
             </div>
             <p className="mt-1 text-xs text-muted">
-              Leave Unspecified when unknown. Beacon treats unknown as unknown,
+              Leave Unspecified when unknown. CiteRoll treats unknown as unknown,
               never as unregulated, and withholds compliance-sensitive guidance.
             </p>
           </div>

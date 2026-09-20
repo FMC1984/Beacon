@@ -1,7 +1,7 @@
 """AI Visibility Foundation (Phase 11.5): the external-query layer.
 
 Query execution against an external AI platform is the ONLY non-deterministic
-step in Beacon. Everything downstream of the stored raw response - parsing,
+step in CiteRoll. Everything downstream of the stored raw response - parsing,
 mention detection, source extraction, the hallucination-check hook, the RAG
 summary - is deterministic and explainable, following the Content/Review
 Intelligence standard. This package builds the foundation only (provider seam,

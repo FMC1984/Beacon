@@ -1,13 +1,13 @@
 """Concrete AIVisibilityQueryProvider implementations + selection.
 
-METHODOLOGY (documented, not implicit): Beacon executes AI Visibility queries by
+METHODOLOGY (documented, not implicit): CiteRoll executes AI Visibility queries by
 calling AI-platform APIs directly, NOT by simulating a person in the consumer
 chat product. API results can differ from what a real user sees. See
 app/reference_data/ai_visibility.json -> query_methodology, which the API echoes
 back to callers.
 
 `execute` / `execute_query` are the only non-deterministic operations in
-Beacon. `get_queries` is a pure DB read shared by every provider.
+CiteRoll. `get_queries` is a pure DB read shared by every provider.
 
 Phase 19: `execute` returns a ProviderResult carrying what the provider
 actually exposed (citations, retrieval queries, usage, model, raw payload).
@@ -307,7 +307,7 @@ def get_ai_visibility_provider(platform: str | None = None) -> AIVisibilityQuery
         raise PlatformNotConnectedError(f"No connector is available for {platform}.")
     if platform and connector is None:
         raise PlatformNotConnectedError(
-            f"No live connector for {platform_label(platform)}: the platform offers no API Beacon can query."
+            f"No live connector for {platform_label(platform)}: the platform offers no API CiteRoll can query."
         )
     if not settings.openai_api_key:
         raise MissingAPIKeyError(

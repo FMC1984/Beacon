@@ -107,7 +107,7 @@ export default function ContentIntelligencePage() {
         setProperties(p);
         if (p.length) setPropertyId(p[0].id);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetchCompanies().then(setCompanies).catch(() => {});
   }, []);
 
@@ -116,7 +116,7 @@ export default function ContentIntelligencePage() {
     fetch(`${API_BASE}/content-intelligence/${id}`)
       .then((r) => r.json())
       .then(setAnalysis)
-      .catch(() => setError("Could not reach the Beacon API."))
+      .catch(() => setError("Could not reach the CiteRoll API."))
       .finally(() => setLoading(false));
   }, []);
 

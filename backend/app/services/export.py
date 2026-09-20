@@ -153,12 +153,12 @@ def build_export(
     ids = list(prop_by_id.keys())
 
     manifest_lines = [
-        "Beacon data export",
-        f"Beacon version: {APP_VERSION}",
+        "CiteRoll data export",
+        f"CiteRoll version: {APP_VERSION}",
         f"Generated: {datetime.now(timezone.utc).isoformat()}",
         "Scope: " + _scope_label(property_id, company, unassigned, props),
         "",
-        "This bundle contains the raw rows Beacon ingested, exactly as stored.",
+        "This bundle contains the raw rows CiteRoll ingested, exactly as stored.",
         "No metrics are derived or estimated here.",
         "",
         "AI traffic disclosure (applies to ga4_sessions_daily.csv):",

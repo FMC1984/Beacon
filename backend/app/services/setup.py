@@ -1,6 +1,6 @@
 """Property setup checklist.
 
-Six steps, in the order the rest of Beacon depends on them. Each step is a
+Six steps, in the order the rest of CiteRoll depends on them. Each step is a
 deterministic check over rows that already exist; nothing here is inferred.
 The checklist is what the property dashboard, the AI Visibility section and
 Reports show instead of an unexplained empty state: which step is missing,
@@ -68,7 +68,7 @@ def _identity(prop: Property) -> Step:
     done = not missing
     detail = (
         f"{prop.name}, {prop.city}, {prop.state}; site {prop.domain or prop.website_url}" if done
-        else "Beacon needs a market and a website to score this property."
+        else "CiteRoll needs a market and a website to score this property."
     )
     return Step("identity", "Identity", done, detail, f"/properties?property_id={prop.id}",
                 "Market assignment, owned-domain citation matching, prompt generation", missing, hints)

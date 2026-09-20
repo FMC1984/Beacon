@@ -1,7 +1,7 @@
 """Provider-observed retrieval queries (Phase 19 Observatory).
 
 When an AI platform's API reports the web-search queries it issued while
-answering (OpenAI web_search_call actions, Gemini webSearchQueries), Beacon
+answering (OpenAI web_search_call actions, Gemini webSearchQueries), CiteRoll
 stores them here verbatim. These are OBSERVED provider behavior for one API
 call. They are never consumer search volume, never "AI Mode fan-out", and
 every surface that shows them must say so.

@@ -5,9 +5,9 @@
  * screen. Content padding tightens on small screens. */
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { isPublicPath } from "@/lib/auth";
+import { CiteRollLogo } from "./CiteRollLogo";
 import { EntitlementBanner } from "./EntitlementBanner";
 import { Sidebar } from "./Sidebar";
 
@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           className={`absolute left-0 top-0 flex h-full w-64 max-w-[82%] flex-col border-r border-line bg-surface transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
         >
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4">
-            <Image src="/beacon-logo.png" alt="Beacon" width={120} height={24} className="h-6 w-auto" />
+            <CiteRollLogo size={24} />
             <button
               onClick={() => setOpen(false)}
               aria-label="Close menu"
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <MenuIcon />
           </button>
-          <Image src="/beacon-logo.png" alt="Beacon" width={110} height={22} className="h-5 w-auto" />
+          <CiteRollLogo size={22} />
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</div>

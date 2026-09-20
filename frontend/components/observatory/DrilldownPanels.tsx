@@ -1,6 +1,6 @@
 "use client";
 
-/** The three Profound-style views Beacon already had the data for, plus the
+/** The three Profound-style views CiteRoll already had the data for, plus the
  * evidence drawer any Observatory number can open.
  *
  *   QueryFanoutsPanel   what the AI searched for, per prompt (OBSERVED)

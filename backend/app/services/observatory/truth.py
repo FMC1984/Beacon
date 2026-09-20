@@ -1,10 +1,10 @@
 """Property Truth layer v1.
 
-One row per fact Beacon holds about a property, one column per place that
+One row per fact CiteRoll holds about a property, one column per place that
 fact can be stated: the recorded truth (with provenance), the property's own
 site, the listing and directory pages AI answers cite, and the AI answers
 themselves. Every cell comes from running the SAME deterministic claim
-extractors Beacon already applies to AI answers over that source's text, so
+extractors CiteRoll already applies to AI answers over that source's text, so
 "agrees" and "conflicts" mean the same thing in every column.
 
 What this never does:
@@ -55,7 +55,7 @@ def _fact_key(claim_type: str, topic: str | None) -> str:
 
 
 def _facts(prop: Property, ctx: dict) -> list[dict]:
-    """The facts Beacon holds, from the places they already live."""
+    """The facts CiteRoll holds, from the places they already live."""
     attrs = prop.attributes or {}
     out = []
     if ctx.get("property_type"):
@@ -80,7 +80,7 @@ def _facts(prop: Property, ctx: dict) -> list[dict]:
 
 
 def _other_community_terms(db: Session, prop: Property) -> list[str]:
-    """Names of other communities Beacon knows: tracked competitors and the
+    """Names of other communities CiteRoll knows: tracked competitors and the
     other monitored properties in the same market."""
     names: set[str] = set()
     for c in db.query(Competitor).filter_by(property_id=prop.id).all():
@@ -262,8 +262,8 @@ def truth_grid(db: Session, property_id: int, days: int = 90, today: date | None
             "stale": sum(1 for r in rows if r["provenance"]["status"] == "stale"),
         },
         "notes": notes,
-        "note": ("Each cell is the same deterministic check Beacon runs on AI answers, applied to that source's text. "
-                 "A source Beacon could not read is unread or unreachable, never silent. Rent is volatile and never graded. "
+        "note": ("Each cell is the same deterministic check CiteRoll runs on AI answers, applied to that source's text. "
+                 "A source CiteRoll could not read is unread or unreachable, never silent. Rent is volatile and never graded. "
                  "'Cited source shows the same value' means a page the conflicting answer cited states it too; it is not proof of origin."),
     }
 
@@ -275,7 +275,7 @@ def set_provenance(db: Session, property_id: int, fact_key: str, *, source_of_tr
         raise ValueError("Property not found.")
     known = {f["key"]: f for f in _facts(prop, get_property_context(db, property_id))}
     if fact_key not in known:
-        raise LookupError("Beacon holds no such fact for this property. Record the value first (Properties or Property Context).")
+        raise LookupError("CiteRoll holds no such fact for this property. Record the value first (Properties or Property Context).")
     if freshness is not None and freshness not in FRESHNESS:
         raise ValueError(f"freshness must be one of {', '.join(FRESHNESS)}.")
     row = db.query(PropertyFact).filter_by(property_id=property_id, fact_key=fact_key).one_or_none()

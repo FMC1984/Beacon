@@ -1,7 +1,7 @@
 """Monthly Strategic Briefing (Phase 17A).
 
 The synthesis layer: for one property and one calendar month, it composes an
-executive briefing from the modules Beacon already runs. It does NOT re-analyze
+executive briefing from the modules CiteRoll already runs. It does NOT re-analyze
 anything - it reads build_executive_report (SEO/GA4/AI-visibility/content/
 opportunities over the month window), Review Intelligence, and source_status,
 then editorializes.
@@ -394,17 +394,17 @@ def _story(cards: dict, seo: dict, review: dict, av_trend_points: list) -> dict:
         "risks": risks[:MAX_STORY_ITEMS],
         "trends": trends[:MAX_STORY_ITEMS],
         "note": (
-            "Observed movements from Beacon's stored data. Movements are not "
+            "Observed movements from CiteRoll's stored data. Movements are not "
             "causal claims; each item links to its source module."
         ),
     }
 
 
 # --- Cross-system insights (17C) -----------------------------------------------
-# Beacon's signature synthesis, built the careful way: an insight is a set of
+# CiteRoll's signature synthesis, built the careful way: an insight is a set of
 # observations from DIFFERENT modules that moved in the same month, or an
 # Opportunity Engine action that 2+ modules independently corroborate. The
-# framing is fixed: co-occurrence, never causation. Beacon's hard-coded
+# framing is fixed: co-occurrence, never causation. CiteRoll's hard-coded
 # correlation gate exists precisely so we never draw arrows we cannot support;
 # this section draws no arrows at all.
 
@@ -644,7 +644,7 @@ def _adaptive_sections(sources: dict) -> list[dict]:
     Kept honest: no fabricated leasing/paid/competitor content."""
     by_key = {s["key"]: s for s in sources.get("sources", [])}
     cards = []
-    # Leasing performance needs a CRM, which Beacon does not yet ingest.
+    # Leasing performance needs a CRM, which CiteRoll does not yet ingest.
     cards.append({
         "key": "leasing",
         "label": "Leasing Performance",
@@ -659,7 +659,7 @@ def _adaptive_sections(sources: dict) -> list[dict]:
         "label": "Competitor Intelligence",
         "connected": False,
         "message": "Add competitors on the Competitor Analysis page to compare share "
-                   "of tested AI answers. Beacon never guesses competitors.",
+                   "of tested AI answers. CiteRoll never guesses competitors.",
         "cta": "Add competitors",
     })
     return cards

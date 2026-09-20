@@ -3,7 +3,7 @@
 A Market is shared geography (city + state, slug like "denver-co"), NOT
 owned by an organization unless organization_id is set. It is the unit the
 Observatory shares observations across: one market prompt is executed once
-and scored against every Beacon property in that market (Phase 3). Markets
+and scored against every CiteRoll property in that market (Phase 3). Markets
 are created automatically from property city/state; submarkets are
 operator-asserted neighborhoods within a market.
 """

@@ -7,10 +7,10 @@ import { TruthPanel } from "@/components/observatory/TruthPanel";
 import { NeedsProperty, Panel } from "@/components/observatory/ui";
 
 const STATUSES: [string, string][] = [
-  ["Confirmed", "Matches a fact Beacon holds for the property."],
-  ["Likely accurate", "Consistent with Beacon's evidence, not directly verified."],
-  ["Conflict detected", "Contradicts a fact Beacon holds, with the evidence shown."],
-  ["Unable to verify", "Beacon has no reliable fact to compare against. Never treated as false."],
+  ["Confirmed", "Matches a fact CiteRoll holds for the property."],
+  ["Likely accurate", "Consistent with CiteRoll's evidence, not directly verified."],
+  ["Conflict detected", "Contradicts a fact CiteRoll holds, with the evidence shown."],
+  ["Unable to verify", "CiteRoll has no reliable fact to compare against. Never treated as false."],
 ];
 
 export default function AccuracyPage() {
@@ -22,7 +22,7 @@ export default function AccuracyPage() {
       <ClaimsPanel propertyId={propertyId} />
       <Panel
         title="How accuracy is judged"
-        subtitle="Claims AI answers make about the property are checked against Property Context. Beacon only says a claim conflicts when it has reliable evidence."
+        subtitle="Claims AI answers make about the property are checked against Property Context. CiteRoll only says a claim conflicts when it has reliable evidence."
       >
         <ul className="grid gap-2 sm:grid-cols-2">
           {STATUSES.map(([s, d]) => (
@@ -33,7 +33,7 @@ export default function AccuracyPage() {
           ))}
         </ul>
         <p className="mt-3 text-xs text-muted">
-          Absence from Beacon&apos;s records is never treated as proof a claim is false. Keep{" "}
+          Absence from CiteRoll&apos;s records is never treated as proof a claim is false. Keep{" "}
           <Link href={`/property-context?property_id=${propertyId}`} className="text-violet-a hover:underline">
             Property Context
           </Link>{" "}

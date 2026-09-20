@@ -23,7 +23,7 @@ function ReportsShell({ children }: { children: React.ReactNode }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
         <p className="mt-1 text-sm text-muted">
-          The communication layer over Beacon&apos;s analysis modules. Every
+          The communication layer over CiteRoll&apos;s analysis modules. Every
           figure names its source, sample, and freshness.
         </p>
       </div>

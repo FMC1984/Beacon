@@ -67,8 +67,8 @@ def observatory_summary_text(db: Session, property_id: int, days: int = WINDOW_D
 
     lines = [
         f"AI Visibility Observatory summary for {prop.name} ({start.isoformat()} to {end.isoformat()}), "
-        f"from {n} monitored AI answers. Monitoring runs are Beacon's own tests, not consumer impressions, "
-        "and Beacon never reports AI search volume.",
+        f"from {n} monitored AI answers. Monitoring runs are CiteRoll's own tests, not consumer impressions, "
+        "and CiteRoll never reports AI search volume.",
     ]
     for key, label, tag in (
         ("ai_visibility", "AI Visibility (answers that name the property)", "MEASURED"),

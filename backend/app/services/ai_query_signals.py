@@ -1,6 +1,6 @@
 """AI Query Signals: a deterministic, evidence-first view of AI-referred traffic.
 
-Beacon can see that a visit came from an AI platform and where it landed, but
+CiteRoll can see that a visit came from an AI platform and where it landed, but
 referral analytics NEVER carry the exact prompt a person typed into an LLM. This
 module therefore separates what is known into three honest tiers and never
 crosses between them:
@@ -47,17 +47,17 @@ LANDING_PAGE_DISPLAY_LIMIT = 25
 
 # --- fixed user-facing copy (never paraphrased per-surface) ---
 PROMPT_LIMITATION = (
-    "Beacon can identify AI-referred visits and landing pages, but referral data "
+    "CiteRoll can identify AI-referred visits and landing pages, but referral data "
     "does not include the exact prompt someone entered into an AI tool. Exact LLM "
     "prompts cannot be determined from referral analytics alone."
 )
 OBSERVED_BANNER = (
-    "Beacon can identify AI-referred visits and landing pages, but referral data "
+    "CiteRoll can identify AI-referred visits and landing pages, but referral data "
     "does not include the exact prompt someone entered into an AI tool."
 )
 PERSISTENT_NOTE = (
     "AI platforms generally do not pass the exact question or prompt used by a "
-    "visitor. Beacon shows observed referral data, related search signals, and "
+    "visitor. CiteRoll shows observed referral data, related search signals, and "
     "clearly labeled topic inferences."
 )
 INFERRED_LABEL = (

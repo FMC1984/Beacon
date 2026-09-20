@@ -471,17 +471,17 @@ def _sqlite_path() -> Path:
 @router.post("/restore-db")
 async def restore_db(file: UploadFile):
     """One-time migration helper: replace this instance's SQLite database with
-    an uploaded one (e.g. copying a local Beacon up to the hosted instance).
+    an uploaded one (e.g. copying a local CiteRoll up to the hosted instance).
     Protected by the access key like every other /api route. The current
     database is backed up next to the live file first, and the upload is
-    validated as a real Beacon DB before the swap. Rebuild the RAG index after
+    validated as a real CiteRoll DB before the swap. Rebuild the RAG index after
     this (the /reindex call is issued automatically)."""
     data = await file.read()
     live = _sqlite_path()
     incoming = live.with_suffix(".incoming.db")
     incoming.write_bytes(data)
 
-    # Validate: it must open and carry Beacon's tables at the same schema head.
+    # Validate: it must open and carry CiteRoll's tables at the same schema head.
     try:
         conn = sqlite3.connect(incoming)
         tables = {
@@ -494,10 +494,10 @@ async def restore_db(file: UploadFile):
         conn.close()
     except Exception as exc:
         incoming.unlink(missing_ok=True)
-        raise HTTPException(status_code=422, detail=f"Not a valid Beacon database: {exc}")
+        raise HTTPException(status_code=422, detail=f"Not a valid CiteRoll database: {exc}")
     if "properties" not in tables or not version:
         incoming.unlink(missing_ok=True)
-        raise HTTPException(status_code=422, detail="Uploaded file is not a Beacon database.")
+        raise HTTPException(status_code=422, detail="Uploaded file is not a CiteRoll database.")
 
     # Back up the current DB, then swap atomically. Single uvicorn worker +
     # engine.dispose() means no stale handle keeps the old file open.

@@ -4,7 +4,7 @@ Cost is MODELED: provider-reported token counts and search operations times
 a configurable rate table. The shipped table has null rates; until the
 operator supplies real prices (reference JSON, BEACON_AI_PRICING_OVERRIDES_JSON
 env, or later per-organization settings) every estimate is None and every
-surface labels it UNAVAILABLE. Beacon never guesses a dollar figure.
+surface labels it UNAVAILABLE. CiteRoll never guesses a dollar figure.
 """
 
 import json

@@ -69,7 +69,7 @@ def platform_breakdown(db: Session, property_id: int, days: int = 30, today: dat
         "platforms": rows,
         "live": sum(1 for r in rows if r["availability"]["state"] == "live"),
         "note": ("Each platform is measured from its own answers. A platform that is not connected shows why and "
-                 "contributes nothing to any number; Beacon never estimates a platform it did not query. Rows "
+                 "contributes nothing to any number; CiteRoll never estimates a platform it did not query. Rows "
                  "flagged is_sample_demo are scripted sample answers on the Sample Portfolio, shown so this screen "
                  "is legible before a key is added; they are never real provider traffic."),
     }

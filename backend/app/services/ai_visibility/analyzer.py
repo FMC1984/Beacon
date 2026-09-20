@@ -8,7 +8,7 @@ percentage), recommendations are evidence-backed and pass the Property Context
 gate(), and the hallucination-hook flags from Phase 11.5 are interpreted into
 findings here (the hook is detection; this is interpretation).
 
-Deliberately NOT built (documented deferrals, each needs external data Beacon
+Deliberately NOT built (documented deferrals, each needs external data CiteRoll
 does not hold): prompt-volume / demand estimation, source-authority
 cross-referencing against Google rankings, and competitor share-of-voice.
 """
@@ -53,7 +53,7 @@ SENSITIVE_KEYWORDS = (
 # unbuilt would be its own small dishonesty.
 DEFERRED = [
     "Prompt-volume / demand estimation (how many real users ask this) - needs a "
-    "data partnership Beacon does not have.",
+    "data partnership CiteRoll does not have.",
     "Source-authority cross-referencing (whether cited sources rank in Google) - "
     "needs external ranking infrastructure.",
 ]
@@ -183,7 +183,7 @@ def analyze_ai_visibility(
         own_site = {
             "domain": None,
             "status": "cannot_verify",
-            "explanation": "No website URL is set for this property, so Beacon "
+            "explanation": "No website URL is set for this property, so CiteRoll "
             "cannot tell whether the AI cites the property's own site.",
         }
     else:
@@ -285,7 +285,7 @@ def _score(mention: dict, contradictions: list, sufficient: bool) -> dict | None
                 "score": fact_component,
                 "weight": WEIGHTS["fact_consistency"],
                 "explanation": f"{len(contradictions)} factual contradiction(s) "
-                "detected against Beacon's known property data "
+                "detected against CiteRoll's known property data "
                 f"({25} points each).",
             },
         ],
@@ -339,7 +339,7 @@ def _recommendations(
     for c in contradictions:
         add(
             f"Verify the AI's claim about {c['field'].replace('_', ' ')}",
-            f"A response contradicted Beacon's known {c['field'].replace('_', ' ')} "
+            f"A response contradicted CiteRoll's known {c['field'].replace('_', ' ')} "
             f"({c['known_value']}): {c['evidence']} Confirm which is correct and "
             "correct the wrong one.",
             "Actionable",

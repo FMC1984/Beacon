@@ -2,9 +2,9 @@
  *
  * Every number from the Observatory carries a data label:
  *   OBSERVED    exactly what a provider returned (citations, retrieval queries)
- *   MEASURED    counted by Beacon from observations (rates, shares)
+ *   MEASURED    counted by CiteRoll from observations (rates, shares)
  *   MODELED     a rule or weighted model (recommendation, sentiment, opportunity)
- *   UNAVAILABLE Beacon does not have it and shows no number
+ *   UNAVAILABLE CiteRoll does not have it and shows no number
  * A null value is a named state, never a zero. */
 
 import { API_BASE } from "@/lib/api";

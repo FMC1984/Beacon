@@ -1,6 +1,6 @@
 """Per-platform capability flags + provider selection (Phase 19).
 
-A capability that is False is UNAVAILABLE for that platform: Beacon never
+A capability that is False is UNAVAILABLE for that platform: CiteRoll never
 fills the gap with a guess (no synthesized citations, no invented retrieval
 queries). Flags live in reference_data/ai_visibility.json so adding a
 platform or correcting what its API exposes is a data change.

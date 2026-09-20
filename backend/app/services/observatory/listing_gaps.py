@@ -1,10 +1,10 @@
 """Listing gaps as Opportunity Engine actions (flow P1).
 
 A directory page AI answers keep citing for this property's questions, that
-Beacon fetched and found does not name the property, is the most concrete
+CiteRoll fetched and found does not name the property, is the most concrete
 thing a leasing team can fix this week: claim or update the listing. The
 action carries the page, how often it was cited, and when the mention check
-ran. Pages Beacon has not fetched, or could not read, never become actions;
+ran. Pages CiteRoll has not fetched, or could not read, never become actions;
 there is no evidence yet that anything is missing.
 """
 
@@ -36,7 +36,7 @@ def listing_gap_opportunities(db: Session, property_id: int, days: int = 30, tod
             "title": f"Get {prop.name} onto {p['domain']}: the cited page does not mention it",
             "reason": (
                 f"{p['normalized_url']} is cited in {p['citations']} monitored AI answer(s) about this property's "
-                f"questions ({p['responses']} answers) and Beacon read the page without finding the property's name. "
+                f"questions ({p['responses']} answers) and CiteRoll read the page without finding the property's name. "
                 "Claim or update the listing so the page names the property; an answer that cites this page cannot "
                 "recommend the property from it."
             ),

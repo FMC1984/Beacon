@@ -1,7 +1,7 @@
 """AI Topics (Phase 18 Share of Voice).
 
 A topic groups AI Visibility prompts by subject (e.g. "Amenities", "Pricing",
-"Location"), operator-asserted like Competitors and Property Context - Beacon
+"Location"), operator-asserted like Competitors and Property Context - CiteRoll
 never infers a topic taxonomy. Topics are the unit Share of Voice reporting
 drills into: overall SoV can hide topic-level weakness, so every prompt that
 should roll up into topic-level SoV needs a topic assignment.

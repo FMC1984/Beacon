@@ -43,7 +43,7 @@ export function StandingStrip({ propertyId, days }: { propertyId: number; days: 
   const marketLines = m.available
     ? [
         m.only_one
-          ? "The only community Beacon monitors in this market, so there is nobody to rank against yet."
+          ? "The only community CiteRoll monitors in this market, so there is nobody to rank against yet."
           : `By AI Visibility (${fmtRate(m.ai_visibility)}) among ${m.size} monitored communit${m.size === 1 ? "y" : "ies"} here${m.tied ? ", tied" : ""}.`,
         ...(m.also_named > 0 ? [`AI answers also name ${m.also_named} other communit${m.also_named === 1 ? "y" : "ies"} in this market that nobody tracks yet.`] : []),
       ]

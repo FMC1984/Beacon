@@ -240,6 +240,6 @@ def property_context_chunk_text(context: dict) -> str:
             f"Marketing restrictions: {_fmt(context['marketing_restriction_flags'], 'none specified')}"
             + (f"; notes: {notes}" if notes else "")
             + ".",
-            "Note: Program and regulatory status is operator-asserted and never inferred by Beacon.",
+            "Note: Program and regulatory status is operator-asserted and never inferred by CiteRoll.",
         ]
     )

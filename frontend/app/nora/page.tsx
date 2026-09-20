@@ -148,7 +148,7 @@ export default function NoraPage() {
         if (isNew) loadConversations();
       }
     } catch {
-      setError("Could not reach the Beacon API. Is the backend running?");
+      setError("Could not reach the CiteRoll API. Is the backend running?");
     } finally {
       setBusy(false);
     }
@@ -205,7 +205,7 @@ export default function NoraPage() {
       if (id === conversationId) newChat();
       loadConversations();
     } catch {
-      setError("Could not reach the Beacon API.");
+      setError("Could not reach the CiteRoll API.");
     }
   }
 

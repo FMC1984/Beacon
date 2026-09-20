@@ -5,7 +5,7 @@
  * Intelligence score as progress toward 100, and organic search efficiency
  * (impressions -> clicks). Each renders only when its source cards are complete;
  * a metric that is "no data yet" is omitted, never charted as zero. All color is
- * from Beacon's accent ramp, one dominant hue per chart. */
+ * from CiteRoll's accent ramp, one dominant hue per chart. */
 
 import {
   Bar,
@@ -49,7 +49,7 @@ function Panel({ title, sub, children }: { title: string; sub?: string; children
 }
 
 /** Part-to-whole: AI-referred sessions against everything else. One highlighted
- * slice (violet = AI, Beacon's thesis metric); the rest is recessive surface. */
+ * slice (violet = AI, CiteRoll's thesis metric); the rest is recessive surface. */
 function AiShareDonut({ share, sessions }: { share: number; sessions: number | null }) {
   const data = [
     { name: "AI referral", value: share },

@@ -1,6 +1,6 @@
 """Tier 1 AI referral classifier.
 
-The ONLY detection tier Beacon implements (CLAUDE.md hard rule 2): referrer
+The ONLY detection tier CiteRoll implements (CLAUDE.md hard rule 2): referrer
 domain / UTM source matching against reference_data/ai_referrer_domains.json.
 No server-log parsing (Tier 2), no behavioral or ML detection (Tier 3).
 

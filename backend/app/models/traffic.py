@@ -60,7 +60,7 @@ class GA4SessionsDaily(Base):
 class GA4EventsDaily(Base):
     """GA4 event counts by event name and day (page_view, scroll, click, ...).
     Distinct from GA4SessionsDaily, which is session-grained by source/medium;
-    this is the event-name breakdown Beacon previously collapsed away."""
+    this is the event-name breakdown CiteRoll previously collapsed away."""
 
     __tablename__ = "ga4_events_daily"
     __table_args__ = (

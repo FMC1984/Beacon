@@ -3,7 +3,7 @@
 /** AI Visibility by area and by audience: the property's cluster rollups
  * grouped by the cluster's neighborhood (geography) and persona. Both
  * dimensions are operator-asserted (a neighborhood on the property, an
- * audience from Property Context or attributes); Beacon never infers them. */
+ * audience from Property Context or attributes); CiteRoll never infers them. */
 
 import Link from "next/link";
 import { fetchDimensions, fmtRate, type DimensionRow } from "@/lib/observatory";
@@ -43,7 +43,7 @@ export function DimensionsPanel({ propertyId, days }: { propertyId: number; days
     <Panel
       title="Visibility by area and audience"
       label="MEASURED"
-      subtitle="AI Visibility across the neighborhood questions and the audience-specific questions this property is monitored on. Both come from what you told Beacon, never from a guess."
+      subtitle="AI Visibility across the neighborhood questions and the audience-specific questions this property is monitored on. Both come from what you told CiteRoll, never from a guess."
     >
       <LoadState loading={loading && !data} error={error} retry={retry}>
         {data && (

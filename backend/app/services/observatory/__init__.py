@@ -1,6 +1,6 @@
 """AI Visibility Observatory (Phase 19).
 
-The platform layer over Beacon's AI Visibility foundation: a structured
+The platform layer over CiteRoll's AI Visibility foundation: a structured
 provider result seam, a run ledger with cost, provider-reported citations
 and retrieval queries, and (in later phases) shared market observations,
 prompt clustering, rollups, competitor discovery, claims and scheduling.

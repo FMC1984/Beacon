@@ -54,7 +54,7 @@ def budget_status(db: Session, property_id: int, now: datetime | None = None) ->
 
 def brand_terms_for(prop: Property) -> list[str]:
     """Deterministic brand terms for mention detection: the property name
-    plus any operator-asserted aliases (Property.aliases). Beacon never
+    plus any operator-asserted aliases (Property.aliases). CiteRoll never
     invents an alias; if a name is missing there is nothing to match."""
     return resolve_property_terms(prop)
 

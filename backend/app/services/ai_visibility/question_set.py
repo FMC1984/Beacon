@@ -1,14 +1,14 @@
 """Question-set import (DCHP seed format).
 
 Ingests an operator-authored question-set JSON (the dchp-beacon-queries
-shape) into Beacon's existing structures - nothing is guessed:
+shape) into CiteRoll's existing structures - nothing is guessed:
 
 - questions -> standing AIVisibilityPrompt rows (upserted by prompt text, so
   re-importing a revised file updates metadata instead of duplicating).
 - named organization competitors -> Competitor rows (operator-asserted, with
   domains, so the GEO source landscape classifies their citations).
 - run_config/budget/alert_rules are advisory for the operator; the parts
-  Beacon enforces (web search, output caps, cadence) live in settings and
+  CiteRoll enforces (web search, output caps, cadence) live in settings and
   the scheduler. must_contain is evaluated deterministically at read time,
   never by an LLM judge - matching the file's own llm_judge: false.
 """

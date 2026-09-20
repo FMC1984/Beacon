@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BeaconSweep } from "@/components/BeaconSweep";
+import { CiteRollLogo, CiteRollMark } from "@/components/CiteRollLogo";
 import { useSession } from "@/components/SessionProvider";
 import { ROLE_LABELS } from "@/lib/auth";
 import { useEffect, useState, type ReactNode } from "react";
@@ -238,15 +237,6 @@ export function Sidebar({
             }`
       }
     >
-      {/* Beacon sweep motif anchored to the sidebar foot: every page carries
-          the brand mark without competing with the nav. The wrapper (not the
-          aside) clips, so the floating collapse handle stays un-clipped. */}
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-52 overflow-hidden opacity-60"
-        aria-hidden
-      >
-        <BeaconSweep />
-      </div>
       {/* Floating handle sitting on the divider line, near the top. Desktop only. */}
       {!mobile && (
         <button
@@ -265,12 +255,12 @@ export function Sidebar({
           <Link
             href="/"
             className={`flex items-center ${collapsed ? "" : "px-2"}`}
-            aria-label="Beacon home"
+            aria-label="CiteRoll home"
           >
             {collapsed ? (
-              <Image src="/beacon-mark.png" alt="Beacon" width={28} height={28} priority className="h-7 w-7 shrink-0" />
+              <CiteRollMark size={28} />
             ) : (
-              <Image src="/beacon-logo.png" alt="Beacon" width={130} height={26} priority className="h-6 w-auto shrink-0" />
+              <CiteRollLogo size={26} />
             )}
           </Link>
         </div>

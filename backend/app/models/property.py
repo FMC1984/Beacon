@@ -42,7 +42,7 @@ class Property(Base):
     domain: Mapped[str | None] = mapped_column(String(255))
     # Free-form structured facts (amenities[], pet_policy{}, floor_plans[],
     # rent_range{}, neighborhood, segment). Operator-asserted; used for
-    # prompt generation and claim verification, never inferred by Beacon.
+    # prompt generation and claim verification, never inferred by CiteRoll.
     attributes: Mapped[dict | None] = mapped_column(JSON)
     management_company: Mapped[str | None] = mapped_column(String(200))
     ownership: Mapped[str | None] = mapped_column(String(200))

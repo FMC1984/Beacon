@@ -74,7 +74,7 @@ def aggregate_geography(rows) -> dict:
     # NB: total_users is deliberately NOT aggregated here. GA4 reports users
     # per dimension combination (date x source x medium x landing x city), so
     # summing rows counts the same user many times; unique users cannot be
-    # derived from the stored aggregates and Beacon does not show a number it
+    # derived from the stored aggregates and CiteRoll does not show a number it
     # cannot support. Sessions are session-scoped and sum exactly.
     cities: dict[tuple[str, str | None], dict] = {}
     regions: dict[str, dict] = {}

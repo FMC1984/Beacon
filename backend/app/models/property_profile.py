@@ -2,7 +2,7 @@
 
 Durable, property-specific metadata that downstream analysis reads on nearly
 every run: property type, target audience, regulatory status, and marketing
-restrictions. Program and regulatory status is ALWAYS operator-provided; Beacon
+restrictions. Program and regulatory status is ALWAYS operator-provided; CiteRoll
 never infers it from reviews, names, amenities, or content.
 
 Every field tolerates being unset. `is_regulated` is nullable and null means

@@ -1,7 +1,7 @@
 """Reviews CSV import parser + upsert.
 
 The bridge for getting Google Business Profile reviews (or any provider's) into
-Beacon before the live GBP connector is approved for API access. Tolerant like
+CiteRoll before the live GBP connector is approved for API access. Tolerant like
 the other export parsers: it accepts the column names a GBP export or a common
 review tool produces and their variants, skips rows with no review text, parses
 half-star and worded ratings, and normalizes dates.

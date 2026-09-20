@@ -2,7 +2,7 @@
 
 This is the detection MECHANISM only - a flag with a reason. Interpretation and
 recommendations are Phase 12's job. It compares specific factual claims in a
-stored AI response against data Beacon already holds with confidence:
+stored AI response against data CiteRoll already holds with confidence:
 
   - property name and city (presence checks: is the known value stated),
   - state (contradiction check via a controlled vocabulary of US states),
@@ -12,7 +12,7 @@ stored AI response against data Beacon already holds with confidence:
 Hard rules honored:
   - If the relevant fact is not populated (no Property Context, no city, etc.),
     the check returns "cannot_verify" - never a silent skip, never an assumption.
-  - Beacon never INFERS a property fact to enable a check; it only compares
+  - CiteRoll never INFERS a property fact to enable a check; it only compares
     against values it already stores.
   - Fully deterministic: identical (response, property, context) always yields
     identical checks. State contradiction uses full state NAMES only (not
@@ -50,7 +50,7 @@ _ABBR_TO_NAME = {v: k for k, v in _STATES.items()}
 def _check_name(text: str, name: str | None) -> dict:
     if not name:
         return {"field": "name", "known_value": None, "status": CANNOT_VERIFY,
-                "evidence": "Beacon has no property name on file."}
+                "evidence": "CiteRoll has no property name on file."}
     present = _phrase_present(text, name)
     return {
         "field": "name",

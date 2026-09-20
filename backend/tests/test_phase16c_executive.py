@@ -174,7 +174,7 @@ def test_executive_csv_is_self_describing(client, exec_property):
     assert res.status_code == 200
     assert "text/csv" in res.headers["content-type"]
     text = res.text
-    assert "Beacon Executive report export" in text
+    assert "CiteRoll Executive report export" in text
     assert "definition" in text  # the metric-definition column header
     assert "data_status" in text
     # A definition string should be present for a known metric.

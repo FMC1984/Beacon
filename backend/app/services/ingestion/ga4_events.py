@@ -66,7 +66,7 @@ def parse_ga4_events_csv(data: bytes) -> ParseResult:
         if rng is None:
             raise UploadValidationError(
                 "This events export has no Date column and no date range in its "
-                "header, so Beacon cannot place it in time. Re-export it with the "
+                "header, so CiteRoll cannot place it in time. Re-export it with the "
                 "Date dimension added, or keep the report's date-range header."
             )
         fallback_date = rng[1]

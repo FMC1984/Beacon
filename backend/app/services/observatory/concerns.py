@@ -8,7 +8,7 @@ competitors were named instead, which sources and pages those answers cited
 and who is named on them, and what the property's own pages already say.
 
 Rates are MEASURED. The concern level is a rule over them (thresholds below)
-and is never a forecast: Beacon does not predict a lift from fixing anything.
+and is never a forecast: CiteRoll does not predict a lift from fixing anything.
 """
 
 from collections import Counter, defaultdict
@@ -184,7 +184,7 @@ def explain_concern(db: Session, property_id: int, topic_key: str, days: int = 3
     if gaps:
         action = gaps[0].recommendation
     elif not site_pages:
-        action = f"Add the property's own pages to Beacon so it can compare what the site says about {label.lower()} with what AI answers cite."
+        action = f"Add the property's own pages to CiteRoll so it can compare what the site says about {label.lower()} with what AI answers cite."
     elif missing and not covered:
         action = f"Your site does not cover {label.lower()} in the terms renters use. Add verified {label.lower()} information to the {target} page."
     elif missing:

@@ -1,7 +1,7 @@
 """Google Business Profile performance export parser + ingester.
 
 ASSUMPTION (flagged per CLAUDE.md): GBP export column names vary by export
-vintage, so this parser maps known aliases onto Beacon's five normalized
+vintage, so this parser maps known aliases onto CiteRoll's five normalized
 metrics and reports any column it cannot place (unmapped_columns in the upload
 result) instead of silently dropping data. Metrics split across Desktop/Mobile
 columns are summed. One row per date is required; files with duplicate dates

@@ -2,11 +2,11 @@
 (Phase 19).
 
 Provider-reported citations are OBSERVED (capture_method provider_annotation
-/ grounding_chunk). When a provider exposes none, Beacon falls back to the
+/ grounding_chunk). When a provider exposes none, CiteRoll falls back to the
 URLs present in the prose (capture_method prose_regex), the same deterministic
 extraction the legacy sources_cited list used. Classification reuses
 source_classifier so owned / competitor / directory / government / review /
-media / unknown mean the same thing everywhere in Beacon.
+media / unknown mean the same thing everywhere in CiteRoll.
 """
 
 from dataclasses import dataclass
@@ -24,7 +24,7 @@ _TRACKING_PREFIXES = ("utm_",)
 _TRACKING_PARAMS = {"gclid", "fbclid", "msclkid", "ref", "ref_src", "srsltid"}
 # Second-level labels under which the registrable domain is three labels
 # deep (example.co.uk). Deliberately short; unknown patterns fall back to
-# two labels, which is right for every .com/.org/.gov domain Beacon sees.
+# two labels, which is right for every .com/.org/.gov domain CiteRoll sees.
 _SECOND_LEVEL = {"co", "com", "org", "net", "gov", "edu", "ac"}
 
 

@@ -1,7 +1,7 @@
 """AI fact accuracy (Phase 19, slice 5).
 
 Deterministic claim extraction from the sentences of a stored AI answer that
-name the property, verified against facts Beacon already holds:
+name the property, verified against facts CiteRoll already holds:
 
   property_type  Property Context type (the Phase 11.5 synonym vocabulary)
   state          the property's state (full state names only)
@@ -9,10 +9,10 @@ name the property, verified against facts Beacon already holds:
   amenity        Property.attributes["amenities"], then site content topics
   rent           Property.attributes["rent_range"] = {"min": n, "max": n}
 
-Statuses: confirmed (matches a fact Beacon holds), likely_accurate
+Statuses: confirmed (matches a fact CiteRoll holds), likely_accurate
 (consistent with softer evidence: site content, or a rent inside a stated
-range that can drift), conflict_detected (contradicts a fact Beacon holds,
-evidence stated), unable_to_verify (no reliable fact to compare). Beacon
+range that can drift), conflict_detected (contradicts a fact CiteRoll holds,
+evidence stated), unable_to_verify (no reliable fact to compare). CiteRoll
 never marks a claim false without a stored fact that contradicts it; the
 absence of an amenity from a list is NOT evidence it does not exist.
 """
@@ -163,7 +163,7 @@ def _amenity_claims(sentence: str, attrs: dict, content_topics: set[str]) -> lis
                                       f"Says the property has no {label}; the recorded amenities include it."))
             else:
                 out.append(ClaimDraft("amenity", topic, f"no {label}", sentence, CLAIM_UNVERIFIABLE, "attributes_amenities",
-                                      "Beacon has no record that confirms or rules out this amenity."))
+                                      "CiteRoll has no record that confirms or rules out this amenity."))
             continue
         if listed:
             out.append(ClaimDraft("amenity", topic, f"has {label}", sentence, CLAIM_CONFIRMED, "attributes_amenities",

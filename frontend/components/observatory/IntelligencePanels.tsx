@@ -231,7 +231,7 @@ export function UsagePanel({ days, propertyId }: { days: number; propertyId: num
   return (
     <Panel
       title="Monitoring usage"
-      subtitle="Beacon's own API calls across this property's organization, including failed and discarded runs because they still spend."
+      subtitle="CiteRoll's own API calls across this property's organization, including failed and discarded runs because they still spend."
       actions={
         <button onClick={preview} disabled={busy} className="rounded-xl border border-line px-3 py-1.5 text-sm hover:bg-surface-raised disabled:opacity-50">
           {busy ? "Planning..." : "Preview next scheduled plan"}

@@ -17,7 +17,7 @@ report's "Share of tested AI answers" block; the two are never merged.
 Sample gating reuses the existing AI Visibility minimum-query threshold
 (MIN_QUERIES_FOR_VISIBILITY) - below it, share_of_voice is null, never a
 fabricated percentage from a handful of responses. Competitors are always
-operator-asserted (Competitor rows); Beacon never discovers or infers one.
+operator-asserted (Competitor rows); CiteRoll never discovers or infers one.
 """
 
 from datetime import date, datetime, time, timedelta
@@ -52,7 +52,7 @@ TOOLTIP_SOV = (
     "mentions. Distinct from AI Visibility and Citation Share."
 )
 TOOLTIP_AI_VISIBILITY = (
-    "How often this property appears in AI responses Beacon has tested, out "
+    "How often this property appears in AI responses CiteRoll has tested, out "
     "of all eligible tested responses. Does not measure standing against "
     "competitors."
 )
@@ -441,7 +441,7 @@ def build_sov_report(
             "message": (
                 "No competitors are tracked for this property yet. Add the "
                 "competitors you want compared before Share of Voice can be "
-                "computed - Beacon never guesses them."
+                "computed - CiteRoll never guesses them."
             ),
             "tooltips": {
                 "ai_share_of_voice": TOOLTIP_SOV,
@@ -609,7 +609,7 @@ def sov_prompt_drilldown(
 
 def sov_response_evidence(db: Session, property_id: int, response_id: int) -> dict:
     """Response-level evidence: mirrors reporting_geo.matrix_cell_evidence -
-    the full stored response plus every Mention row Beacon deterministically
+    the full stored response plus every Mention row CiteRoll deterministically
     attributed to it, so the KPI figure can be walked all the way down to
     the text that produced it."""
     q = db.get(AIVisibilityQuery, response_id)
@@ -808,7 +808,7 @@ def explain_sov_change(
     Hypothesis) when either period lacks enough data, no topics are
     configured, the aggregate did not move, or no single topic's change
     covers at least half of the aggregate change in the same direction.
-    Beacon would rather say "not enough data" than point at the wrong
+    CiteRoll would rather say "not enough data" than point at the wrong
     contributor."""
     today = today or date.today()
     prop = db.get(Property, property_id)

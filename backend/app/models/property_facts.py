@@ -1,4 +1,4 @@
-"""Provenance for the facts Beacon holds about a property (Truth layer v1).
+"""Provenance for the facts CiteRoll holds about a property (Truth layer v1).
 
 The fact VALUES stay where they already live (Property.attributes and
 Property Context), so there is one place to edit them. This table records

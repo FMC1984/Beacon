@@ -1,7 +1,7 @@
 """Google OAuth 2.0 flow, implemented directly over httpx (no Google SDK).
 
 State is HMAC-signed with the client secret so the /callback endpoint (which
-must be reachable without Beacon's access key - Google's redirect cannot carry
+must be reachable without CiteRoll's access key - Google's redirect cannot carry
 custom headers) only accepts flows this server started. Tokens are exchanged
 server-side; the browser never sees them.
 """

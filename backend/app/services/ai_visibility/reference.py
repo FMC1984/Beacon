@@ -11,7 +11,7 @@ _REFERENCE = (
     / "ai_visibility.json"
 )
 
-# A query needs at least this many runs before Beacon will characterize
+# A query needs at least this many runs before CiteRoll will characterize
 # visibility; below it, every surface says so (mirrors Phase 11 trend gating).
 MIN_QUERIES_FOR_VISIBILITY = 3
 
@@ -69,7 +69,7 @@ def platform_availability(key: str) -> dict:
                 "detail": f"Connector built and dormant. Add {env} to switch it on; nothing is called until then."}
     state = p.get("availability") or ("no_api" if connector is None else "planned")
     return {"state": state, "detail": p.get("availability_note") or (
-        "No API Beacon can query." if state == "no_api" else "Connector planned, not built yet.")}
+        "No API CiteRoll can query." if state == "no_api" else "Connector planned, not built yet.")}
 
 
 def platform_config(key: str) -> dict | None:

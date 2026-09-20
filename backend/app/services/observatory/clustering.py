@@ -3,7 +3,7 @@
 Wording variants of the same question are grouped so routine monitoring
 runs one representative per cluster and rotates the rest. Deterministic:
 prompts are bucketed by (market or property, scope, topic_key, intent),
-embedded through Beacon's embedding provider (deterministic in demo/tests),
+embedded through CiteRoll's embedding provider (deterministic in demo/tests),
 and greedily agglomerated in id order against a cosine threshold. Same
 inputs, same clusters. Embeddings are cached by prompt text hash.
 """

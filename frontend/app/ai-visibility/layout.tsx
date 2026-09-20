@@ -37,8 +37,8 @@ function ObservatoryShell({ children }: { children: React.ReactNode }) {
           <h1 className="text-2xl font-semibold tracking-tight">AI Visibility</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
             How AI answers mention, cite and recommend each property, measured from
-            Beacon&apos;s own monitoring runs. Monitoring runs are not consumer
-            impressions, and Beacon never reports AI search volume.
+            CiteRoll&apos;s own monitoring runs. Monitoring runs are not consumer
+            impressions, and CiteRoll never reports AI search volume.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

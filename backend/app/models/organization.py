@@ -2,7 +2,7 @@
 
     Organization -> Company (portfolio / client) -> Market -> Property
 
-Beacon is single-tenant today: one default organization (slug "default") is
+CiteRoll is single-tenant today: one default organization (slug "default") is
 backfilled and every company belongs to it. No user model or per-tenant
 auth ships with this; the row exists so budgets, provider rotation,
 scheduler overrides and white-label settings have a home, and so every new

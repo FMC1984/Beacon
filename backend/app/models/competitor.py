@@ -1,8 +1,8 @@
 """Operator-asserted competitor set (Phase 13 Competitor Intelligence).
 
 Competitors are ALWAYS named by the operator, never discovered, inferred, or
-scraped by Beacon - the same operator-asserted posture as Property Context. Each
-row is a competitor Beacon should watch for when computing AI-answer share of
+scraped by CiteRoll - the same operator-asserted posture as Property Context. Each
+row is a competitor CiteRoll should watch for when computing AI-answer share of
 voice for a property. `aliases` lets the operator list alternate names the AI
 might use (deterministic literal matching, like brand detection)."""
 

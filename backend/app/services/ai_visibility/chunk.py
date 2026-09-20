@@ -57,7 +57,7 @@ def ai_visibility_summary_text(db: Session, property_id: int) -> str | None:
         fields = ", ".join(sorted({c["field"] for c in fc["contradictions"]}))
         lines.append(
             f"Fact-check hook: {len(fc['contradictions'])} response(s) contradicted "
-            f"Beacon's known property data ({fields}). Verify which is correct."
+            f"CiteRoll's known property data ({fields}). Verify which is correct."
         )
     if fc["cannot_verify_count"]:
         lines.append(

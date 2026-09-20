@@ -1,11 +1,11 @@
 "use client";
 
-/** Two more Profound-style views, both built from evidence Beacon holds:
+/** Two more Profound-style views, both built from evidence CiteRoll holds:
  *
  *   TopCitationPagesPanel  the specific pages AI answers cite (OBSERVED),
  *                          with whether each page names the property
  *                          (MEASURED: a text match over the fetched page).
- *                          Four states, never collapsed: a page Beacon could
+ *                          Four states, never collapsed: a page CiteRoll could
  *                          not read is "unreachable", not "not mentioned".
  *   TopicRankingsGrid      per question, who AI names most often among the
  *                          property and its tracked competitors (MEASURED).
@@ -29,8 +29,8 @@ import { DataLabelBadge, LoadState, Panel, ShareBar, useLoad } from "./ui";
 const MENTION_STYLE: Record<MentionOnPage, { text: string; cls: string; title: string }> = {
   mentioned: { text: "Mentioned", cls: "bg-emerald-500/15 text-emerald-300", title: "The fetched page names this property" },
   not_mentioned: { text: "Not mentioned", cls: "bg-amber-500/15 text-amber-300", title: "The page was fetched and does not name this property" },
-  unchecked: { text: "Unchecked", cls: "bg-surface-raised text-muted", title: "Beacon has not fetched this page yet" },
-  unreachable: { text: "Unreachable", cls: "bg-rose-500/15 text-rose-300", title: "Beacon could not read this page, so nothing is claimed about it" },
+  unchecked: { text: "Unchecked", cls: "bg-surface-raised text-muted", title: "CiteRoll has not fetched this page yet" },
+  unreachable: { text: "Unreachable", cls: "bg-rose-500/15 text-rose-300", title: "CiteRoll could not read this page, so nothing is claimed about it" },
 };
 
 function MentionBadge({ page }: { page: CitationPage }) {
@@ -177,7 +177,7 @@ export function TopicRankingsGrid({ propertyId, days }: { propertyId: number; da
     <Panel
       title="Visibility rankings by topic"
       label="MEASURED"
-      subtitle="For each question Beacon monitors, who AI names most often: this property against the competitors you track. Ties share a rank."
+      subtitle="For each question CiteRoll monitors, who AI names most often: this property against the competitors you track. Ties share a rank."
     >
       <LoadState
         loading={loading && !data}

@@ -11,7 +11,7 @@ asserting it.
 Detection reuses parsing.find_mention(), the same deterministic whole-word/
 phrase regex as detect_mention()/analyze_share_of_voice() - no fuzzy
 matching, no LLM judge. Property and competitor terms are both
-operator-asserted (Property.aliases / Competitor.aliases); Beacon never
+operator-asserted (Property.aliases / Competitor.aliases); CiteRoll never
 infers an alias.
 
 Presence semantics match the existing analyzer: a response either mentions

@@ -1,4 +1,4 @@
-"""Thin wrappers over the two Google APIs Beacon pulls from.
+"""Thin wrappers over the two Google APIs CiteRoll pulls from.
 
 Each function takes an access token and returns plain Python data; the sync
 service owns all database writes. HTTP goes through _request so tests can
@@ -22,7 +22,7 @@ GBP_ACCOUNTS_API = "https://mybusinessaccountmanagement.googleapis.com/v1"
 GBP_INFO_API = "https://mybusinessbusinessinformation.googleapis.com/v1"
 GBP_REVIEWS_API = "https://mybusiness.googleapis.com/v4"
 
-# GBP returns star ratings as words; Beacon stores numbers. "STAR_RATING_UNSPECIFIED"
+# GBP returns star ratings as words; CiteRoll stores numbers. "STAR_RATING_UNSPECIFIED"
 # maps to None (a real "no rating"), never 0.
 _GBP_STAR_TO_NUMBER = {
     "ONE": 1.0,
@@ -177,7 +177,7 @@ def ga4_events_report(
 
 def _gbp_date(ts: str | None) -> date | None:
     """GBP timestamps are RFC3339 (2021-01-05T12:34:56.000Z); keep the calendar
-    date, which is all Beacon's review_date stores."""
+    date, which is all CiteRoll's review_date stores."""
     if not ts:
         return None
     try:
@@ -222,7 +222,7 @@ def list_gbp_locations(access_token: str) -> list[dict]:
 
 
 def gbp_reviews(access_token: str, location_resource: str) -> list[dict]:
-    """All reviews for one location, normalized to Beacon's review shape. The
+    """All reviews for one location, normalized to CiteRoll's review shape. The
     reviews API is not date-windowed, so this pulls the full set and the sync
     upserts by review id."""
     out: list[dict] = []

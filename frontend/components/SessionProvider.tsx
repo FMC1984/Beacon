@@ -139,7 +139,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }
   if (status === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted">Connecting to Beacon…</div>
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted">Connecting to CiteRoll…</div>
     );
   }
   if (status === "anonymous") {

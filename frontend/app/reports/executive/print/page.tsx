@@ -54,7 +54,7 @@ function PrintBody() {
     <div className="print-doc">
       <header className="print-header">
         <div>
-          <p className="print-brand">Beacon</p>
+          <p className="print-brand">CiteRoll</p>
           <h1>Executive Report</h1>
         </div>
         <div className="print-meta">
@@ -129,7 +129,7 @@ function PrintBody() {
       <section className="print-methodology">
         <h2>Methodology and notes</h2>
         <p>
-          Figures are composed from Beacon&apos;s ingested data. Organic metrics
+          Figures are composed from CiteRoll&apos;s ingested data. Organic metrics
           come from Search Console and GA4 (organic medium). AI referral metrics
           reflect only sessions that passed referrer data; actual AI-influenced
           traffic is likely higher. AI mention rate is measured only above the
@@ -147,7 +147,7 @@ function PrintBody() {
       </section>
 
       <footer className="print-footer">
-        Beacon Executive Report · {data.property_name} · Generated{" "}
+        CiteRoll Executive Report · {data.property_name} · Generated{" "}
         {fmtDate(data.generated_on)}
       </footer>
     </div>

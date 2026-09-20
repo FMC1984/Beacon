@@ -1,4 +1,4 @@
-"""Connector architecture: where Beacon's data comes from is hidden behind
+"""Connector architecture: where CiteRoll's data comes from is hidden behind
 interfaces. The rest of the app asks a TrafficProvider / LeadProvider /
 LeaseProvider / ReviewProvider / ContentProvider for normalized records and
 never knows whether they came from local CSV imports, a CRM API, or a future

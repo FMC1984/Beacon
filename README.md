@@ -1,4 +1,4 @@
-# Beacon
+# CiteRoll
 
 Internal, single-user AI performance intelligence dashboard for multifamily
 marketing. Tracks AI referral traffic, ties it to CRM/lease outcomes, and
@@ -114,7 +114,7 @@ pushing to the connected GitHub branch.
 
 ## 2c. Google auto-sync (GA4 + Search Console)
 
-Instead of exporting CSVs, Beacon can pull GA4 traffic and Search Console
+Instead of exporting CSVs, CiteRoll can pull GA4 traffic and Search Console
 performance directly from Google's APIs on a schedule. Uploads keep working
 alongside; synced rows carry `sync_job_id` provenance the way uploaded rows
 carry `upload_id`, run through the same AI-referral classifier, replace
@@ -138,7 +138,7 @@ One-time Google Cloud setup (free):
 
 Then on the Uploads page: pick a property > "Connect Google" > sign in with
 an account that can read the GA4 property and GSC site > choose which GA4
-property and site feed this Beacon property > Sync now. Each sync pulls the
+property and site feed this CiteRoll property > Sync now. Each sync pulls the
 trailing `BEACON_GOOGLE_SYNC_DAYS` (default 30) days. With
 `BEACON_GOOGLE_AUTOSYNC=1`, every authorized connection re-syncs daily.
 Disconnecting revokes the token and keeps the already-synced data.
@@ -166,7 +166,7 @@ as "not enough data yet," never a fabricated number.
 
 ## 3. OpenAI billing (LIVE as of 2026-07-05)
 
-Beacon is running LIVE: `BEACON_DEMO_MODE=0`, OpenAI quota passes, both
+CiteRoll is running LIVE: `BEACON_DEMO_MODE=0`, OpenAI quota passes, both
 providers are `openai`, the RAG index is built with real `text-embedding-3-small`
 embeddings, and Nora generates real answers through the Responses API. Verified
 end to end: the correlation gate blocks thin-data claims, content and review
@@ -206,7 +206,7 @@ total row, and "Date + hour (YYYYMMDDHH)" (the date is the leading 8 digits).
 
 The one thing it will not do is silently report wrong numbers. A GA4 export
 broken down by **Event name** repeats each session across many event rows, so
-summing its Sessions column overcounts several-fold. Beacon detects that shape
+summing its Sessions column overcounts several-fold. CiteRoll detects that shape
 and collapses to true sessions using the once-per-session `session_start` event
 (this reproduces GA4's own Grand Total exactly), then returns a `warnings` entry
 saying it did so. If such a file has no `session_start` rows at all, it is
@@ -462,14 +462,14 @@ produced it - never a fabricated confidence score.
 
 ## 6h. Competitor Intelligence (Phase 13)
 
-The one competitive question Beacon can answer HONESTLY today: AI-answer **share
+The one competitive question CiteRoll can answer HONESTLY today: AI-answer **share
 of voice**. Across the AI Visibility responses already collected for a property,
 how often does an AI platform mention the property versus each operator-named
 competitor? Deterministic, sample-gated, no scraping, no guessing.
 
 - **Operator-asserted competitors** (`competitors` table, migration
   `a7b8c9d0e1f2`): the operator names competitors (with optional aliases the AI
-  might use); Beacon never discovers, infers, or scrapes them - the same posture
+  might use); CiteRoll never discovers, infers, or scrapes them - the same posture
   as Property Context. CRUD at `/api/competitors/{property_id}`.
 - **Share-of-voice analyzer**
   (`app/services/competitor_intelligence/analyzer.py`): counts per-query mention
@@ -480,7 +480,7 @@ competitor? Deterministic, sample-gated, no scraping, no guessing.
   `MIN_QUERIES_FOR_VISIBILITY` (reports "insufficient", never a misleading
   number). Recommendations are gated through the Property Context `gate()`.
 - **Deliberately deferred** (declared in the output, not silently skipped; each
-  needs data Beacon does not hold): automated competitor discovery, competitive
+  needs data CiteRoll does not hold): automated competitor discovery, competitive
   pricing / occupancy, and positioning / unit-mix comparison against competitor
   properties.
 - **RAG + Nora**: a `competitor_intelligence` chunk (rebuilt when competitors
@@ -515,7 +515,7 @@ explainable), and gated hard against overclaiming from a thin query sample.
   themes are suppressed - identical treatment to Review Intelligence's marketing
   insights.
 - **Deliberately deferred** (declared in the output, not silently skipped; each
-  needs external data Beacon does not hold): prompt-volume / demand estimation,
+  needs external data CiteRoll does not hold): prompt-volume / demand estimation,
   source-authority cross-referencing against Google rankings, and competitor
   share-of-voice (the last belongs to a future Competitor Intelligence phase).
 - **RAG + Nora**: the `ai_visibility` chunk now summarizes the analysis (score,
@@ -531,12 +531,12 @@ explainable), and gated hard against overclaiming from a thin query sample.
 ## 6f. AI Visibility Foundation (Phase 11.5)
 
 The external-query layer. Unlike every other module (deterministic analysis of
-data Beacon owns), knowing what an AI platform says about a property requires
+data CiteRoll owns), knowing what an AI platform says about a property requires
 actually querying that platform. This phase settles the infrastructure and the
 determinism boundary once, before the analysis module (Phase 12) is built on it.
 
 - **Determinism boundary (hard rule)**: `execute_query` against an external AI
-  platform is the ONLY non-deterministic step in Beacon. Everything downstream
+  platform is the ONLY non-deterministic step in CiteRoll. Everything downstream
   of the stored `raw_response_text` - mention detection, source extraction, the
   hallucination hook, the RAG summary - is deterministic: identical stored text
   always yields identical output. No re-querying the AI to "confirm" a parse.
@@ -547,7 +547,7 @@ determinism boundary once, before the analysis module (Phase 12) is built on it.
   (live, API-based) and `DemoVisibilityProvider` (deterministic, keyless).
   Designed for multiple platform connectors from the start; only ChatGPT is
   live. Empty state stays stable when no queries have been run.
-- **Query methodology (documented, not implicit)**: Beacon calls AI-platform
+- **Query methodology (documented, not implicit)**: CiteRoll calls AI-platform
   APIs directly, NOT a simulated consumer UI. Stated in
   `app/reference_data/ai_visibility.json`, echoed by `GET /api/ai-visibility/meta`,
   and shown in the product. Known limitation: API responses may differ from what
@@ -567,11 +567,11 @@ determinism boundary once, before the analysis module (Phase 12) is built on it.
   audit. Stored-result reads are never limited.
 - **Hallucination-check hook** (`app/services/ai_visibility/hallucination.py`):
   deterministic detection MECHANISM only (a flag with a reason; interpretation
-  is Phase 12). Compares response claims against data Beacon holds with
+  is Phase 12). Compares response claims against data CiteRoll holds with
   confidence - name/city (presence), state (contradiction via a US-state
   vocabulary), property type (contradiction via `ai_visibility.json` synonyms,
   only when Property Context supplies the type). A missing fact returns
-  `cannot_verify`, never a silent skip or an assumption; Beacon never infers a
+  `cannot_verify`, never a silent skip or an assumption; CiteRoll never infers a
   fact to enable a check.
 - **RAG + Nora**: a property-scoped `ai_visibility` chunk (replace-on-write,
   stale cleanup, rebuilt on a query or a property-context change) summarizes
@@ -669,7 +669,7 @@ A deterministic content-reasoning engine. No external AI is called for analysis.
 
 ## 6a. Platform architecture (Phase 9)
 
-Beacon is provider-agnostic and keeps its knowledge base current automatically.
+CiteRoll is provider-agnostic and keeps its knowledge base current automatically.
 
 - **Providers** (`app/providers/`): `EmbeddingProvider` (embed/dimension) and
   `LLMProvider` (generate/stream) interfaces. Concrete: `OpenAIProvider`,
@@ -788,7 +788,7 @@ RAG sync are DONE (Phase 9); the roadmap below is what remains.
    extend `providers/registry.py`. A provider/version change auto-triggers a
    full rebuild.
 6. **CRM and marketing attribution connectors (HubSpot, Salesforce, property management systems)** - implement the connector
-   interfaces; the rest of Beacon is unaffected.
+   interfaces; the rest of CiteRoll is unaffected.
 7. **Intelligence modules** - Content Intelligence (Phase 10) and Review
    Intelligence (Phase 11) are built. Remaining: AI Visibility Scanner (does the
    property appear in AI assistant answers), Competitor Intelligence (which owns

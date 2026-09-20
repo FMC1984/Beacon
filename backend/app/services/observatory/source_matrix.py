@@ -2,7 +2,7 @@
 
 One row per domain AI answers cited for the property's questions, with:
   influence            share of citations (MEASURED), tiered by a stated rule
-  property presence    from the cited pages Beacon fetched: present, absent,
+  property presence    from the cited pages CiteRoll fetched: present, absent,
                        or unknown (unchecked or unreachable, never "absent")
   competitor advantage tracked competitors named on those same pages when
                        the property is not
@@ -10,7 +10,7 @@ One row per domain AI answers cited for the property's questions, with:
   action               a stated rule over the columns above
 
 The accuracy column is deliberately empty: whether a source's facts are right
-needs the Truth layer, and Beacon does not grade what it has not compared.
+needs the Truth layer, and CiteRoll does not grade what it has not compared.
 """
 
 from collections import Counter, defaultdict
@@ -37,8 +37,8 @@ ACTIONS = {
     "opportunity": "A minor source that does not mention you. Worth a listing when convenient.",
     "maintain": "An influential source that names you. Keep its facts accurate.",
     "monitor": "A minor source that names you. No action needed.",
-    "check": "Beacon has not read this source's cited pages yet. Queue a page check.",
-    "verify": "Beacon could not read this source's pages (blocked or down). Check it by hand.",
+    "check": "CiteRoll has not read this source's cited pages yet. Queue a page check.",
+    "verify": "CiteRoll could not read this source's pages (blocked or down). Check it by hand.",
 }
 
 
@@ -137,5 +137,5 @@ def source_matrix(db: Session, property_id: int, days: int = 30, today: date | N
         "actions": ACTIONS,
         "accuracy_note": "Whether each source's facts are correct is not graded yet; that needs recorded facts compared per source.",
         "note": ("Influence is the source's share of citations. Presence and competitor advantage come only from cited "
-                 "pages Beacon fetched and could read; an unread source is unknown, never absent."),
+                 "pages CiteRoll fetched and could read; an unread source is unknown, never absent."),
     }

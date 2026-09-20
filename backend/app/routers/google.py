@@ -142,7 +142,7 @@ def _own_connection(db: Session, connection_id: int) -> DataConnection:
 @router.get("/connections/{connection_id}/resources", dependencies=[Depends(role_gate)])
 def list_resources(connection_id: int, db: Session = Depends(get_db)):
     """The GA4 properties, GSC sites, or GBP locations the connected account can
-    read, so the operator picks which one feeds this Beacon property."""
+    read, so the operator picks which one feeds this CiteRoll property."""
     conn = _own_connection(db, connection_id)
     if conn.oauth_status != OAuthStatus.CONNECTED or not conn.refresh_token:
         raise HTTPException(status_code=400, detail="Connection is not authorized.")

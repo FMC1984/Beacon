@@ -1,8 +1,8 @@
-# CLAUDE.md — Beacon Build Instructions
+# CLAUDE.md — CiteRoll Build Instructions
 
-This file is read automatically by Claude Code. It is the source of truth for how to build Beacon. Full context lives in `docs/beacon-prd-v2.md` (product decisions) and `docs/beacon-build-plan-v1.md` (schema, folder structure, architecture) — read both before writing code.
+This file is read automatically by Claude Code. It is the source of truth for how to build CiteRoll. Full context lives in `docs/beacon-prd-v2.md` (product decisions) and `docs/beacon-build-plan-v1.md` (schema, folder structure, architecture) — read both before writing code.
 
-## What Beacon Is
+## What CiteRoll Is
 
 Internal, single-user AI performance intelligence dashboard for multifamily marketing (built for Yardi/REACH workflow, not yet a packaged product). Tracks AI referral traffic, ties it to CRM/lease outcomes, and surfaces an analyst (Nora) that explains trends using only retrieved, cited data — never fabricated recommendations.
 
@@ -34,7 +34,7 @@ Nora's response generation must call this before producing any AI-traffic-to-lea
 
 ## Google Account Connections (deferred — schema only for now)
 
-* Beacon will eventually connect to Google accounts via OAuth 2.0: GA4 Data API, Google Search Console API, Google Business Profile APIs, Google Ads API. Manual CSV upload remains the ingestion method until then.
+* CiteRoll will eventually connect to Google accounts via OAuth 2.0: GA4 Data API, Google Search Console API, Google Business Profile APIs, Google Ads API. Manual CSV upload remains the ingestion method until then.
 * Do not build Google OAuth before the manual CSV dashboards (Phase 6) are working, unless explicitly instructed.
 * Schema support already exists so OAuth lands without rewrites: `data_connections` + `sync_jobs` tables, and dual provenance (`upload_id` / `sync_job_id`, at least one required) on every data table.
 * Product language for synced data: "Auto-sync", "Scheduled sync", "Near real-time where supported", "Last updated" timestamp, data freshness status. Never describe Google-connected data as fully real-time unless the specific API supports it.
@@ -49,7 +49,7 @@ Nora's response generation must call this before producing any AI-traffic-to-lea
 
 ## RAG Readiness (no RAG code yet)
 
-* Do not build RAG, embeddings, the vector store, Nora, or any AI-generated analysis until Phases 7-8. Beacon is currently structured ingestion, classification, and dashboards only.
+* Do not build RAG, embeddings, the vector store, Nora, or any AI-generated analysis until Phases 7-8. CiteRoll is currently structured ingestion, classification, and dashboards only.
 * But every ingested or synced dataset must already carry citation-grade provenance so Phase 7 lands cleanly. Uploads preserve: source name, import method, source account, filename, covered date range, imported-at timestamp, property mapping, and the raw original file on disk (`data/uploads/`, kept even for failed ingests). Data rows carry their source file line number (`source_line`); CRM leads carry `external_lead_id`. Metric type is encoded by the table itself.
 * Future Google syncs get the same treatment via `sync_jobs`: product source, account/property/location/customer ID (on the connection), report type, endpoint, date range, sync job ID, timestamps.
 * Any new ingestion path added in later phases (GBP, paid media, CRM) must capture this same provenance set from day one.

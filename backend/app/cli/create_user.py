@@ -21,7 +21,7 @@ from app.services.observatory.tenancy import default_organization_id
 
 
 def run(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Create or update a Beacon login.")
+    parser = argparse.ArgumentParser(description="Create or update a CiteRoll login.")
     parser.add_argument("--email", required=True)
     parser.add_argument("--name", default=None)
     parser.add_argument("--password", default=None, help="Omit to be prompted.")

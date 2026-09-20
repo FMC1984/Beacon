@@ -4,7 +4,7 @@
 A cited domain is classified against operator-anchored facts first (the
 property's own website, configured competitor domains), then against known
 public-category patterns (government, directory, review platform, media). A
-domain that matches nothing stays 'unknown' - Beacon never guesses a category,
+domain that matches nothing stays 'unknown' - CiteRoll never guesses a category,
 the same posture competitors and property context already take.
 """
 

@@ -2,7 +2,7 @@
 
 A person tracks an action (from the Opportunity Engine, a truth conflict or
 an area of concern). It moves open -> in progress -> implemented. On
-implementation Beacon records a baseline from the evidence the action came
+implementation CiteRoll records a baseline from the evidence the action came
 from, waits a stated number of days, then retests that same evidence:
 
   listing_gap   re-reads the cited page: does it name the property now?
@@ -18,7 +18,7 @@ from, waits a stated number of days, then retests that same evidence:
   general       no automatic check exists; a person closes it (done).
 
 An inconclusive retest is rescheduled a week later, up to MAX_RETESTS, then
-recorded as inconclusive. Beacon never marks an action resolved without the
+recorded as inconclusive. CiteRoll never marks an action resolved without the
 evidence showing it, and never predicts a lift.
 """
 
@@ -226,8 +226,8 @@ def _judge(action: AIAction, m: dict) -> tuple[str, str]:
         if st == "mentioned":
             return OUTCOME_RESOLVED, "The cited page now names the property."
         if st == "not_mentioned":
-            return OUTCOME_PERSISTS, "Beacon re-read the cited page and it still does not name the property."
-        return OUTCOME_INCONCLUSIVE, "Beacon could not read the page, so it cannot tell whether it was fixed."
+            return OUTCOME_PERSISTS, "CiteRoll re-read the cited page and it still does not name the property."
+        return OUTCOME_INCONCLUSIVE, "CiteRoll could not read the page, so it cannot tell whether it was fixed."
     if action.kind == KIND_FACT:
         a = m["after"]
         if a["statements"] < MIN_FACT_STATEMENTS:
@@ -301,7 +301,7 @@ def update_action(db: Session, action_id: int, *, status: str | None = None, own
                     property_id=row.property_id, company_id=db.get(Property, row.property_id).company_id,
                     page_url=page_url.strip()[:1000], change_title=row.title[:300],
                     change_type=ChangeType(change_type) if change_type else ChangeType.EXPANDED_CONTENT,
-                    date_implemented=day, notes=row.notes, related_opportunity=row.title[:500], created_by="Beacon action",
+                    date_implemented=day, notes=row.notes, related_opportunity=row.title[:500], created_by="CiteRoll action",
                 )
                 db.add(cc)
                 db.flush()
@@ -386,7 +386,7 @@ def list_actions(db: Session, property_id: int, include_closed: bool = True) -> 
     return {"property_id": property_id, "actions": [action_out(r) for r in rows], "by_status": dict(counts),
             "by_outcome": dict(outcomes),
             "note": ("Retests re-measure the evidence each action came from. Topic results are association, not causation; "
-                     "Beacon never marks an action resolved without the evidence showing it.")}
+                     "CiteRoll never marks an action resolved without the evidence showing it.")}
 
 
 def status_by_key(db: Session, property_id: int) -> dict[str, dict]:

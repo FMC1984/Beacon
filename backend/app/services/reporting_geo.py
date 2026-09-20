@@ -10,9 +10,9 @@ Truth rules held here:
 - Every rate travels with its numerator and denominator.
 - Rates are withheld below the AI Visibility minimum-query sample and reported
   as insufficient, never as a fabricated 0.
-- Competitor identity is only ever operator-configured; Beacon never guesses.
+- Competitor identity is only ever operator-configured; CiteRoll never guesses.
 - Competitor share is labeled "share of tested AI answers", never market share.
-- The source landscape classifies domains deterministically; anything Beacon
+- The source landscape classifies domains deterministically; anything CiteRoll
   cannot place stays "unknown".
 - The report reads only stored responses; it never calls an AI platform.
 """
@@ -49,7 +49,7 @@ RESPONSE_EXCERPT_CHARS = 600
 MARKET_SHARE_LABEL = "Share of tested AI answers"
 
 METHODOLOGY_NOTE = (
-    "These figures reflect AI answers Beacon tested by querying AI platforms "
+    "These figures reflect AI answers CiteRoll tested by querying AI platforms "
     "directly, not what every user sees. Tested answers, AI referral sessions, "
     "mentions, and citations are distinct and are never combined. Mention rate "
     "and citation rate are the AI Visibility Observatory's AI Visibility and "
@@ -247,7 +247,7 @@ def _matrix(prop, records, competitors):
 
 
 def matrix_cell_evidence(db: Session, property_id: int, query_id: int) -> dict:
-    """Evidence drawer for one matrix cell: the stored response and what Beacon
+    """Evidence drawer for one matrix cell: the stored response and what CiteRoll
     deterministically detected in it. Stored data only."""
     q = db.get(AIVisibilityQuery, query_id)
     obs = (

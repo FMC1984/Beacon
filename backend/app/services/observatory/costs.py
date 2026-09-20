@@ -91,5 +91,5 @@ def cost_report(
         "observations_produced": observations,
         "cost_per_observation": per_observation,
         "budget": budget_summary(db, "org", org_id),
-        "note": "Runs are Beacon's monitoring API calls. Failed and discarded runs are included because they still spend.",
+        "note": "Runs are CiteRoll's monitoring API calls. Failed and discarded runs are included because they still spend.",
     }

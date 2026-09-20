@@ -11,11 +11,11 @@ import { fmtRate } from "@/lib/observatory";
 const LABEL_STYLE: Record<DataLabel, { cls: string; hint: string }> = {
   OBSERVED: {
     cls: "border-emerald-a/40 bg-emerald-a/10 text-emerald-a",
-    hint: "Exactly what an AI provider returned for Beacon's monitoring call.",
+    hint: "Exactly what an AI provider returned for CiteRoll's monitoring call.",
   },
   MEASURED: {
     cls: "border-cyan-a/40 bg-cyan-a/10 text-cyan-a",
-    hint: "Counted by Beacon from stored observations.",
+    hint: "Counted by CiteRoll from stored observations.",
   },
   MODELED: {
     cls: "border-amber-a/40 bg-amber-a/10 text-amber-a",
@@ -23,7 +23,7 @@ const LABEL_STYLE: Record<DataLabel, { cls: string; hint: string }> = {
   },
   UNAVAILABLE: {
     cls: "border-line bg-surface-raised text-muted",
-    hint: "Beacon does not have this data, so no number is shown.",
+    hint: "CiteRoll does not have this data, so no number is shown.",
   },
 };
 
@@ -177,7 +177,7 @@ export function useLoad<T>(fn: (() => Promise<T>) | null, deps: unknown[]) {
     fn()
       .then((d) => !cancelled && setSettled({ key, data: d, error: null }))
       .catch((e: Error) =>
-        !cancelled && setSettled((prev) => ({ key, data: prev?.data ?? null, error: e.message || "Could not reach the Beacon API." }))
+        !cancelled && setSettled((prev) => ({ key, data: prev?.data ?? null, error: e.message || "Could not reach the CiteRoll API." }))
       );
     return () => {
       cancelled = true;

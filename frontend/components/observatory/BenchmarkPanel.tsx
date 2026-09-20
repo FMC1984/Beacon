@@ -1,7 +1,7 @@
 "use client";
 
 /** The property's four headline metrics beside the average of the other
- * monitored properties Beacon holds (all, and the same segment). Pools are
+ * monitored properties CiteRoll holds (all, and the same segment). Pools are
  * never named; below the pool minimum the column reads UNAVAILABLE with
  * the reason. Sample communities compare only with sample ones. */
 
@@ -59,7 +59,7 @@ export function BenchmarkPanel({ propertyId, days }: { propertyId: number; days:
     <Panel
       title="Compared with other communities"
       label="MEASURED"
-      subtitle="Your numbers beside the average of the other properties Beacon monitors. Pools count only properties with enough answers in this window and are never named."
+      subtitle="Your numbers beside the average of the other properties CiteRoll monitors. Pools count only properties with enough answers in this window and are never named."
     >
       <LoadState loading={loading && !data} error={error} retry={retry}>
         {data && (

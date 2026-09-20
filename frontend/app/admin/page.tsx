@@ -103,7 +103,7 @@ export default function AdminPage() {
     fetch(`${API_BASE}/admin/status`)
       .then((r) => r.json())
       .then(setStatus)
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetch(`${API_BASE}/admin/sync-status`)
       .then((r) => r.json())
       .then(setSync)

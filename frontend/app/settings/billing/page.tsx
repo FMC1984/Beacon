@@ -7,7 +7,7 @@ import { fetchBillingStatus, openPortal, PLAN_LABELS, startCheckout, syncQuantit
 
 const SOURCE_TEXT: Record<string, string> = {
   subscription: "Active subscription",
-  override: "Enabled by Beacon",
+  override: "Enabled by CiteRoll",
   sample: "Sample organization",
   none: "No subscription yet",
 };
@@ -118,7 +118,7 @@ export default function BillingPage() {
           </div>
         )}
         {ent?.override && (
-          <p className="mt-3 text-xs text-muted">Monitoring is enabled for this organization by Beacon{ent.override_reason ? ` (${ent.override_reason})` : ""}. No card on file is needed.</p>
+          <p className="mt-3 text-xs text-muted">Monitoring is enabled for this organization by CiteRoll{ent.override_reason ? ` (${ent.override_reason})` : ""}. No card on file is needed.</p>
         )}
         {ent && !ent.active && (
           <p className="mt-3 text-sm text-amber-a">This organization is read-only until monitoring starts. Everything stays visible.</p>
@@ -127,14 +127,14 @@ export default function BillingPage() {
 
       {status && !status.configured && (
         <section className="rounded-2xl border border-line bg-surface p-5 text-sm text-muted">
-          Online billing is not set up on this server yet. Invoices are handled by hand; contact Beacon to start or change a plan.
+          Online billing is not set up on this server yet. Invoices are handled by hand; contact CiteRoll to start or change a plan.
         </section>
       )}
 
       {status?.configured && canManage && (
         <section className="rounded-2xl border border-line bg-surface p-5">
           <h2 className="text-base font-semibold">{ent?.source === "subscription" ? "Change your plan" : "Start monitoring"}</h2>
-          <p className="mt-1 text-xs text-muted">Checkout and the card portal are hosted by Stripe. Beacon never sees card details.</p>
+          <p className="mt-1 text-xs text-muted">Checkout and the card portal are hosted by Stripe. CiteRoll never sees card details.</p>
           {ent?.source !== "subscription" ? (
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               <PlanCard

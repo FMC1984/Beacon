@@ -27,7 +27,7 @@ export default function SharedBriefingPage({
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-wider text-violet-a">Beacon</p>
+        <p className="text-sm font-semibold uppercase tracking-wider text-violet-a">CiteRoll</p>
         <span className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11px] text-muted">
           Shared read-only report
         </span>

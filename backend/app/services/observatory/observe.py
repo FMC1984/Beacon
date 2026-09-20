@@ -248,7 +248,7 @@ def execute_observation(
 
     started = time.perf_counter()
     try:
-        # The ONLY non-deterministic step in Beacon.
+        # The ONLY non-deterministic step in CiteRoll.
         result = provider.execute(prompt_text, platform)
     except Exception as exc:
         elapsed_ms = int((time.perf_counter() - started) * 1000)

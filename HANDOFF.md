@@ -1,8 +1,8 @@
-# Beacon — Session Handoff
+# CiteRoll — Session Handoff
 
 Last updated: 2026-09-20. Read this first in a new session before touching anything.
 
-## What Beacon is
+## What CiteRoll is
 
 Internal AI-performance intelligence dashboard for multifamily/housing-authority
 marketing, built for Tina. FastAPI + SQLite/Alembic + ChromaDB backend, Next.js
@@ -47,7 +47,7 @@ run it again without checking which direction data should flow first.
 
 ## Access & secrets
 
-- Hosted Beacon is behind a shared access key: `BEACON_ACCESS_KEY` env var on
+- Hosted CiteRoll is behind a shared access key: `BEACON_ACCESS_KEY` env var on
   Render's backend. The frontend has a one-time unlock screen
   (`components/AccessGate.tsx`) that stores the key in localStorage and
   attaches it as `X-Beacon-Key` to every API call via a patched `fetch`.
@@ -79,6 +79,49 @@ run it again without checking which direction data should flow first.
   `NotImplementedError: No support for ALTER of constraints`.
 
 ## What's built (reverse chronological, most recent first)
+
+### Renamed to CiteRoll, new logo and palette (2026-09-20, 925 tests)
+- The product is **CiteRoll**. "Beacon" was taken inside the category
+  (ibeacon.ai is an AI and SEO visibility tracker) plus Beacon.com and Beacon
+  AI, so searches for the old name landed on a competitor. CiteRoll plays on
+  the multifamily rent roll. Primary domain **citeroll.ai**; citeroll.com is
+  squatted and cannot drop before roughly April 2027.
+- **What was renamed**: everything a customer sees. All frontend copy (84
+  replacements across 38 files), all backend strings, docstrings and comments
+  (193 across 89 files), the five reference-data JSON files, the FastAPI title,
+  README, CLAUDE.md and this file. The dated design documents under `docs/`
+  (the PRD, the build plan, the pitch briefs) keep the old name on purpose:
+  they are historical artifacts, and their filenames are referenced elsewhere.
+- **What was deliberately NOT renamed**, and must stay that way until there is
+  a reason and a plan: `BEACON_*` environment variables (renaming means
+  re-entering every secret on Render as a coordinated deploy), `beacon.*`
+  localStorage keys (renaming signs everyone out and loses their saved
+  settings), the `X-Beacon-Key` and `X-Beacon-Org` headers (API contract),
+  `beacon.db`, the `beacon-backend` / `beacon-frontend-app` Render service
+  names and their URLs, the repo and directory name, and the
+  `beacon-backend` / `beacon-frontend` launch configs. A rename script that
+  parks these tokens, replaces, then restores them is the way to do this
+  safely; that is how this pass was done.
+- **Logo**: `components/CiteRollLogo.tsx` exports `CiteRollMark` (inline SVG)
+  and `CiteRollLogo` (mark plus wordmark). The mark is a speech bubble (the AI
+  answer) whose middle line is highlighted (the citation) beside a multifamily
+  building (the community). The wordmark is real text in Outfit, not baked into
+  an image, because external fonts never load inside an `<img>` SVG. Favicon is
+  `public/icon.svg`; `public/citeroll-mark.svg` is the standalone mark. The old
+  `beacon-logo.png`, `beacon-mark.png` and `icon.png` are deleted.
+- **Motif**: `BeaconSweep` (radiating arcs, the lighthouse metaphor) is gone.
+  `components/CiteRollMotif.tsx` replaces it: a few faint lines of an answer
+  with one highlighted citation. It is a small bottom-left corner mark, not a
+  full-bleed wash. Two earlier attempts were wrong and worth not repeating: at
+  full bleed the bars sit behind centered text and read as a rendering glitch,
+  and the lime citation line is the loudest element, so it needs a corner and
+  low opacity. Now used only by the reports empty state; the sign-in card and
+  the sidebar foot are too dense for it.
+- **Type**: Outfit joins Geist as `--font-display` (Tailwind `font-display`),
+  used by the wordmark.
+- Palette is unchanged: the existing dark ground with violet and cyan accents
+  already matched the new mark, so only the lime `#d9f06a` citation highlight
+  is new.
 
 ### User login, organizations and Stripe billing (2026-09-20, 925 tests)
 - Replaces the shared access key as the way people get in. **Three ways in**:
@@ -122,7 +165,7 @@ run it again without checking which direction data should flow first.
   to pass on, which is the intended launch state. An invite to an email that
   already has an account attaches the new organization to it after that account's
   own password is entered.
-- **Billing**: Stripe Checkout and the Customer Portal (no card form in Beacon),
+- **Billing**: Stripe Checkout and the Customer Portal (no card form in CiteRoll),
   priced per monitored community per month with quantity, two tiers plus a
   one-time audit. `/billing/webhook` verifies the signature and is idempotent by
   Stripe event id. Entitlement is computed from local state only, never a live
@@ -305,7 +348,7 @@ run it again without checking which direction data should flow first.
   says it is not proof of origin. Housing authorities are not graded on
   pets or rent (per-development facts do not exist yet).
 - `set_provenance` + `PUT /ai-observatory/truth/facts/{fact_key}` (404 for a
-  fact Beacon does not hold, 422 for a bad freshness); `GET /truth`.
+  fact CiteRoll does not hold, 422 for a bad freshness); `GET /truth`.
 - `components/observatory/TruthPanel.tsx` leads the Accuracy tab: grid,
   provenance line per fact, inline "verify" editor.
 - Known limit: listing sites often block automated reads (Apartments.com
@@ -334,7 +377,7 @@ run it again without checking which direction data should flow first.
 
 ### Competitive roadmap 1-3: platform structure, Source Influence Matrix, standing (2026-09-17, 848 tests)
 Context: LeasingAI and Peek Discover are multifamily-specific AI visibility
-products. Beacon's wedge is independent, evidence-first measurement, a truth
+products. CiteRoll's wedge is independent, evidence-first measurement, a truth
 layer, and portfolio pattern detection. No new AI spend in this slice.
 - **Platforms**: `ai_visibility.json` roster adds `grok` (connector
   planned) and `google_ai_overviews` (no API); `copilot` marked no_api.
@@ -526,7 +569,7 @@ layer, and portfolio pattern detection. No new AI spend in this slice.
 - Tests: `tests/test_property_setup.py` (5).
 
 ### Top citation pages with "mentioned on page" + visibility rankings by topic (2026-09-16, 812 tests)
-**Two more Profound-style views, both from evidence Beacon holds.**
+**Two more Profound-style views, both from evidence CiteRoll holds.**
 - `ai_cited_pages` (migration `c8d9e0f1a2b3`): a per-URL cache of fetched
   page text (status ok | unreachable | blocked | not_html, error, title,
   body, `source` fetch | sample). One row per URL, shared across properties;
@@ -921,7 +964,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   `METRIC_DEFINITIONS` (served by `GET /api/ai-observatory/meta`). Share of
   Voice uses the Phase 18 gating exactly (response sample >= 3, null when
   nobody mentioned) and a test asserts it equals `build_sov_report`.
-- `opportunity_score.py`: Beacon Prompt Opportunity Score 0-100, MODELED,
+- `opportunity_score.py`: CiteRoll Prompt Opportunity Score 0-100, MODELED,
   weights in `reference_data/ai_opportunity_weights.json` (overridable),
   contributors competitor_presence / visibility_gap / topic_importance /
   search_demand (GSC impressions on topic terms; UNAVAILABLE without GSC) /
@@ -1127,7 +1170,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 ### Visual polish pass (2026-07-18; AMPLIFIED same day)
 - v1 was too timid ("I don't see much of a change"). v2: aurora roughly
   doubled (0.20/0.13/0.08, larger radii), hairline brightened
-  (0.95/0.8/0.45) + soft violet outer glow on hero cards, and BeaconSweep
+  (0.95/0.8/0.45) + soft violet outer glow on hero cards, and CiteRollSweep
   added to the sidebar foot (clipped by its own wrapper, NOT the aside -
   the floating collapse handle must stay un-clipped). Original notes:
 - Tina approved 3 of 5 pitched ingredients (mockup artifact:
@@ -1141,7 +1184,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   Applied to exactly ONE hero card per page: the briefing hero and the
   dashboard Sessions card (MetricCard gained an optional className).
   Keep the one-per-page restraint.
-- BeaconSweep (components/BeaconSweep.tsx): decorative radiating-arcs SVG
+- CiteRollSweep (components/CiteRollSweep.tsx): decorative radiating-arcs SVG
   (aria-hidden) behind EmptyState and the AccessGate form; parents need
   relative + overflow-hidden.
 - No local visual verify possible (Node 18 blocks new Next dev servers);
@@ -1348,7 +1391,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   requested it, which is why DCHP showed "no location data." After deploy + one
   re-sync, cities populate. NB: adding city multiplies row cardinality
   (city x source x medium x landing x date); the single-request 100k row cap is
-  unchanged, fine at Beacon's single-property scale but a known ceiling.
+  unchanged, fine at CiteRoll's single-property scale but a known ceiling.
 - **GA4 events are a new data type**: `ga4_events_daily` (migration
   e2f3a4b5c6d7) stores event-name counts. Two ingest paths: the live GA4 sync
   runs a second report (`gapi.ga4_events_report`, dims date+eventName) written
@@ -1439,7 +1482,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   `GET /api/reports/content-impact`): per change, compares equal windows
   (14/30/60 days) before vs after the change date over GSC clicks/impressions/
   CTR/position and GA4-organic sessions/key-events. This is OBSERVATIONAL, not
-  causal: the fixed `EXTERNAL_FACTORS_CAVEAT` ("...Beacon does not claim the
+  causal: the fixed `EXTERNAL_FACTORS_CAVEAT` ("...CiteRoll does not claim the
   content change caused the result.") rides on the report and every change; no
   causal narrative is generated. An after-window that has not fully elapsed is
   disclosed ("still accumulating N/M days") and its after value is null, never
@@ -1456,7 +1499,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 - **Retrieval transparency polish**: `/api/admin/retrieval-debug` now also
   returns `retrieval_latency_ms`, `index_version`, `embedding_model`. Stays
   admin-only and is never in any client report/export.
-- Role note (unchanged from the plan): Beacon has no user accounts, so
+- Role note (unchanged from the plan): CiteRoll has no user accounts, so
   "administrator-only" = the `/admin` surface, and "client-facing exclusion" =
   the report CSV/print exports (which never carry chunk ids, vectors,
   similarity, latency; test-enforced across every CSV).
@@ -1504,7 +1547,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
     0), owned-domain citations, competitor appearances, AI referral sessions
     (GA4). These are DISTINCT metrics, never fused.
   - Sufficiency panel: completed vs minimum, failed=0/not-run=0 stated
-    explicitly (Beacon stores only completed runs), date span, platforms.
+    explicitly (CiteRoll stores only completed runs), date span, platforms.
   - Prompt visibility matrix: rows = distinct prompts, cols = platforms, most
     recent run per (prompt, platform). Cell states property_cited /
     property_mentioned / property_and_competitor / competitor_mentioned /
@@ -1606,7 +1649,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
   16A foundation → 16B SEO report → 16C executive+print/CSV → 16D GEO →
   16E AEO/question coverage → 16F RAG-health polish + content change log.
   Semantic clustering pieces deferred with 15c (not enough data volume).
-  Role-gating reinterpreted as export hygiene (Beacon has no user accounts).
+  Role-gating reinterpreted as export hygiene (CiteRoll has no user accounts).
 - **Reports** nav entry under Overview; `/reports/{executive,seo,geo,aeo,
   semantic,content-impact}` route tabs, all honest placeholders (tab metadata
   served by `GET /api/reports/meta`, flip `status` to "available" per phase).
@@ -1669,7 +1712,7 @@ of voice as not measured; it shipped in Phase 18. Removed from `DEFERRED`.
 
 ### DB restore endpoint (2026-07-12, one-time migration tool)
 - `POST /api/admin/restore-db` (multipart file upload) — validates the
-  uploaded SQLite file is a real Beacon DB at the current schema head, backs
+  uploaded SQLite file is a real CiteRoll DB at the current schema head, backs
   up the live DB with a timestamp, swaps atomically, rebuilds the RAG index.
   Used ONCE already to copy Tina's local DCHP data (194 GA4 rows, 678 GSC
   rows, content, Nora history) up to the empty hosted Render DB. Don't run it

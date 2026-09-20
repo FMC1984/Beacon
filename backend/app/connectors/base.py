@@ -124,7 +124,7 @@ class ContentProvider(ABC):
 class ProviderCitation:
     """One source the provider itself reported for a response (Phase 19).
     OBSERVED: it came from the provider payload (annotations, grounding
-    chunks), not from Beacon scraping URLs out of prose. capture_method
+    chunks), not from CiteRoll scraping URLs out of prose. capture_method
     says which; "prose_regex" marks the legacy fallback."""
 
     url: str

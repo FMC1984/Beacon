@@ -9,9 +9,9 @@ you is an asset worth keeping accurate.
 The check has four honest states and never collapses them:
   mentioned      the page was fetched and names the property
   not_mentioned  the page was fetched and does not
-  unchecked      Beacon has not fetched it yet (queue a check)
+  unchecked      CiteRoll has not fetched it yet (queue a check)
   unreachable    the fetch failed (blocked, timed out, not HTML), stated why
-Only a successful fetch can produce "not mentioned"; a page Beacon could not
+Only a successful fetch can produce "not mentioned"; a page CiteRoll could not
 read is never reported as silent about the property.
 """
 
@@ -130,7 +130,7 @@ def top_citation_pages(db: Session, property_id: int, days: int = 30, today: dat
         "pages": pages[:limit],
         "check": check,
         "note": ("Citation counts are what providers reported. \"Mentioned on page\" is a text match over the "
-                 "fetched page: a page Beacon could not read is shown as unreachable, never as silent."),
+                 "fetched page: a page CiteRoll could not read is shown as unreachable, never as silent."),
     }
 
 

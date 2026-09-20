@@ -43,7 +43,7 @@ class YardiAdapter(CRMAdapter):
         "placeholder_move_in_date_column": "move_in_date",
     }
 
-    # Fake status vocabulary -> Beacon lead statuses.
+    # Fake status vocabulary -> CiteRoll lead statuses.
     _STATUS_VALUES = {
         "placeholder_status_lead": LeadStatus.LEAD,
         "placeholder_status_tour": LeadStatus.TOUR,

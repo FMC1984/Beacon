@@ -119,7 +119,7 @@ export default function UploadsPage() {
         if (fileRef.current) fileRef.current.value = "";
       }
     } catch {
-      setUploadError("Could not reach the Beacon API. Is the backend running?");
+      setUploadError("Could not reach the CiteRoll API. Is the backend running?");
     } finally {
       setBusy(false);
       refresh();

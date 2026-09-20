@@ -1,7 +1,7 @@
 """Structured citations per stored AI response (Phase 19 Observatory).
 
 One row per source the provider reported (or, for providers that expose no
-citation payload, per URL Beacon found in the prose - capture_method says
+citation payload, per URL CiteRoll found in the prose - capture_method says
 which). Replaces nothing: AIVisibilityQuery.sources_cited keeps its
 domain-only list for the legacy GEO/SoV readers; this table carries the
 full URL, position, and classification so citation rate, citation share and

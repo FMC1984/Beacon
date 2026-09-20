@@ -1,6 +1,6 @@
 """Content change detection (Phase 19, slice 1b).
 
-Beacon must not re-analyze unchanged website content. Every PropertyContent
+CiteRoll must not re-analyze unchanged website content. Every PropertyContent
 row carries a sha256 of its normalized body; a refresh with the same hash
 is a no-op, a different hash records content_changed_at and re-tags the
 semantic topics so later phases can prioritize only the prompt clusters

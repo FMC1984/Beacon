@@ -1,6 +1,6 @@
 """Drilldown: every Observatory number walks back to the rows that made it.
 
-Three views that Profound-style tools sell as features and Beacon already
+Three views that Profound-style tools sell as features and CiteRoll already
 has the data for, plus the generic evidence list every metric card opens:
 
   fanouts        the retrieval queries the provider ran (OBSERVED), grouped

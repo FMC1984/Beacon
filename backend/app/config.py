@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # button instead).
     rag_autosync: bool = False
     # AI Visibility (Phase 11.5): external AI queries cost real money and hit
-    # rate limits, unlike Beacon's deterministic modules. Fixed ceiling of live
+    # rate limits, unlike CiteRoll's deterministic modules. Fixed ceiling of live
     # query executions per property per UTC day; exceeding it fails honestly
     # rather than silently skipping. Stored-result reads are never limited.
     ai_visibility_daily_limit: int = 20

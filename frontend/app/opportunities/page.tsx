@@ -119,7 +119,7 @@ export default function OpportunitiesPage() {
         setProperties(p);
         if (p.length) setPropertyId(p[0].id);
       })
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
     fetchCompanies().then(setCompanies).catch(() => {});
   }, []);
 
@@ -127,7 +127,7 @@ export default function OpportunitiesPage() {
     fetch(`${API_BASE}/opportunities/${id}`)
       .then((r) => r.json())
       .then(setData)
-      .catch(() => setError("Could not reach the Beacon API."));
+      .catch(() => setError("Could not reach the CiteRoll API."));
   }, []);
 
   useEffect(() => {
@@ -196,7 +196,7 @@ export default function OpportunitiesPage() {
               </h2>
               <p className="text-xs text-muted">
                 These would touch restricted positioning or fair-housing-sensitive
-                framing for this property, so Beacon is not recommending them.
+                framing for this property, so CiteRoll is not recommending them.
               </p>
               {data.suppressed.map((o, i) => (
                 <OppCard key={i} o={o} propertyId={propertyId} />
