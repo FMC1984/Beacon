@@ -162,7 +162,12 @@ def check_cited_pages(db: Session, property_id: int | None = None, days: int = 3
     first, up to `batch`. Real network calls; run from the jobs runner."""
     today = today or utc_today()
     now = utcnow()
-    stale_before = now - timedelta(days=RECHECK_AFTER_DAYS)
+    # Staleness follows the same as-of date as the citation window, not the wall
+    # clock: a caller that passes `today` would otherwise get its window from
+    # `today` and its recheck cutoff from now, which are two different clocks.
+    # Day granularity also matches the job, which is keyed once per day.
+    # `fetched_at` below still records when the fetch really happened.
+    stale_before = datetime.combine(today, datetime.min.time()) - timedelta(days=RECHECK_AFTER_DAYS)
     props = db.query(Property).filter(Property.id == property_id) if property_id else db.query(Property).filter(Property.is_active.is_(True))
     # Sample properties cite real directory hosts with fictional paths; the
     # seeder stocks their cache rows, so they never trigger a real request.

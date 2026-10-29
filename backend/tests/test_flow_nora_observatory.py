@@ -14,7 +14,11 @@ from app.services.rag.embedder import DeterministicEmbedder
 from app.services.rag.indexer import build_index
 from app.services.reporting import previous_window
 
-NOW = datetime(2026, 9, 10, 12, 0)
+# Wall-clock anchor (two days back): test_chunk_built_and_scoped goes through
+# build_chunks, and the chunker's observatory path calls
+# observatory_summary_text with the default "today", so a fixed calendar date
+# would age out of the window. Same reason as test_phase18c_rag_sov_chunk.
+NOW = datetime.now(timezone.utc).replace(tzinfo=None, hour=12, minute=0, second=0, microsecond=0) - timedelta(days=2)
 TODAY = NOW.date()
 
 

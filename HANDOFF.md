@@ -80,6 +80,70 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Fixed the two calendar-dependent test failures (2026-10-28, 930 tests)
+
+The two failures recorded in the entry below were both time bombs, but they had
+two different causes and needed two different fixes. The suite is green at 930.
+
+**`test_flow_nora_observatory.py::test_chunk_built_and_scoped` was a dead seed
+date.** The guess in the entry below was right. The file seeded the sample
+portfolio at a hardcoded `NOW = 2026-09-10` but line 61 called `build_chunks()`
+with no `today`, so the chunker used the real date. Verified before fixing
+rather than assumed:
+
+    real utc_today = 2026-10-29
+    seeded TODAY   window 2026-08-14..2026-09-10  eligible_count=  75  summary=TEXT
+    real today     window 2026-10-02..2026-10-29  eligible_count=   0  summary=None
+
+With `eligible_count` at 0 the window is below `MIN_QUERIES_FOR_VISIBILITY`,
+`observatory_summary_text` returns `None`, and `_ai_observatory_chunks` emits
+nothing, so `by_prop` was empty.
+
+The fix is in the test, not in production. Neither `build_chunks` nor
+`_ai_observatory_chunks` takes a `today`, and no production caller would pass
+one: `rag_sync_service.py` and `indexer.py` all index as of now. A `today`
+parameter there would exist only so this test could pass.
+`test_phase18c_rag_sov_chunk.py` already hit this exact problem and solved it by
+anchoring its seed to the wall clock, with a comment saying why, so this file
+now does the same (two days back, same as that one). Fixed calendar dates are
+fine in the rest of the file because those tests pass `today=TODAY` explicitly;
+only the one that goes through `build_chunks` cannot.
+
+**`test_obs_citation_pages.py::test_check_job_stores_failed_fetches_and_stops_at_batch`
+was a real inconsistency in `check_cited_pages`.** This one passed `today` in
+correctly, so the cause was different. The function threaded `today` into the
+citation window but computed staleness from wall-clock `utcnow()`. With
+`RECHECK_AFTER_DAYS` at 14 and every sample `AICitedPage` seeded at
+`fetched_at = NOW` (48 days back), all 10 cached pages in the window read as
+stale on top of the 1 genuinely unchecked page, so `pending` came back 10 where
+the test expected 0. The sibling `test_check_job_successful_fetch_is_matched`
+passes because it only asserts that one fetched row exists and never looks at
+the counts.
+
+Here the fix belongs in production. `today` already existed on the function; a
+function that accepts an as-of date and then measures a 14-day rule against a
+different clock is internally inconsistent whoever calls it. `stale_before` now
+derives from `today`, and `fetched_at` still records when the fetch really
+happened. Day granularity also matches the job, which is keyed once per day in
+`main.py`. Production behavior is effectively unchanged, because the job handler
+and the router both call this without `today`, so `today` is `utc_today()` and
+the cutoff moves by at most the time of day.
+
+Confirmed defused rather than relocated by rerunning the citation test with
+`utcnow` and `utc_today` monkeypatched nine months forward to 2027-06-01, where
+it still returns `{'fetched': 1, 'ok': 0, 'pending': 0}`. The old code fails
+that.
+
+**`TEST_COUNT` is unchanged at 930.** No tests were added or removed; two that
+were failing now pass.
+
+**Worth remembering.** A hardcoded seed date is safe only for a test that can
+state its own as-of date end to end. The moment a test calls a production entry
+point that has no as-of concept, the seed has to follow the wall clock, because
+adding the parameter would be scaffolding in shipped code. Grep for
+`datetime(20` in `tests/` before trusting a green suite; these two sat broken
+for seven weeks.
+
 ### Finished the CiteRoll rename: internals, not just copy (2026-10-28, 930 tests)
 
 The 2026-09-20 rename changed every surface a customer sees and deliberately
@@ -1895,10 +1959,11 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **930**, of which 928 pass; the two listed
-in the 2026-10-28 entry were already failing on main. Always run the full
-suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
-change done — do not eyeball a subset and call it clean.
+change (shown on `/admin`). Current: **930**, all passing as of 2026-10-28; the
+two long-standing failures were calendar time bombs and are fixed (see the
+2026-10-28 entry on them). Always run the full suite
+(`.venv/bin/python -m pytest -q` from `backend/`) before considering a change
+done — do not eyeball a subset and call it clean.
 
 ## Hard rules (from CLAUDE.md, still binding)
 
