@@ -77,11 +77,12 @@ from app.services.observatory.discovery import (
 )
 from app.services.observatory.metrics import (
     METRIC_DEFINITIONS,
-    metric_from_counts,
+    ai_sentiment_metric,
     metrics_for_window,
     prompt_coverage,
     source_influence,
     trend,
+    trends_multi,
 )
 from app.services.observatory.opportunity_score import prompt_opportunity_score
 from app.services.observatory.opportunity_score import weights as opportunity_weights
@@ -449,11 +450,8 @@ def overview(
     # reading (denominator always equals the mention count, since every
     # mention gets a reading, neutral by default). Same counts as the
     # "sentiment" block below, so the two can never disagree.
-    sent_num, sent_den = counts["sentiment_pos"], counts["sentiment_pos"] + counts["sentiment_neu"] + counts["sentiment_neg"]
-    prev_sent_num = prev_counts["sentiment_pos"]
-    prev_sent_den = prev_counts["sentiment_pos"] + prev_counts["sentiment_neu"] + prev_counts["sentiment_neg"]
-    sentiment_metric = metric_from_counts("ai_sentiment", sent_num, sent_den)
-    prev_sentiment_metric = metric_from_counts("ai_sentiment", prev_sent_num, prev_sent_den)
+    sentiment_metric = ai_sentiment_metric(counts)
+    prev_sentiment_metric = ai_sentiment_metric(prev_counts)
     metrics["ai_sentiment"] = {**sentiment_metric, "comparison": compare_points(sentiment_metric["value"], prev_sentiment_metric["value"])}
     return {
         "property_id": prop.id,
@@ -492,6 +490,27 @@ def trends(
     if metric not in METRIC_DEFINITIONS or metric == "source_influence":
         raise HTTPException(status_code=422, detail=f"Unknown metric '{metric}'.")
     return trend(db, property_id, metric, days, _today(today), platform)
+
+
+@router.get("/trends/multi")
+def trends_multi_endpoint(
+    property_id: int = Query(...),
+    metrics: str = Query(default="ai_visibility,citation_rate,share_of_voice,recommendation_rate,ai_sentiment"),
+    days: int = Query(default=30, ge=1, le=365),
+    platform: str = Query(default=PLATFORM_ALL),
+    today: date | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    _require_property(db, property_id)
+    keys = [m.strip() for m in metrics.split(",") if m.strip()]
+    if not keys:
+        raise HTTPException(status_code=422, detail="Name at least one metric.")
+    if len(keys) > len(METRIC_DEFINITIONS):
+        raise HTTPException(status_code=422, detail="Too many metrics in one request.")
+    for m in keys:
+        if m not in METRIC_DEFINITIONS or m == "source_influence":
+            raise HTTPException(status_code=422, detail=f"Unknown metric '{m}'.")
+    return trends_multi(db, property_id, keys, days, _today(today), platform)
 
 
 @router.get("/sources")

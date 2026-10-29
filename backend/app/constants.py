@@ -87,6 +87,14 @@ APP_PHASE = (
     "The product is now CiteRoll: every surface a customer sees carries the new name, "
     "logo and motif, while environment variables, storage keys, request headers, the "
     "database file and the hosted service names deliberately keep their old identifiers "
-    "so no deploy or signed-in session breaks for a rename."
+    "so no deploy or signed-in session breaks for a rename. "
+    "The AI Visibility overview now opens on the market rather than on a metric "
+    "grid: ranked bars show every monitored community in the city, with the ones "
+    "CiteRoll cannot rank counted underneath so a short sample is never mistaken "
+    "for an absence. AI Visibility is promoted out of the grid and the remaining "
+    "cards carry their own daily shape, drawn only on days that cleared the sample "
+    "minimum and scaled to the rate's own 0 to 100 percent so a metric "
+    "that moved two points cannot look like a mountain range. A retest is drawn as "
+    "the before and after pair it actually stores, never as a curve between them."
 )
-TEST_COUNT = 925
+TEST_COUNT = 930

@@ -246,6 +246,18 @@ export const fetchOverview = (propertyId: number, days: number) =>
 export const fetchTrend = (propertyId: number, metric: string, days: number) =>
   getJSON<Trend>(`${BASE}/trends?${qs({ property_id: propertyId, metric, days })}`);
 
+export type TrendsMulti = {
+  property_id: number;
+  window: { start: string; end: string; days: number };
+  previous_window: { start: string; end: string };
+  platform: string;
+  metrics: Record<string, Pick<Trend, "metric" | "label" | "data_label" | "current" | "previous" | "comparison" | "series">>;
+  note: string;
+};
+
+export const fetchTrendsMulti = (propertyId: number, metrics: string[], days: number) =>
+  getJSON<TrendsMulti>(`${BASE}/trends/multi?${qs({ property_id: propertyId, metrics: metrics.join(","), days })}`);
+
 export const fetchSources = (propertyId: number, days: number, limit = 50) =>
   getJSON<SourceInfluence>(`${BASE}/sources?${qs({ property_id: propertyId, days, limit })}`);
 
@@ -864,7 +876,19 @@ export type Standing = {
   data_label: DataLabel;
   market:
     | { available: false; reason: string; monitored?: number; also_named?: number }
-    | { available: true; rank: number; size: number; monitored: number; tied: boolean; ai_visibility: number; also_named: number; only_one: boolean };
+    | {
+        available: true;
+        rank: number;
+        size: number;
+        monitored: number;
+        tied: boolean;
+        ai_visibility: number;
+        also_named: number;
+        only_one: boolean;
+        ranked: { name: string; is_property: boolean; ai_visibility: number; rank: number }[];
+        below_sample: number;
+        never_named: number;
+      };
   comp_set:
     | { available: false; reason: string; answers?: number }
     | {

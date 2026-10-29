@@ -91,6 +91,14 @@ def _market(db: Session, prop: Property, days: int, today: date) -> dict:
         "tied": sum(1 for e in ranked if e["rank"] == mine["rank"]) > 1,
         "ai_visibility": mine["mentions"], "also_named": also_named,
         "only_one": len(ranked) == 1,
+        "ranked": [{"name": e["name"], "is_property": e["is_property"],
+                    "ai_visibility": e["mentions"], "rank": e["rank"]} for e in ranked],
+        # Two different kinds of absence, kept apart: a community CiteRoll
+        # monitors but has too few answers for, and one with enough answers
+        # that no answer named. _rank drops both, so neither can be inferred
+        # from the list itself.
+        "below_sample": len(members) - len(rows),
+        "never_named": len(rows) - len(ranked),
     }
 
 

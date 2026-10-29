@@ -1,6 +1,6 @@
 # CiteRoll — Session Handoff
 
-Last updated: 2026-09-20. Read this first in a new session before touching anything.
+Last updated: 2026-10-28. Read this first in a new session before touching anything.
 
 ## What CiteRoll is
 
@@ -79,6 +79,62 @@ run it again without checking which direction data should flow first.
   `NotImplementedError: No support for ALTER of constraints`.
 
 ## What's built (reverse chronological, most recent first)
+
+### AI Visibility overview redesigned around the market (2026-10-28, 930 tests)
+
+The overview used to open on a grid of eight metric cards. It now opens on the
+question a regional manager actually asks, and the metrics follow.
+
+- **The market hero.** `_market()` in `services/observatory/standing.py` already
+  computed a ranked list of every monitored community in the city and then threw
+  it away, returning only the subject's own rank. It now returns `ranked`, and
+  `components/observatory/VisibilityHero.tsx` draws it as bars with the subject
+  highlighted. Ranks only properties CiteRoll monitors in that market; tracked
+  competitors are per-property rows and are not in this aggregation, so a
+  single-community customer sees one bar. Adding competitor entities to the
+  market ranking is a new aggregation over `entities_for_properties()` and
+  `Mention`, deliberately not built yet.
+- **Two absences kept apart.** `_rank()` drops anything with zero mentions, so
+  "too few monitored answers to rank" and "enough answers, never named" both
+  vanish from the list and cannot be told apart from it. `_market()` now returns
+  `below_sample` and `never_named` separately and the hero counts them
+  underneath, because a short sample reading as an absence is the kind of quiet
+  dishonesty this product exists to avoid.
+- **Sparklines, honestly.** `components/observatory/Sparkline.tsx` draws only
+  days that cleared `MIN_QUERIES_FOR_VISIBILITY`, each at its real date, so a
+  week nobody monitored reads as a gap. Under two such days it draws nothing.
+  The y axis is the rate's own 0 to 100 percent, never the data's own min and
+  max: fitting a line to its own range made a metric that moved two points look
+  like a mountain range, which is the chart lying about magnitude.
+- **One request, not five.** `trends_multi()` in `services/observatory/metrics.py`
+  makes one pass over the rollups for several metrics, behind
+  `GET /ai-observatory/trends/multi?metrics=a,b,c`. `trend()` and `trends_multi()`
+  share `_series_point()` and `_window_metric()`, and a test asserts the two can
+  never disagree.
+- **AI Sentiment gained a daily series.** It was a headline card with no trend
+  because `metrics_for_window` never carried it; the router computed it inline.
+  `ai_sentiment_metric()` is now shared by the router and the series, so the card
+  and its sparkline are built from one constructor.
+- **The retest is drawn as what it stores.** `actions.py` keeps two scalars, a
+  before and an after, not a series, so `components/observatory/RetestPanel.tsx`
+  draws exactly that pair and prints the retest rule's own sentence, association
+  caveat included. The panel renders nothing when no action has been tracked.
+  Earlier mockups drew a curve lifting after the fix: that data does not exist.
+- `StandingStrip` and its `Tile` helper are deleted. The hero answers both the
+  market and the comp set questions, so the two tiles were saying it twice.
+
+**What this looks like on real data.** Run cadence decides whether the charts
+exist at all. The Sample Portfolio has about 10 monitored days in a 30 day
+window at 10 to 12 answers each, so everything draws. DCHP had one day at 2
+eligible answers, below the minimum of 3, so its charts are empty and its hero
+says so. The empty state is the common case for a new client, not the edge case.
+
+**Two tests fail on main and did before this work** (confirmed in a clean
+worktree at 3358fb5): `test_flow_nora_observatory.py::test_chunk_built_and_scoped`
+and `test_obs_citation_pages.py::test_check_job_stores_failed_fetches_and_stops_at_batch`.
+The first looks like a hardcoded `NOW = 2026-09-10` seed against a `build_chunks()`
+call that uses the real date, so it passed in September and rots afterwards. Not
+diagnosed further here. Current: **930** tests, 928 passing.
 
 ### Renamed to CiteRoll, new logo and palette (2026-09-20, 925 tests)
 - The product is **CiteRoll**. "Beacon" was taken inside the category
@@ -1788,7 +1844,8 @@ regulated properties.
 ## Test count discipline
 
 `TEST_COUNT` in `backend/app/constants.py` is manually bumped after each
-change (shown on `/admin`). Current: **925**, all passing. Always run the full
+change (shown on `/admin`). Current: **930**, of which 928 pass; the two listed
+in the 2026-10-28 entry were already failing on main. Always run the full
 suite (`.venv/bin/python -m pytest -q` from `backend/`) before considering a
 change done — do not eyeball a subset and call it clean.
 

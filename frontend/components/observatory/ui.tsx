@@ -5,8 +5,9 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { EmptyState, ErrorState, StateBadge } from "@/components/reports/DataStates";
-import type { DataLabel, ObsMetric } from "@/lib/observatory";
+import type { DataLabel, ObsMetric, TrendPoint } from "@/lib/observatory";
 import { fmtRate } from "@/lib/observatory";
+import { Sparkline } from "./Sparkline";
 
 const LABEL_STYLE: Record<DataLabel, { cls: string; hint: string }> = {
   OBSERVED: {
@@ -64,7 +65,17 @@ function unit(key: string, n: number) {
   return n === 1 ? u.replace(/s$/, "").replace("responses", "response") : u;
 }
 
-export function ObsMetricCard({ metric, onDrill }: { metric: ObsMetric; onDrill?: (metric: string) => void }) {
+export function ObsMetricCard({
+  metric,
+  onDrill,
+  series,
+  window,
+}: {
+  metric: ObsMetric;
+  onDrill?: (metric: string) => void;
+  series?: TrendPoint[];
+  window?: { start: string; end: string };
+}) {
   const complete = metric.state === "complete" && metric.value !== null;
   const clickable = Boolean(onDrill) && complete;
   const cmp = metric.comparison;
@@ -103,6 +114,16 @@ export function ObsMetricCard({ metric, onDrill }: { metric: ObsMetric; onDrill?
                 ? "No comparable previous period."
                 : `${pts > 0 ? "+" : ""}${pts} pts vs previous period`}
             </p>
+          )}
+          {series && window && (
+            <div className={`mt-2 ${tone === "text-muted" ? "text-violet-a" : tone}`}>
+              <Sparkline
+                series={series}
+                from={window.start}
+                to={window.end}
+                label={`${metric.label} across the monitored days in this window`}
+              />
+            </div>
           )}
         </>
       ) : (

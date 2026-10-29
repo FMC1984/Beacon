@@ -25,7 +25,14 @@ from app.services.ai_visibility.execution import run_query
 from app.services.ai_visibility.providers import read_queries
 from app.services.observatory.assignments import assign
 from app.services.observatory.markets import assign_property_market
-from app.services.observatory.metrics import METRIC_DEFINITIONS, metrics_for_window, prompt_coverage
+from app.services.observatory.metrics import (
+    METRIC_DEFINITIONS,
+    metrics_for_window,
+    prompt_coverage,
+    trend,
+    trends_multi,
+)
+from app.services.observatory.standing import property_standing
 from app.services.observatory.opportunity_score import prompt_opportunity_score
 from app.services.observatory.prompt_library import PromptDraft, upsert_prompt
 from app.services.observatory.recommendation import classify_recommendation
@@ -249,3 +256,78 @@ def test_market_summary_and_run_enqueue(client, db):
     summary = client.get(f"/api/ai-observatory/markets/{p.market_id}/summary").json()
     assert [x["property_id"] for x in summary["leaderboard"]] == [p.id]
     assert "not consumer impressions" in summary["note"]
+
+
+# --- The dashboard redesign: the ranked market, and several series at once ---
+
+def test_market_standing_returns_the_ranked_list_not_just_my_rank(db):
+    """The hero draws every monitored community, so the list _market already
+    computed has to survive the return."""
+    mine, rival = _prop(db), _prop(db, name="Rollup Ridge")
+    _seed(db, mine)
+    _seed(db, rival)
+    market = property_standing(db, mine.id, days=30, today=TODAY)["market"]
+    assert market["available"] is True
+    names = [r["name"] for r in market["ranked"]]
+    assert "Metric Manor" in names
+    assert [r["rank"] for r in market["ranked"]] == sorted(r["rank"] for r in market["ranked"])
+    subject = next(r for r in market["ranked"] if r["is_property"])
+    assert subject["name"] == "Metric Manor"
+    assert subject["ai_visibility"] == market["ai_visibility"]
+    assert subject["rank"] == market["rank"]
+
+
+def test_market_standing_keeps_below_sample_apart_from_never_named(db):
+    """Two different absences. _rank drops both, so neither can be inferred
+    from the list; the hero needs them counted separately to stay honest."""
+    mine = _prop(db)
+    _seed(db, mine)
+    ghost = _prop(db, name="Ghost Gardens")   # monitored, enough answers, never named
+    _seed(db, ghost)
+    _prop(db, name="Silent Springs")          # monitored, no answers at all
+    market = property_standing(db, mine.id, days=30, today=TODAY)["market"]
+    assert [r["name"] for r in market["ranked"]] == ["Metric Manor"]
+    assert market["below_sample"] == 1
+    assert market["never_named"] == 1
+    assert market["monitored"] == 3
+
+
+def test_ai_sentiment_now_carries_a_daily_series(db):
+    """It is a headline card, so it needs a sparkline like the others. The
+    series gates on mentions carrying a reading, not on eligible responses."""
+    p = _prop(db)
+    _seed(db, p)
+    tr = trend(db, p.id, "ai_sentiment", days=30, today=TODAY)
+    assert tr["data_label"] == "MODELED"
+    assert len(tr["series"]) == 1
+    point = tr["series"][0]
+    # Two mentions in the window, below the sample minimum, so null not zero.
+    assert point["denominator"] == 2 and point["sufficient"] is False and point["value"] is None
+
+
+def test_trends_multi_cannot_disagree_with_single_metric_trends(db):
+    """The whole point of the shared series helper: one request for five
+    sparklines returns exactly what five requests would have."""
+    p = _prop(db)
+    _seed(db, p)
+    keys = ["ai_visibility", "citation_rate", "share_of_voice", "recommendation_rate", "ai_sentiment"]
+    many = trends_multi(db, p.id, keys, days=30, today=TODAY)
+    assert set(many["metrics"]) == set(keys)
+    for k in keys:
+        one = trend(db, p.id, k, days=30, today=TODAY)
+        assert many["metrics"][k]["series"] == one["series"], k
+        assert many["metrics"][k]["current"] == one["current"], k
+        assert many["metrics"][k]["comparison"] == one["comparison"], k
+
+
+def test_trends_multi_endpoint_validates_the_metric_list(client, db):
+    p = _prop(db)
+    _seed(db, p)
+    base = f"/api/ai-observatory/trends/multi?property_id={p.id}"
+    ok = client.get(f"{base}&metrics=ai_visibility,ai_sentiment&days=30")
+    assert ok.status_code == 200
+    assert set(ok.json()["metrics"]) == {"ai_visibility", "ai_sentiment"}
+    assert client.get(f"{base}&metrics=ai_visibility,bogus").status_code == 422
+    assert client.get(f"{base}&metrics=source_influence").status_code == 422
+    assert client.get(f"{base}&metrics=").status_code == 422
+    assert client.get("/api/ai-observatory/trends/multi?property_id=9999&metrics=ai_visibility").status_code == 404

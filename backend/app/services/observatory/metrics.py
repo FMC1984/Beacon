@@ -121,6 +121,13 @@ def metric_from_counts(key: str, numerator: int, denominator: int) -> dict:
     return _metric(key, numerator, denominator)
 
 
+def ai_sentiment_metric(counts: dict) -> dict:
+    """Positive mentions over mentions carrying a reading. Shared by the
+    Overview card and the daily series so the two can never disagree."""
+    den = counts["sentiment_pos"] + counts["sentiment_neu"] + counts["sentiment_neg"]
+    return metric_from_counts("ai_sentiment", counts["sentiment_pos"], den)
+
+
 def share_of_voice_metric(property_mentions: int, competitor_mentions: int, sample_size: int) -> dict:
     """Phase 18 semantics exactly: property / (property + competitor
     mentions), gated on the RESPONSE sample (not the mention total), null
@@ -246,6 +253,48 @@ def source_influence(db: Session, property_id: int, start: date, end: date, limi
             "formula": METRIC_DEFINITIONS["source_influence"]["formula"]}
 
 
+SERIES_COLUMNS = {
+    "ai_visibility": ("mentioned_count", "eligible_count"),
+    "citation_rate": ("cited_count", "eligible_count"),
+    "recommendation_rate": ("recommended_count", "eligible_count"),
+    "competitor_win_rate": ("competitor_win_count", "eligible_count"),
+    "citation_share": ("owned_citation_count", "tracked_citation_count"),
+    "share_of_voice": ("property_mention_responses", None),
+    "ai_sentiment": ("sentiment_pos", None),
+}
+
+
+def _rollup_rows(db: Session, property_id: int, start: date, end: date, platform: str) -> list:
+    return (
+        db.query(AIVisibilityDaily)
+        .filter(AIVisibilityDaily.property_id == property_id, AIVisibilityDaily.platform == platform,
+                AIVisibilityDaily.day >= start, AIVisibilityDaily.day <= end)
+        .order_by(AIVisibilityDaily.day)
+        .all()
+    )
+
+
+def _series_point(metric: str, row: AIVisibilityDaily) -> dict:
+    num_col, den_col = SERIES_COLUMNS[metric]
+    num = getattr(row, num_col)
+    if metric == "share_of_voice":
+        pt = share_of_voice_metric(num, row.competitor_mention_count, row.eligible_count)
+    elif metric == "ai_sentiment":
+        pt = rate(num, row.sentiment_pos + row.sentiment_neu + row.sentiment_neg, MIN_QUERIES_FOR_VISIBILITY)
+    else:
+        pt = rate(num, getattr(row, den_col), MIN_QUERIES_FOR_VISIBILITY if metric != "citation_share" else 1)
+    return {"day": row.day.isoformat(), "value": pt["value"], "numerator": num,
+            "denominator": pt["denominator"], "sufficient": pt["value"] is not None}
+
+
+def _window_metric(db: Session, property_id: int, metric: str, window: dict, start: date, end: date) -> dict | None:
+    if metric == "prompt_coverage":
+        return prompt_coverage(db, property_id, start, end)
+    if metric == "ai_sentiment":
+        return ai_sentiment_metric(window["counts"])
+    return window.get(metric)
+
+
 def trend(db: Session, property_id: int, metric: str, days: int, today: date, platform: str = PLATFORM_ALL) -> dict:
     """Current vs previous equal window (percentage points) plus a daily
     series; days below the minimum sample carry a null value."""
@@ -253,38 +302,12 @@ def trend(db: Session, property_id: int, metric: str, days: int, today: date, pl
     prev_start, prev_end = previous_window(start, end)
     current = metrics_for_window(db, property_id, start, end, platform)
     previous = metrics_for_window(db, property_id, prev_start, prev_end, platform)
-    if metric == "prompt_coverage":
-        cur_m, prev_m = prompt_coverage(db, property_id, start, end), prompt_coverage(db, property_id, prev_start, prev_end)
-    else:
-        cur_m, prev_m = current.get(metric), previous.get(metric)
+    cur_m = _window_metric(db, property_id, metric, current, start, end)
+    prev_m = _window_metric(db, property_id, metric, previous, prev_start, prev_end)
     if cur_m is None:
         raise ValueError(f"Unknown metric '{metric}'.")
-
-    num_col, den_col = {
-        "ai_visibility": ("mentioned_count", "eligible_count"),
-        "citation_rate": ("cited_count", "eligible_count"),
-        "recommendation_rate": ("recommended_count", "eligible_count"),
-        "competitor_win_rate": ("competitor_win_count", "eligible_count"),
-        "citation_share": ("owned_citation_count", "tracked_citation_count"),
-        "share_of_voice": ("property_mention_responses", None),
-    }.get(metric, (None, None))
-    series = []
-    if num_col:
-        rows = (
-            db.query(AIVisibilityDaily)
-            .filter(AIVisibilityDaily.property_id == property_id, AIVisibilityDaily.platform == platform,
-                    AIVisibilityDaily.day >= start, AIVisibilityDaily.day <= end)
-            .order_by(AIVisibilityDaily.day)
-            .all()
-        )
-        for r in rows:
-            num = getattr(r, num_col)
-            if metric == "share_of_voice":
-                pt = share_of_voice_metric(num, r.competitor_mention_count, r.eligible_count)
-            else:
-                pt = rate(num, getattr(r, den_col), MIN_QUERIES_FOR_VISIBILITY if metric != "citation_share" else 1)
-            series.append({"day": r.day.isoformat(), "value": pt["value"], "numerator": num,
-                           "denominator": pt["denominator"], "sufficient": pt["value"] is not None})
+    series = ([_series_point(metric, r) for r in _rollup_rows(db, property_id, start, end, platform)]
+              if metric in SERIES_COLUMNS else [])
     return {
         "metric": metric,
         "label": METRIC_DEFINITIONS[metric]["label"],
@@ -295,5 +318,38 @@ def trend(db: Session, property_id: int, metric: str, days: int, today: date, pl
         "previous": prev_m,
         "comparison": compare_points(cur_m["value"], prev_m["value"]),
         "series": series,
+        "note": "Days below the minimum sample show a null value rather than a misleading point.",
+    }
+
+
+def trends_multi(db: Session, property_id: int, metrics: list[str], days: int, today: date,
+                 platform: str = PLATFORM_ALL) -> dict:
+    """Daily series for several metrics from one pass over the rollups, so a
+    dashboard of sparklines costs one request and one row scan instead of one
+    of each per metric."""
+    start, end = _window(days, today)
+    prev_start, prev_end = previous_window(start, end)
+    current = metrics_for_window(db, property_id, start, end, platform)
+    previous = metrics_for_window(db, property_id, prev_start, prev_end, platform)
+    rows = _rollup_rows(db, property_id, start, end, platform)
+    out = {}
+    for metric in metrics:
+        cur_m = _window_metric(db, property_id, metric, current, start, end)
+        prev_m = _window_metric(db, property_id, metric, previous, prev_start, prev_end)
+        if cur_m is None:
+            raise ValueError(f"Unknown metric '{metric}'.")
+        d = METRIC_DEFINITIONS[metric]
+        out[metric] = {
+            "metric": metric, "label": d["label"], "data_label": d["data_label"],
+            "current": cur_m, "previous": prev_m,
+            "comparison": compare_points(cur_m["value"], prev_m["value"]),
+            "series": ([_series_point(metric, r) for r in rows] if metric in SERIES_COLUMNS else []),
+        }
+    return {
+        "property_id": property_id,
+        "window": {"start": start.isoformat(), "end": end.isoformat(), "days": days},
+        "previous_window": {"start": prev_start.isoformat(), "end": prev_end.isoformat()},
+        "platform": platform,
+        "metrics": out,
         "note": "Days below the minimum sample show a null value rather than a misleading point.",
     }

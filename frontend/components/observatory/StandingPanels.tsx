@@ -1,80 +1,19 @@
 "use client";
 
-/** Three views that reuse stored answers (no new AI calls):
- *   StandingStrip       market rank and confirmed comp-set rank
+/** Two views that reuse stored answers (no new AI calls):
  *   PlatformPanel       per-platform metrics; unconnected platforms say why
  *   SourceMatrixPanel   where AI learns about this property, with an action
  */
 
-import Link from "next/link";
 import {
   fetchPlatformBreakdown,
   fetchSourceMatrix,
-  fetchStanding,
   fmtRate,
   type PlatformAvailability,
   type SourceAction,
   type SourceMatrixRow,
 } from "@/lib/observatory";
 import { LoadState, Panel, ShareBar, useLoad } from "./ui";
-
-// --- Standing ------------------------------------------------------------------
-
-function Tile({ title, big, lines, href, cta }: { title: string; big: string; lines: string[]; href?: string; cta?: string }) {
-  return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
-      <div className="text-xs uppercase tracking-wider text-muted">{title}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{big}</div>
-      {lines.map((l) => (
-        <p key={l} className="mt-1 text-xs text-muted">{l}</p>
-      ))}
-      {href && cta && (
-        <Link href={href} className="mt-2 inline-block text-xs text-violet-a hover:underline">{cta} ›</Link>
-      )}
-    </div>
-  );
-}
-
-export function StandingStrip({ propertyId, days }: { propertyId: number; days: number }) {
-  const { data } = useLoad(() => fetchStanding(propertyId, days), [propertyId, days]);
-  if (!data) return null;
-  const m = data.market;
-  const c = data.comp_set;
-  const marketLines = m.available
-    ? [
-        m.only_one
-          ? "The only community CiteRoll monitors in this market, so there is nobody to rank against yet."
-          : `By AI Visibility (${fmtRate(m.ai_visibility)}) among ${m.size} monitored communit${m.size === 1 ? "y" : "ies"} here${m.tied ? ", tied" : ""}.`,
-        ...(m.also_named > 0 ? [`AI answers also name ${m.also_named} other communit${m.also_named === 1 ? "y" : "ies"} in this market that nobody tracks yet.`] : []),
-      ]
-    : [m.reason];
-  const compLines = c.available
-    ? [
-        c.rank === null
-          ? "Not named in any monitored answer in this window."
-          : `Beating ${c.beating} of ${c.competitors} confirmed competitor${c.competitors === 1 ? "" : "s"} across ${c.answers} answers${c.tied ? " (tied)" : ""}.`,
-        ...c.ahead_of_you.map((a) => `${a.name} is ahead${a.winning_on.length ? `, mainly on ${a.winning_on.join(", ")}` : ""}.`),
-      ]
-    : [c.reason];
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Tile
-        title="Your market"
-        big={m.available && !m.only_one ? `#${m.rank} of ${m.size}` : m.available ? "1 monitored" : "n/a"}
-        lines={marketLines}
-        href={`/ai-visibility/markets?property_id=${propertyId}`}
-        cta="Market view"
-      />
-      <Tile
-        title="Your comp set"
-        big={c.available ? (c.rank !== null ? `#${c.rank} of ${c.size}` : `unranked of ${c.size}`) : "n/a"}
-        lines={compLines}
-        href={`/ai-visibility/competitors?property_id=${propertyId}`}
-        cta="Rankings by topic"
-      />
-    </div>
-  );
-}
 
 // --- Platforms -------------------------------------------------------------------
 

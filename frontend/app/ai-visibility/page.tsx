@@ -5,22 +5,27 @@ import { useObservatory } from "@/components/observatory/ObservatoryContext";
 import { ImpactPanel } from "@/components/observatory/GapsImpactPanels";
 import { AlertsPanel } from "@/components/observatory/IntelligencePanels";
 import { BenchmarkPanel } from "@/components/observatory/BenchmarkPanel";
-import { PlatformPanel, StandingStrip } from "@/components/observatory/StandingPanels";
+import { PlatformPanel } from "@/components/observatory/StandingPanels";
+import { RetestPanel } from "@/components/observatory/RetestPanel";
 import { ThisWeekStrip } from "@/components/observatory/ThisWeekStrip";
+import { VisibilityHero } from "@/components/observatory/VisibilityHero";
 import { EvidenceDrawer, PositionPanel, SentimentPanel, useEvidenceDrawer } from "@/components/observatory/DrilldownPanels";
 import { DataLabelBadge, LoadState, NeedsProperty, ObsMetricCard, Panel, ShareBar, useLoad } from "@/components/observatory/ui";
-import { fetchOverview, fmtRate } from "@/lib/observatory";
+import { fetchOverview, fetchTrendsMulti, fmtRate } from "@/lib/observatory";
 
-const ORDER = [
-  "ai_visibility",
+// AI Visibility is the hero, so it is not in the grid. Prompt Coverage is set
+// coverage rather than a daily rate, so it has no series and no sparkline.
+const SUPPORTING = [
   "citation_rate",
-  "citation_share",
   "share_of_voice",
   "recommendation_rate",
   "ai_sentiment",
-  "prompt_coverage",
+  "citation_share",
   "competitor_win_rate",
+  "prompt_coverage",
 ] as const;
+
+const WITH_SERIES = ["ai_visibility", ...SUPPORTING.filter((k) => k !== "prompt_coverage")];
 
 export default function ObservatoryOverviewPage() {
   const { propertyId, days, meta, withScope } = useObservatory();
@@ -29,9 +34,14 @@ export default function ObservatoryOverviewPage() {
     propertyId === null ? null : () => fetchOverview(propertyId, days),
     [propertyId, days]
   );
+  const trends = useLoad(
+    propertyId === null ? null : () => fetchTrendsMulti(propertyId, WITH_SERIES, days),
+    [propertyId, days]
+  );
   if (propertyId === null) return <NeedsProperty />;
 
   const none = data !== null && data.sample.eligible_responses === 0;
+  const seriesFor = (key: string) => trends.data?.metrics[key]?.series;
   return (
     <LoadState
       loading={loading && !data}
@@ -52,15 +62,30 @@ export default function ObservatoryOverviewPage() {
             {data.previous_window.end}.
           </p>
 
-          <StandingStrip propertyId={data.property_id} days={days} />
+          <VisibilityHero
+            propertyId={data.property_id}
+            days={days}
+            metric={data.metrics.ai_visibility}
+            series={seriesFor("ai_visibility") ?? []}
+            window={data.window}
+            onDrill={drawer.open}
+          />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {ORDER.map((k) => (
-              <ObsMetricCard key={k} metric={data.metrics[k]} onDrill={k === "prompt_coverage" ? undefined : drawer.open} />
+            {SUPPORTING.map((k) => (
+              <ObsMetricCard
+                key={k}
+                metric={data.metrics[k]}
+                onDrill={k === "prompt_coverage" ? undefined : drawer.open}
+                series={seriesFor(k)}
+                window={data.window}
+              />
             ))}
           </div>
 
           <ThisWeekStrip propertyId={data.property_id} />
+
+          <RetestPanel propertyId={data.property_id} />
 
           <BenchmarkPanel propertyId={data.property_id} days={days} />
 
