@@ -41,11 +41,11 @@ app = FastAPI(title="CiteRoll", version="0.1.0")
 # platform admin, and the few public routes (health, the briefing share link,
 # Google's OAuth callback, the Stripe webhook, sign-in/invite/reset) declare
 # nothing. tests/test_auth_coverage.py walks every route to keep it that way.
-# BEACON_ACCESS_KEY still works as a break-glass credential for scripts, and a
+# CITEROLL_ACCESS_KEY still works as a break-glass credential for scripts, and a
 # checkout with no key and no users runs open, exactly as before.
 _gated = [Depends(role_gate)]
 
-# Local dev origins plus any hosted origins from BEACON_CORS_ORIGINS.
+# Local dev origins plus any hosted origins from CITEROLL_CORS_ORIGINS.
 _origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -89,7 +89,7 @@ app.include_router(briefing.router, prefix="/api")
 
 @app.on_event("startup")
 async def bootstrap_admin_user():
-    """Create the founder's login from BEACON_BOOTSTRAP_ADMIN_* once, if set."""
+    """Create the founder's login from CITEROLL_BOOTSTRAP_ADMIN_* once, if set."""
     from app.auth.bootstrap import bootstrap_admin
 
     bootstrap_admin()
@@ -97,7 +97,7 @@ async def bootstrap_admin_user():
 
 @app.on_event("startup")
 async def start_google_autosync():
-    """Scheduled sync: when BEACON_GOOGLE_AUTOSYNC is on, re-pull every
+    """Scheduled sync: when CITEROLL_GOOGLE_AUTOSYNC is on, re-pull every
     authorized Google connection once a day. Failures are recorded on the
     connection (visible in the UI) and never crash the loop."""
     if not settings.google_autosync:
@@ -139,7 +139,7 @@ async def start_google_autosync():
 async def start_ai_visibility_autorun():
     """Weekly scheduled AI Visibility run: execute each property's active
     standing prompts and snapshot the score, so visibility accumulates a real
-    trend. Costs OpenAI budget, so gated behind BEACON_AI_VISIBILITY_AUTORUN.
+    trend. Costs OpenAI budget, so gated behind CITEROLL_AI_VISIBILITY_AUTORUN.
     The per-property daily budget still caps spend; failures never crash the
     loop."""
     if not settings.ai_visibility_autorun:
@@ -187,7 +187,7 @@ async def start_jobs_runner():
     """Phase 19: drain the durable `jobs` table every few seconds. Provider
     calls run in a worker thread so the event loop never blocks; a lock
     guarantees one drain at a time on this process. Only explicitly queued
-    work runs, so this is ON by default; BEACON_JOBS_RUNNER=0 hands the queue
+    work runs, so this is ON by default; CITEROLL_JOBS_RUNNER=0 hands the queue
     to `python -m app.cli.jobs_worker` instead."""
     if not settings.jobs_runner:
         return
@@ -215,7 +215,7 @@ async def start_observatory_daily():
     """Phase 19 slices 5-6: once a day, queue alert detection and content-gap
     evaluation (SQL over rollups and stored pages, zero provider cost, so
     always on while the jobs runner is on) and, only
-    when BEACON_AI_SCHEDULER_ENABLED=1, the adaptive scheduler that enqueues
+    when CITEROLL_AI_SCHEDULER_ENABLED=1, the adaptive scheduler that enqueues
     real provider runs under the organization budget. Both are idempotent per
     UTC date, so restarts never double-queue."""
     if not settings.jobs_runner:
@@ -257,7 +257,7 @@ async def start_briefing_autosnapshot():
     """Daily month-end check: freeze a Monthly Briefing snapshot for any
     property whose previous calendar month has data but no snapshot yet.
     Deterministic composition, zero external-API cost, idempotent (manual
-    saves win), so it is ON by default (BEACON_BRIEFING_AUTOSNAPSHOT=0 to
+    saves win), so it is ON by default (CITEROLL_BRIEFING_AUTOSNAPSHOT=0 to
     disable). Failures never crash the loop."""
     if not settings.briefing_autosnapshot:
         return

@@ -1,6 +1,6 @@
 # CLAUDE.md — CiteRoll Build Instructions
 
-This file is read automatically by Claude Code. It is the source of truth for how to build CiteRoll. Full context lives in `docs/beacon-prd-v2.md` (product decisions) and `docs/beacon-build-plan-v1.md` (schema, folder structure, architecture) — read both before writing code.
+This file is read automatically by Claude Code. It is the source of truth for how to build CiteRoll. Full context lives in `docs/citeroll-prd-v2.md` (product decisions) and `docs/citeroll-build-plan-v1.md` (schema, folder structure, architecture) — read both before writing code.
 
 ## What CiteRoll Is
 
@@ -62,7 +62,7 @@ Nora's response generation must call this before producing any AI-traffic-to-lea
 * [x] Phase 4: GBP + paid media ingestion
 * [x] Phase 5: CRMAdapter interface + Yardi adapter (placeholder mapping)
 * [x] Phase 6: Core + property dashboards (frontend, read-only, no Nora yet)
-* [x] Phase 7: RAG — chunking, embeddings, retriever (pipeline complete and tested with a local deterministic embedder; building the real index awaits BEACON_OPENAI_API_KEY in backend/.env, then `python -m app.cli.index_rag`)
+* [x] Phase 7: RAG — chunking, embeddings, retriever (pipeline complete and tested with a local deterministic embedder; building the real index awaits CITEROLL_OPENAI_API_KEY in backend/.env, then `python -m app.cli.index_rag`)
 * [x] Phase 8: Nora — wired to correlation engine + citation mechanism (fully built and tested with fake LLM/embedder; live embeddings + generation blocked on OpenAI billing: the saved key returns insufficient_quota until a payment method/credits are added, then run `python -m app.cli.index_rag` and Nora works)
 * [x] Platform Architecture (inserted 2026-07-05, numbered "Phase 9" in that request; distinct from the Reports phase below): provider abstraction, connector architecture, automatic RAG synchronization queue, expanded chunk registry, sync dashboard, future-module hooks. See README section 6a.
 * [x] Content Intelligence (2026-07-05, numbered "Phase 10" in that request): deterministic content-reasoning engine (keyword intent, renter question coverage, neighborhood, freshness, opportunities, explainable score), content storage on the ContentProvider seam, configurable JSON knowledge bases, CI API + dashboard, Nora integration. No external AI for analysis. See README section 6b.

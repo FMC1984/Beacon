@@ -2,7 +2,7 @@
 
 The gaps these close: the live GA4 sync now pulls city/region (so the Audience
 report populates from the connection, not just uploads) and event-name counts
-(a data type Beacon previously collapsed away), surfaced on the Dashboard and
+(a data type CiteRoll previously collapsed away), surfaced on the Dashboard and
 SEO report. All Google HTTP is monkeypatched; no network.
 """
 

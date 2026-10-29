@@ -152,5 +152,5 @@ def test_missing_api_key_raises_clear_error(monkeypatch):
     from app.config import settings
 
     monkeypatch.setattr(settings, "openai_api_key", "")
-    with pytest.raises(MissingAPIKeyError, match="BEACON_OPENAI_API_KEY"):
+    with pytest.raises(MissingAPIKeyError, match="CITEROLL_OPENAI_API_KEY"):
         get_embedder()

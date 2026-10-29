@@ -1,7 +1,7 @@
-# Beacon PRD v2
+# CiteRoll PRD v2
 
 > Status: Drafted 2026-07-04 by Claude from CLAUDE.md constraints, after the original
-> beacon-prd-v2.md could not be located on this machine or in Drive. Tina approved
+> citeroll-prd-v2.md could not be located on this machine or in Drive. Tina approved
 > drafting these docs fresh. If the original ever resurfaces, reconcile against it.
 
 ## 1. Problem
@@ -14,11 +14,11 @@ Multifamily marketing teams (Yardi/REACH workflow) are starting to receive meani
 
 GA4 sees only the fraction of AI traffic that passes a referrer or tagged URL. CRMs attribute lead source with their own taxonomy that never says "ChatGPT." Nobody joins the two.
 
-## 2. What Beacon Is
+## 2. What CiteRoll Is
 
 An internal, single-user AI performance intelligence dashboard. One user (Tina), running locally. Not a packaged product, no billing, no tenants, no auth in this phase.
 
-Beacon does three things:
+CiteRoll does three things:
 
 1. **Measures AI referral traffic** from manually uploaded GA4/GSC/GBP/paid-media exports, using Tier 1 detection (referrer domain + UTM matching) only.
 2. **Ties traffic to outcomes** by ingesting CRM lead/lease exports through a CRMAdapter interface (Yardi adapter ships with an explicitly fake placeholder field mapping until real export samples exist).
@@ -47,7 +47,7 @@ This is wired into the API response layer and frontend components so it cannot b
 
 ### 4.3 Nora is grounded or silent
 
-- Nora answers only from retrieved chunks of Beacon's own ingested data (RAG over ChromaDB). No general-knowledge recommendations dressed up as analysis.
+- Nora answers only from retrieved chunks of CiteRoll's own ingested data (RAG over ChromaDB). No general-knowledge recommendations dressed up as analysis.
 - Every answer carries citations: property, date range, and source table/report ID for each retrieved chunk. Citation assembly is part of the response pipeline, not a prompt request.
 - **Correlation hard gate**: Nora may make any AI-traffic-to-lease correlation claim only when, computed in code:
   - AI sessions in the analysis window >= 30
@@ -58,7 +58,7 @@ This is wired into the API response layer and frontend components so it cannot b
 
 ### 4.4 CRM integration is adapter-shaped, Yardi first
 
-A `CRMAdapter` interface normalizes any CRM export into Beacon's lead/lease schema. The first implementation is `yardi_adapter.py`, whose field mapping is a **loudly fake placeholder** (`"PLACEHOLDER_LEAD_SOURCE_COLUMN"` style) until real Yardi export samples are in hand. Realistic-looking invented Yardi column names are forbidden; a placeholder that looks real could ship silently.
+A `CRMAdapter` interface normalizes any CRM export into CiteRoll's lead/lease schema. The first implementation is `yardi_adapter.py`, whose field mapping is a **loudly fake placeholder** (`"PLACEHOLDER_LEAD_SOURCE_COLUMN"` style) until real Yardi export samples are in hand. Realistic-looking invented Yardi column names are forbidden; a placeholder that looks real could ship silently.
 
 **CRM API (placeholder, no API available today):** there is currently no API access to the CRM, and none is assumed. If access is ever granted, it uses the same connection framework as Google (a `data_connections` row with `source_type=crm`, runs in `sync_jobs`, leads written with sync provenance) and the same CRMAdapter for field mapping, so nothing needs rearchitecting. The adapter interface is transport-agnostic for this reason. No CRM API code is written until Tina explicitly says so, and the synced-data display rules in 4.6 (source, date range, last updated, freshness) would apply to CRM data the same as Google data.
 
@@ -68,7 +68,7 @@ GA4, GSC, GBP, paid media, and CRM data arrive as manually exported CSV/report f
 
 ### 4.6 Google account connections (planned, deferred)
 
-Beacon will eventually connect directly to Google accounts using OAuth 2.0: GA4 Data API, Google Search Console API, Google Business Profile APIs, and Google Ads API. Manual CSV upload remains the ingestion method until the manual-CSV dashboards work; no OAuth code is built before then unless explicitly instructed.
+CiteRoll will eventually connect directly to Google accounts using OAuth 2.0: GA4 Data API, Google Search Console API, Google Business Profile APIs, and Google Ads API. Manual CSV upload remains the ingestion method until the manual-CSV dashboards work; no OAuth code is built before then unless explicitly instructed.
 
 What exists now is schema support only, so the integration lands without rewrites: a `data_connections` table (account, OAuth status, sync frequency/status, last sync), a `sync_jobs` table (per-run outcomes), and dual provenance on every data table (each row references an upload or a sync job).
 
@@ -83,7 +83,7 @@ Every dashboard component using synced data must display source, date range, las
 
 ### 4.7 RAG-ready before RAG exists
 
-No RAG, embeddings, vector store, Nora, or AI-generated analysis is built until Phases 7 and 8. However, every dataset entering Beacon is stored with citation-grade provenance from day one, so the retrieval layer can be added later without re-ingesting anything:
+No RAG, embeddings, vector store, Nora, or AI-generated analysis is built until Phases 7 and 8. However, every dataset entering CiteRoll is stored with citation-grade provenance from day one, so the retrieval layer can be added later without re-ingesting anything:
 
 - Per upload: source name, import method (manual upload vs future sync), source account, filename, covered date range, imported-at timestamp, property mapping, and the raw original file retained on disk (even for failed ingests).
 - Per data row: source file line number where available; CRM leads use their external lead ID. Metric type is encoded by which table the row lives in.

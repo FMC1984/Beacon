@@ -167,8 +167,8 @@ export function GoogleConnections({ propertyId }: { propertyId: string }) {
 
       {!configured && (
         <p className="text-xs text-muted">
-          Not configured on this server. Set BEACON_GOOGLE_CLIENT_ID and
-          BEACON_GOOGLE_CLIENT_SECRET (see the README&apos;s Google sync section).
+          Not configured on this server. Set CITEROLL_GOOGLE_CLIENT_ID and
+          CITEROLL_GOOGLE_CLIENT_SECRET (see the README&apos;s Google sync section).
         </p>
       )}
 

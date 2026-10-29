@@ -3,8 +3,8 @@ import { API_BASE, SCOPE_STORAGE_KEY } from "@/lib/api";
 // The session token and the organization the user is acting as. Both live in
 // localStorage and are attached to every API call by SessionProvider's fetch
 // patch, so no call site needs to know about them.
-export const SESSION_KEY = "beacon.session";
-export const ORG_KEY = "beacon.org";
+export const SESSION_KEY = "citeroll.session";
+export const ORG_KEY = "citeroll.org";
 
 export type Role = "none" | "viewer" | "admin" | "owner" | "platform_admin";
 

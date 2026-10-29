@@ -1,9 +1,9 @@
-# Beacon Build Plan v1
+# CiteRoll Build Plan v1
 
 > Status: Drafted 2026-07-04 by Claude from CLAUDE.md constraints (original doc not
 > found on this machine or in Drive; Tina approved drafting fresh). Source of truth
 > for schema, folder structure, and architecture. Product decisions live in
-> `beacon-prd-v2.md`.
+> `citeroll-prd-v2.md`.
 
 ## 1. Architecture Overview
 
@@ -30,11 +30,11 @@ Single machine, single user. Backend serves JSON to the Next.js app; no auth.
 ## 2. Folder Structure
 
 ```
-Beacon/
+CiteRoll/
   CLAUDE.md
   docs/
-    beacon-prd-v2.md
-    beacon-build-plan-v1.md
+    citeroll-prd-v2.md
+    citeroll-build-plan-v1.md
   backend/
     requirements.txt
     alembic.ini
@@ -168,7 +168,7 @@ One row per lead, populated through a CRMAdapter only. Grain and statuses normal
 | upload_id | FK uploads | |
 | external_lead_id | str | ID in the source CRM; unique with property_id |
 | lead_source_raw | str | exactly as the CRM export says |
-| lead_source_normalized | str, nullable | beacon taxonomy, mapped by adapter |
+| lead_source_normalized | str, nullable | citeroll taxonomy, mapped by adapter |
 | status | enum: lead, tour, application, lease, lost | furthest stage reached |
 | first_contact_date | date | |
 | tour_date / application_date / lease_signed_date / move_in_date | date, nullable | |
@@ -314,5 +314,5 @@ the explanation), all existing tests keep passing.
 
 - Python 3.12, venv at `backend/.venv`, deps in `backend/requirements.txt` (added per phase; Phase 1: fastapi, uvicorn, sqlalchemy, alembic, pydantic-settings, pytest, httpx).
 - DB file `backend/beacon.db` (gitignored); tests use throwaway temp DBs.
-- Run: `uvicorn app.main:app --reload --port 8600` from `backend/`; frontend `npm run dev -- --port 3100` from `frontend/` (3000 is often taken by other local apps; both origins are CORS-allowed). Launch configs `beacon-backend` / `beacon-frontend` exist in ~/Builder/.claude/launch.json.
+- Run: `uvicorn app.main:app --reload --port 8600` from `backend/`; frontend `npm run dev -- --port 3100` from `frontend/` (3000 is often taken by other local apps; both origins are CORS-allowed). Launch configs `citeroll-backend` / `citeroll-frontend` exist in ~/Builder/.claude/launch.json.
 - ChromaDB persistent dir `backend/.chroma` (Phase 7); `OPENAI_API_KEY` via `backend/.env` (never committed).

@@ -19,8 +19,8 @@ def test_key_required_when_configured(client, monkeypatch):
 
 def test_correct_key_passes(client, monkeypatch):
     monkeypatch.setattr(settings, "access_key", "s3cret")
-    assert client.get("/api/companies", headers={"X-Beacon-Key": "s3cret"}).status_code == 200
-    assert client.get("/api/companies", headers={"X-Beacon-Key": "wrong"}).status_code == 401
+    assert client.get("/api/companies", headers={"X-CiteRoll-Key": "s3cret"}).status_code == 200
+    assert client.get("/api/companies", headers={"X-CiteRoll-Key": "wrong"}).status_code == 401
 
 
 def test_health_stays_open(client, monkeypatch):

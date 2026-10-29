@@ -10,6 +10,8 @@ from chromadb.config import Settings as ChromaSettings
 
 from app.config import settings
 
+# Kept through the CiteRoll rename: renaming the collection hides every
+# chunk already indexed until a full rebuild. Same rule as the database file.
 COLLECTION = "beacon_chunks"
 
 

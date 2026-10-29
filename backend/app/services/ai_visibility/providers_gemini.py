@@ -1,5 +1,5 @@
 """Gemini connector for AI Visibility (Phase 19, slice 7). Dormant until
-BEACON_GEMINI_API_KEY is set.
+CITEROLL_GEMINI_API_KEY is set.
 
 Calls the Gemini API generateContent endpoint with Google Search grounding
 over HTTPS (httpx, already a dependency). groundingMetadata supplies:

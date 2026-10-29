@@ -24,7 +24,7 @@ from app.services.ai_visibility.execution import RateLimitExceeded, run_query
 from app.services.ai_visibility.providers import get_ai_visibility_provider
 from app.services.reporting_share_of_voice import snapshot_sov
 
-logger = logging.getLogger("beacon.ai_visibility.schedule")
+logger = logging.getLogger("citeroll.ai_visibility.schedule")
 
 _SUGGESTIONS = (
     Path(__file__).resolve().parent.parent.parent

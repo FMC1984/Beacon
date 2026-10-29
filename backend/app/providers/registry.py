@@ -13,8 +13,8 @@ from app.providers.development import DeterministicEmbeddingProvider, DemoLLMPro
 from app.providers.openai_provider import OpenAIEmbeddingProvider, OpenAIProvider
 
 _NO_KEY = (
-    "No OpenAI API key configured. Add BEACON_OPENAI_API_KEY to backend/.env, "
-    "or set BEACON_DEMO_MODE=1 for keyless demo mode."
+    "No OpenAI API key configured. Add CITEROLL_OPENAI_API_KEY to backend/.env, "
+    "or set CITEROLL_DEMO_MODE=1 for keyless demo mode."
 )
 
 

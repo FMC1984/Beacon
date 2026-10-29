@@ -95,6 +95,11 @@ APP_PHASE = (
     "cards carry their own daily shape, drawn only on days that cleared the sample "
     "minimum and scaled to the rate's own 0 to 100 percent so a metric "
     "that moved two points cannot look like a mountain range. A retest is drawn as "
-    "the before and after pair it actually stores, never as a curve between them."
+    "the before and after pair it actually stores, never as a curve between them. "
+    "The rename then reached the plumbing the first pass had left alone: the "
+    "environment prefix, the request headers, the browser storage keys and the "
+    "16 export filenames a customer actually downloads. Three stores keep their "
+    "old names on purpose, because renaming a store does not move what is inside "
+    "it: the database file, the Render disk and the Chroma collection."
 )
 TEST_COUNT = 930

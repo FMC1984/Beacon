@@ -6,7 +6,7 @@ latency_ms, status, tokens, search_operations, estimated_cost, retry_count."""
 import json
 import logging
 
-logger = logging.getLogger("beacon.observatory")
+logger = logging.getLogger("citeroll.observatory")
 
 
 def log_event(event: str, **fields) -> None:

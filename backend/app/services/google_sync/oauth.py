@@ -96,8 +96,8 @@ def verify_state(state: str, now: int | None = None) -> int:
 def auth_url(property_id: int) -> str:
     if not settings.google_client_id or not settings.google_client_secret:
         raise GoogleOAuthError(
-            "Google OAuth is not configured. Set BEACON_GOOGLE_CLIENT_ID and "
-            "BEACON_GOOGLE_CLIENT_SECRET (see README section on Google sync)."
+            "Google OAuth is not configured. Set CITEROLL_GOOGLE_CLIENT_ID and "
+            "CITEROLL_GOOGLE_CLIENT_SECRET (see README section on Google sync)."
         )
     params = {
         "client_id": settings.google_client_id,

@@ -100,7 +100,7 @@ export function AiOpsPanel() {
             label={`Budget ${ops.budget.period}`}
             value={`${ops.budget.spent_runs} of ${ops.budget.allowance_runs} runs (${ops.budget.remaining_runs} left)`}
           />
-          <Line label="Scheduler" value={ops.scheduler_enabled ? "enabled" : "off (BEACON_AI_SCHEDULER_ENABLED)"} />
+          <Line label="Scheduler" value={ops.scheduler_enabled ? "enabled" : "off (CITEROLL_AI_SCHEDULER_ENABLED)"} />
           <Line
             label="AI platforms"
             value={(ops.connectors ?? [])

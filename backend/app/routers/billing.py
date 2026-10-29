@@ -23,7 +23,7 @@ class CheckoutIn(BaseModel):
 
 def _org_or_422(db: Session, principal: Principal) -> Organization:
     if principal.org_id is None:
-        raise HTTPException(status_code=422, detail="Choose an organization first (X-Beacon-Org).")
+        raise HTTPException(status_code=422, detail="Choose an organization first (X-CiteRoll-Org).")
     org = db.get(Organization, principal.org_id)
     if org is None:
         raise HTTPException(status_code=404, detail="Organization not found.")

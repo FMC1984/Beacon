@@ -234,7 +234,7 @@ def test_csv_export_no_competitors_still_200(client, db):
 
 def test_kpi_reconciles_with_underlying_mention_rows(client, db):
     """The KPI's property_mentions figure must equal the number of Mention
-    rows Beacon actually stored for this property in the window - every
+    rows CiteRoll actually stored for this property in the window - every
     summary metric must trace back to its evidence, exactly."""
     p, comp, topic, prompt = _setup_scenario(db)
 

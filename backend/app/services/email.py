@@ -20,7 +20,7 @@ def send_email(to: str, subject: str, body: str) -> EmailResult:
         return EmailResult(False, "No email provider is configured; pass the link on by hand.")
     if provider == "resend":
         if not settings.email_api_key or not settings.email_from:
-            return EmailResult(False, "Resend needs BEACON_EMAIL_API_KEY and BEACON_EMAIL_FROM.")
+            return EmailResult(False, "Resend needs CITEROLL_EMAIL_API_KEY and CITEROLL_EMAIL_FROM.")
         try:
             r = httpx.post(
                 "https://api.resend.com/emails",

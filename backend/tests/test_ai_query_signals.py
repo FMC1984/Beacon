@@ -25,7 +25,7 @@ from app.services.ai_query_signals import (
 
 D = date(2026, 6, 15)
 
-# Affirmative prompt-attribution claims Beacon must never emit (spec "Never
+# Affirmative prompt-attribution claims CiteRoll must never emit (spec "Never
 # Use"). Note the spec's own persistent note legitimately contains the substring
 # "prompt used" inside a negation ("...do not pass the exact ... prompt used by a
 # visitor"), so we test the claim phrasings, not that bare substring.

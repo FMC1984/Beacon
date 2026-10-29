@@ -33,7 +33,7 @@ def _login(client, email, password=PW):
 def _bearer(token, org_id=None):
     h = {"Authorization": f"Bearer {token}"}
     if org_id is not None:
-        h["X-Beacon-Org"] = str(org_id)
+        h["X-CiteRoll-Org"] = str(org_id)
     return h
 
 
@@ -50,7 +50,7 @@ def test_access_key_stays_a_break_glass_credential(client, db, monkeypatch):
     create_user(db, "someone@example.com", PW)
     monkeypatch.setattr(settings, "access_key", "s3cret")
     assert client.get("/api/companies").status_code == 401
-    r = client.get("/api/auth/me", headers={"X-Beacon-Key": "s3cret"})
+    r = client.get("/api/auth/me", headers={"X-CiteRoll-Key": "s3cret"})
     assert r.status_code == 200 and r.json()["via"] == "access_key" and r.json()["is_platform_admin"]
     # Signing in never needs the key.
     assert client.post("/api/auth/login", json={"email": "someone@example.com", "password": PW}).status_code == 200
@@ -100,7 +100,7 @@ def test_act_as_org_rules(client, db):
     assert me["is_platform_admin"] and me["org"] is None and len(me["organizations"]) >= 3
     me_b = client.get("/api/auth/me", headers=_bearer(at, b.id)).json()
     assert me_b["org"]["id"] == b.id and me_b["org"]["role"] == "platform_admin"
-    assert client.get("/api/auth/me", headers=_bearer(at) | {"X-Beacon-Org": "abc"}).status_code == 400
+    assert client.get("/api/auth/me", headers=_bearer(at) | {"X-CiteRoll-Org": "abc"}).status_code == 400
 
 
 def test_invite_new_user_flow(client, db):

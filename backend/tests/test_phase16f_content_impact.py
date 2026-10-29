@@ -154,7 +154,7 @@ def test_caveat_denies_causation_on_every_comparison(client, db):
     _change(client, p.id)
     report = build_content_impact_report(db, p.id, window=30, today=TODAY)
     # The caveat explicitly DENIES causation (it names external factors and
-    # says Beacon does not claim the change caused the result).
+    # says CiteRoll does not claim the change caused the result).
     assert report["caveat"] == EXTERNAL_FACTORS_CAVEAT
     assert "does not claim the content change caused" in report["caveat"]
     assert "—" not in report["caveat"]

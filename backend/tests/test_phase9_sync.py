@@ -151,7 +151,7 @@ def test_drain_without_provider_fails_jobs_readably(seeded, db, chroma_dir, monk
     assert result == {"processed": 0, "failed": 1}
     job = db.query(RagSyncJob).order_by(RagSyncJob.id.desc()).first()
     assert job.status == RagSyncStatus.FAILED
-    assert "BEACON_OPENAI_API_KEY" in job.error_message
+    assert "CITEROLL_OPENAI_API_KEY" in job.error_message
 
 
 # --- future hooks (Objective 7) ---

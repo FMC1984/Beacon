@@ -148,7 +148,7 @@ def build_seo_csv(
                 "" if b["previous"] is None else b["previous"],
                 "" if b["change"] is None else b["change"],
             ])
-    return buf.getvalue(), "beacon-seo-performance.csv"
+    return buf.getvalue(), "citeroll-seo-performance.csv"
 
 
 def build_executive_csv(
@@ -178,7 +178,7 @@ def build_executive_csv(
             a.get("effort") or "", a.get("supporting_signal_count", ""),
             "; ".join(a.get("source_modules", [])), a.get("explanation") or "",
         ])
-    return buf.getvalue(), "beacon-executive-report.csv"
+    return buf.getvalue(), "citeroll-executive-report.csv"
 
 
 def _rate_cell(r: dict) -> str:
@@ -203,7 +203,7 @@ def build_geo_csv(
 
     if not report.get("has_queries"):
         w.writerow(["No AI Visibility queries have been run for this property."])
-        return buf.getvalue(), "beacon-geo-visibility.csv"
+        return buf.getvalue(), "citeroll-geo-visibility.csv"
 
     s = report["summary"]
     w.writerow(["Summary metric", "value", "note"])
@@ -240,7 +240,7 @@ def build_geo_csv(
             ])
     else:
         w.writerow(["No competitors configured, or sample below minimum."])
-    return buf.getvalue(), "beacon-geo-visibility.csv"
+    return buf.getvalue(), "citeroll-geo-visibility.csv"
 
 
 def build_aeo_csv(
@@ -257,7 +257,7 @@ def build_aeo_csv(
 
     if not report.get("has_content"):
         w.writerow(["No website content ingested for this property."])
-        return buf.getvalue(), "beacon-aeo-readiness.csv"
+        return buf.getvalue(), "citeroll-aeo-readiness.csv"
 
     score = report["score"]
     w.writerow(["AEO Readiness score", score["value"], f"grade {score['grade']}"])
@@ -286,7 +286,7 @@ def build_aeo_csv(
     w.writerow([])
     w.writerow(["Citation readiness", report["citation_readiness"]["value"]])
     w.writerow([report["citation_readiness"]["disclaimer"]])
-    return buf.getvalue(), "beacon-aeo-readiness.csv"
+    return buf.getvalue(), "citeroll-aeo-readiness.csv"
 
 
 def build_content_impact_csv(
@@ -306,7 +306,7 @@ def build_content_impact_csv(
 
     if not report["has_changes"]:
         w.writerow(["No content changes recorded for this property."])
-        return buf.getvalue(), "beacon-content-impact.csv"
+        return buf.getvalue(), "citeroll-content-impact.csv"
 
     w.writerow([
         "change", "type", "date", "metric", "before", "after",
@@ -325,7 +325,7 @@ def build_content_impact_csv(
                 "yes" if cmp["after_complete"] else "no",
                 m["state"],
             ])
-    return buf.getvalue(), "beacon-content-impact.csv"
+    return buf.getvalue(), "citeroll-content-impact.csv"
 
 
 def _pct_cell(share: float | None) -> str:
@@ -353,7 +353,7 @@ def build_audience_csv(
 
     if not report.get("has_data"):
         w.writerow([report["message"]])
-        return buf.getvalue(), "beacon-audience.csv"
+        return buf.getvalue(), "citeroll-audience.csv"
 
     win = report["window"]
     s = report["summary"]
@@ -397,7 +397,7 @@ def build_audience_csv(
             rg["region"], rg["sessions"], _pct_cell(rg["sessions_share"]),
         ])
 
-    return buf.getvalue(), "beacon-audience.csv"
+    return buf.getvalue(), "citeroll-audience.csv"
 
 
 def build_sov_csv(
@@ -419,7 +419,7 @@ def build_sov_csv(
 
     if not report.get("has_competitors"):
         w.writerow([report.get("message", "No competitors are tracked for this property.")])
-        return buf.getvalue(), "beacon-share-of-voice.csv"
+        return buf.getvalue(), "citeroll-share-of-voice.csv"
 
     ov = report["overview"]
     w.writerow(["Overview metric", "value", "note"])
@@ -458,4 +458,4 @@ def build_sov_csv(
             _pct_cell(row["gap_to_leader"]), row["trend_arrow"] or "",
         ])
 
-    return buf.getvalue(), "beacon-share-of-voice.csv"
+    return buf.getvalue(), "citeroll-share-of-voice.csv"

@@ -248,7 +248,7 @@ def test_ask_endpoint_503_without_key(client, monkeypatch):
     monkeypatch.setattr(settings, "openai_api_key", "")
     resp = client.post("/api/nora/ask", json={"question": "hello"})
     assert resp.status_code == 503
-    assert "BEACON_OPENAI_API_KEY" in resp.json()["detail"]
+    assert "CITEROLL_OPENAI_API_KEY" in resp.json()["detail"]
 
 
 def test_conversations_endpoints(seeded, db, client):

@@ -103,8 +103,8 @@ const GROUPS: Group[] = [
   { label: "System", items: [{ href: "/admin", label: "Admin", icon: "admin" }], platformAdminOnly: true },
 ];
 
-const COLLAPSE_KEY = "beacon.sidebarCollapsed";
-const GROUPS_KEY = "beacon.sidebarGroups";
+const COLLAPSE_KEY = "citeroll.sidebarCollapsed";
+const GROUPS_KEY = "citeroll.sidebarGroups";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";

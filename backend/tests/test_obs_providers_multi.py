@@ -50,8 +50,8 @@ def test_platforms_stay_dormant_without_keys(monkeypatch):
     for attr in ("gemini_api_key", "anthropic_api_key", "perplexity_api_key"):
         monkeypatch.setattr(settings, attr, "")
     assert is_live_platform("chatgpt")
-    for platform, setting in (("gemini", "BEACON_GEMINI_API_KEY"), ("claude", "BEACON_ANTHROPIC_API_KEY"),
-                              ("perplexity", "BEACON_PERPLEXITY_API_KEY")):
+    for platform, setting in (("gemini", "CITEROLL_GEMINI_API_KEY"), ("claude", "CITEROLL_ANTHROPIC_API_KEY"),
+                              ("perplexity", "CITEROLL_PERPLEXITY_API_KEY")):
         assert not is_live_platform(platform)
         assert platform_capabilities(platform)["key_setting"] == setting
         with pytest.raises(PlatformNotConnectedError, match=setting):

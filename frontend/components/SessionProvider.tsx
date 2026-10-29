@@ -51,7 +51,7 @@ function patchFetch() {
       const token = getToken();
       const org = getOrg();
       if (token && !headers.Authorization) headers.Authorization = `Bearer ${token}`;
-      if (org && !headers["X-Beacon-Org"]) headers["X-Beacon-Org"] = org;
+      if (org && !headers["X-CiteRoll-Org"]) headers["X-CiteRoll-Org"] = org;
       init = { ...init, headers };
     }
     const res = await original(input, init);

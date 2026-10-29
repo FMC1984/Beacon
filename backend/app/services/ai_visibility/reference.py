@@ -64,7 +64,7 @@ def platform_availability(key: str) -> dict:
     if is_live_platform(key):
         return {"state": "live", "detail": "Connected and monitored."}
     if connector in KEYED_CONNECTORS:
-        env = "BEACON_" + KEYED_CONNECTORS[connector].upper()
+        env = "CITEROLL_" + KEYED_CONNECTORS[connector].upper()
         return {"state": "needs_key", "env_var": env,
                 "detail": f"Connector built and dormant. Add {env} to switch it on; nothing is called until then."}
     state = p.get("availability") or ("no_api" if connector is None else "planned")
@@ -91,7 +91,7 @@ def platform_capabilities(key: str) -> dict:
     caps = {k: bool(p.get(k, False)) for k in capability_keys()}
     caps["live"] = is_live_platform(key) if p else False
     caps["key_setting"] = (
-        f"BEACON_{KEYED_CONNECTORS[p.get('connector')].upper()}" if p.get("connector") in KEYED_CONNECTORS else None
+        f"CITEROLL_{KEYED_CONNECTORS[p.get('connector')].upper()}" if p.get("connector") in KEYED_CONNECTORS else None
     )
     caps["connector"] = p.get("connector")
     caps["default_model"] = p.get("default_model")

@@ -110,7 +110,7 @@ def test_callback_rejects_bad_state(client, db):
 
 def test_callback_is_exempt_from_access_key(client, db, monkeypatch):
     monkeypatch.setattr(settings, "access_key", "s3cret")
-    # No X-Beacon-Key header: still reaches the endpoint (redirects, not 401).
+    # No X-CiteRoll-Key header: still reaches the endpoint (redirects, not 401).
     r = client.get(
         "/api/google/callback",
         params={"state": "malformed", "code": "x"},

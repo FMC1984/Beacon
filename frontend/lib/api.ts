@@ -3,7 +3,7 @@ export const API_BASE =
 
 // Persisted company scope, shared across the dashboard and every ScopeSelect so
 // a chosen company survives navigation. Values: "all" | "unassigned" | "<id>".
-export const SCOPE_STORAGE_KEY = "beacon.companyScope";
+export const SCOPE_STORAGE_KEY = "citeroll.companyScope";
 
 export type Provenance = {
   source: string;

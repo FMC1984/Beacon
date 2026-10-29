@@ -287,19 +287,19 @@ def get_ai_visibility_provider(platform: str | None = None) -> AIVisibilityQuery
     connector = (platform_config(platform) or {}).get("connector") if platform else "openai"
     if connector == "gemini":
         if not settings.gemini_api_key:
-            raise PlatformNotConnectedError("Google Gemini is not connected. Add BEACON_GEMINI_API_KEY to enable it.")
+            raise PlatformNotConnectedError("Google Gemini is not connected. Add CITEROLL_GEMINI_API_KEY to enable it.")
         from app.services.ai_visibility.providers_gemini import GeminiVisibilityProvider
 
         return GeminiVisibilityProvider(settings.gemini_api_key)
     if connector == "anthropic":
         if not settings.anthropic_api_key:
-            raise PlatformNotConnectedError("Claude is not connected. Add BEACON_ANTHROPIC_API_KEY to enable it.")
+            raise PlatformNotConnectedError("Claude is not connected. Add CITEROLL_ANTHROPIC_API_KEY to enable it.")
         from app.services.ai_visibility.providers_anthropic import ClaudeVisibilityProvider
 
         return ClaudeVisibilityProvider(settings.anthropic_api_key)
     if connector == "perplexity":
         if not settings.perplexity_api_key:
-            raise PlatformNotConnectedError("Perplexity is not connected. Add BEACON_PERPLEXITY_API_KEY to enable it.")
+            raise PlatformNotConnectedError("Perplexity is not connected. Add CITEROLL_PERPLEXITY_API_KEY to enable it.")
         from app.services.ai_visibility.providers_perplexity import PerplexityVisibilityProvider
 
         return PerplexityVisibilityProvider(settings.perplexity_api_key)
@@ -312,7 +312,7 @@ def get_ai_visibility_provider(platform: str | None = None) -> AIVisibilityQuery
     if not settings.openai_api_key:
         raise MissingAPIKeyError(
             "No OpenAI API key configured for live AI Visibility queries. Add "
-            "BEACON_OPENAI_API_KEY, or set BEACON_DEMO_MODE=1 for keyless demo."
+            "CITEROLL_OPENAI_API_KEY, or set CITEROLL_DEMO_MODE=1 for keyless demo."
         )
     return OpenAIVisibilityProvider(settings.openai_api_key, settings.ai_visibility_model)
 

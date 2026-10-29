@@ -1,5 +1,5 @@
 """Claude connector for AI Visibility (Phase 19, slice 7). Dormant until
-BEACON_ANTHROPIC_API_KEY is set: without a key the platform is not live and
+CITEROLL_ANTHROPIC_API_KEY is set: without a key the platform is not live and
 no request is ever made.
 
 Uses the official Anthropic SDK with the server-side web search tool, so an

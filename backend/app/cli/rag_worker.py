@@ -4,7 +4,7 @@
     python -m app.cli.rag_worker --loop    # keep draining every few seconds
 
 In a normal single-user run the app can also auto-drain after uploads (set
-BEACON_RAG_AUTOSYNC=1); this CLI is the standalone worker for when autosync is
+CITEROLL_RAG_AUTOSYNC=1); this CLI is the standalone worker for when autosync is
 off or you want a dedicated process.
 """
 

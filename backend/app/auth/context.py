@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.auth.deps import Principal
 
-principal_var: ContextVar["Principal | None"] = ContextVar("beacon_principal", default=None)
+principal_var: ContextVar["Principal | None"] = ContextVar("citeroll_principal", default=None)
 
 
 def set_current(principal: "Principal | None") -> None:

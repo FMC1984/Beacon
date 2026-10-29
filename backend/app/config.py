@@ -2,6 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Kept as beacon.db through the CiteRoll rename, along with the Render
+    # disk and the Chroma collection in services/rag/store.py: renaming a
+    # store does not move what is in it, so the app would migrate a new empty
+    # database and the live one would sit unused on the disk.
     database_url: str = "sqlite:///./beacon.db"
     chroma_dir: str = ".chroma"
     # Raw uploaded files are retained here (RAG readiness: raw source payload).
@@ -64,11 +68,11 @@ class Settings(BaseSettings):
     ai_cluster_threshold: float = 0.82
     # Shared access key for hosted deployments (e.g. Render). Empty (the
     # default) means no auth - correct for local single-user use. When set,
-    # every /api request except /api/health must carry it in the X-Beacon-Key
+    # every /api request except /api/health must carry it in the X-CiteRoll-Key
     # header or be rejected 401.
     access_key: str = ""
     # Extra allowed CORS origins for hosted deployments, comma-separated
-    # (e.g. "https://beacon-frontend.onrender.com").
+    # (e.g. "https://citeroll-frontend.onrender.com").
     cors_origins: str = ""
     # Google OAuth (GA4 Data API + Search Console auto-sync). Empty = the
     # Connect button explains what to configure instead of erroring.
@@ -131,7 +135,7 @@ class Settings(BaseSettings):
     stripe_auto_quantity: bool = False
 
     model_config = SettingsConfigDict(
-        env_prefix="BEACON_", env_file=".env", extra="ignore"
+        env_prefix="CITEROLL_", env_file=".env", extra="ignore"
     )
 
 

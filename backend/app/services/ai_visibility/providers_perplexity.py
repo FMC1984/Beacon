@@ -1,5 +1,5 @@
 """Perplexity connector for AI Visibility (Phase 19, slice 7). Dormant until
-BEACON_PERPLEXITY_API_KEY is set.
+CITEROLL_PERPLEXITY_API_KEY is set.
 
 Sonar models always search. The chat completions response lists the sources
 it used (`search_results` with titles, else `citations` URLs); Perplexity does

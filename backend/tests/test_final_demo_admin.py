@@ -91,4 +91,4 @@ def test_admin_reindex_fails_readably_without_key(client, monkeypatch, tmp_path)
     monkeypatch.setattr(settings, "chroma_dir", str(tmp_path / "chroma"))
     body = client.post("/api/admin/reindex").json()
     assert body["status"] == "failed"
-    assert "BEACON_OPENAI_API_KEY" in body["error"]
+    assert "CITEROLL_OPENAI_API_KEY" in body["error"]

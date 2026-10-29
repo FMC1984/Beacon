@@ -80,6 +80,57 @@ run it again without checking which direction data should flow first.
 
 ## What's built (reverse chronological, most recent first)
 
+### Finished the CiteRoll rename: internals, not just copy (2026-10-28, 930 tests)
+
+The 2026-09-20 rename changed every surface a customer sees and deliberately
+left the plumbing alone. That note is superseded: the plumbing is renamed now,
+except for three stores where renaming would orphan live data.
+
+**Renamed.** `env_prefix` in `config.py` is one line and it carries all 32
+`BEACON_*` variables to `CITEROLL_*` at once, and nothing reads the environment
+directly, so there was no second seam. The two request headers are constants in
+`auth/deps.py` (`x-citeroll-org`, `x-citeroll-key`). The six browser storage
+keys move from `beacon.*` to `citeroll.*`, which signs everyone out once by
+design. The docs are renamed in content and filename. `CLAUDE.md` and
+`README.md` follow.
+
+**The rebrand had missed customer-visible filenames.** Every CSV came down as
+`beacon-seo-performance.csv`, `beacon-audience.csv` and so on, and every data
+export as `beacon-export-*.zip`: 16 filenames a customer actually receives.
+Those are `citeroll-*` now. Worth remembering that "all user-facing copy" did
+not mean all user-facing strings.
+
+**Deliberately not renamed, and why.** Renaming a store does not move what is
+inside it:
+
+- the SQLite file, `beacon.db` locally and `/var/data/beacon.db` on Render
+- the Render disk, `beacon-data`
+- the Chroma collection, `beacon_chunks` in `services/rag/store.py`
+
+Rename any of those and the next start migrates or indexes a new empty store
+while the live one sits unused on disk. Each carries a comment saying so. Also
+unchanged: the `dchp-beacon-queries` docstring in `question_set.py`, because it
+names an operator-authored input file rather than the product, and the earlier
+entries in this file, because they describe what the product was called at the
+time and rewriting them would make the log lie.
+
+**The Render service names are not renamed here and should not be renamed by
+editing `render.yaml`.** In a blueprint the `name:` is the service identity, so
+changing it creates a second service rather than renaming the first. Renaming
+is a dashboard operation, and both URLs change with it, which cascades into
+`CITEROLL_CORS_ORIGINS`, `CITEROLL_FRONTEND_URL`,
+`CITEROLL_GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_API_BASE`, plus the redirect URI
+registered in the Google Cloud OAuth client and the Stripe webhook endpoint.
+The blueprint still points at the live services so the repo stays deployable
+either way.
+
+**Deploy order matters more than it did.** Render still holds `BEACON_*`
+variables that nothing reads now. Before or with the deploy that carries this
+rename, every one of them has to be re-entered as `CITEROLL_*`, including
+`CITEROLL_BOOTSTRAP_ADMIN_EMAIL` and `CITEROLL_BOOTSTRAP_ADMIN_PASSWORD`, which
+have never been set. The access-key screen is gone, so a deploy without the
+bootstrap pair leaves no way into the hosted app.
+
 ### AI Visibility overview redesigned around the market (2026-10-28, 930 tests)
 
 The overview used to open on a grid of eight metric cards. It now opens on the

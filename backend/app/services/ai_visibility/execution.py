@@ -18,7 +18,7 @@ from app.connectors.base import AIVisibilityQueryProvider
 from app.models import AIVisibilityQuery, Property
 from app.services.ai_visibility.mentions import resolve_property_terms
 
-logger = logging.getLogger("beacon.ai_visibility")
+logger = logging.getLogger("citeroll.ai_visibility")
 
 
 class RateLimitExceeded(RuntimeError):

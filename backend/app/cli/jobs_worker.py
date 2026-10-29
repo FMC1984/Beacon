@@ -3,7 +3,7 @@
     python -m app.cli.jobs_worker           # drain the queue once and exit
     python -m app.cli.jobs_worker --loop    # keep draining every few seconds
 
-The same runner the app drives in-process (BEACON_JOBS_RUNNER=1); run this
+The same runner the app drives in-process (CITEROLL_JOBS_RUNNER=1); run this
 as a separate process instead when you want the web worker to stay idle.
 """
 

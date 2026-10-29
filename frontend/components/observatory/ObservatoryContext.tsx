@@ -20,7 +20,7 @@ import { fetchObservatoryMeta, type ObservatoryMeta } from "@/lib/observatory";
 
 export type ObsDays = 7 | 30 | 90;
 
-const PROPERTY_KEY = "beacon.observatory.property";
+const PROPERTY_KEY = "citeroll.observatory.property";
 
 type Ctx = {
   companies: Company[];

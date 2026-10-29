@@ -2,12 +2,12 @@
 
 Three ways in:
   session     Authorization: Bearer <token>   a signed-in user
-  access_key  X-Beacon-Key                    the shared key, kept for scripts
+  access_key  X-CiteRoll-Key                    the shared key, kept for scripts
   open        nothing at all                  only while no user exists AND no
                                               access key is configured (a fresh
                                               local checkout, the test suite)
 
-Platform admins see every organization unless X-Beacon-Org names one; everyone
+Platform admins see every organization unless X-CiteRoll-Org names one; everyone
 else is pinned to an organization they hold a membership in.
 """
 
@@ -23,7 +23,7 @@ from app.db import get_db
 from app.models import OrgMembership, Property, User
 from app.models.user import ROLE_ADMIN, ROLE_NONE, ROLE_OWNER, ROLE_PLATFORM_ADMIN, ROLE_RANK, ROLE_VIEWER
 
-ORG_HEADER = "x-beacon-org"
+ORG_HEADER = "x-citeroll-org"
 
 
 @dataclass
@@ -54,7 +54,7 @@ def _org_from_header(request: Request) -> int | None:
     try:
         return int(raw)
     except ValueError:
-        raise HTTPException(status_code=400, detail="X-Beacon-Org must be an organization id.")
+        raise HTTPException(status_code=400, detail="X-CiteRoll-Org must be an organization id.")
 
 
 def _principal_for_user(user: User, memberships: list[OrgMembership], org_id: int | None) -> Principal:
@@ -83,7 +83,7 @@ def _resolve_principal(request: Request, db: Session) -> Principal:
             raise HTTPException(status_code=401, detail="Your session has expired. Sign in again.")
         user = db.get(User, sess.user_id)
         return _principal_for_user(user, memberships_for(db, user), org_id)
-    key = request.headers.get("x-beacon-key", "")
+    key = request.headers.get("x-citeroll-key", "")
     if settings.access_key and key and secrets.compare_digest(key, settings.access_key):
         return Principal(None, org_id, ROLE_PLATFORM_ADMIN, True, "access_key")
     if not settings.access_key and db.query(User.id).first() is None:

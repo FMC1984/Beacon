@@ -2,7 +2,7 @@
 
     .venv/bin/python -m app.cli.index_rag
 
-Requires BEACON_OPENAI_API_KEY in backend/.env (embeddings are the only
+Requires CITEROLL_OPENAI_API_KEY in backend/.env (embeddings are the only
 network call; chunk text itself is deterministic and local).
 """
 

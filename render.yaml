@@ -1,10 +1,28 @@
-# Render Blueprint for Beacon: FastAPI backend (with persistent disk for
+# Render Blueprint for CiteRoll: FastAPI backend (with persistent disk for
 # SQLite + ChromaDB + uploaded files) and the Next.js frontend.
 #
+# RENAMING NOTE. The product is CiteRoll, but three things here deliberately
+# keep their old names because renaming them does not move what is inside
+# them: the disk (beacon-data), the SQLite file (/var/data/beacon.db) and,
+# in services/rag/store.py, the Chroma collection. Rename any of those and
+# the next deploy migrates a new empty store while the live one sits unused.
+#
+# The two service names are also unchanged, because in a Render blueprint the
+# name IS the service identity: editing it here creates a second service
+# rather than renaming the first. Renaming the services is a dashboard
+# operation, and it changes both URLs, so it also means updating
+# CITEROLL_CORS_ORIGINS, CITEROLL_FRONTEND_URL, CITEROLL_GOOGLE_REDIRECT_URI
+# and NEXT_PUBLIC_API_BASE below, re-registering the redirect URI in the
+# Google Cloud OAuth client, and repointing the Stripe webhook endpoint.
+#
 # The two secrets (sync: false) are entered once in the Render dashboard:
-#   BEACON_OPENAI_API_KEY - the OpenAI key (same value as backend/.env locally)
-#   BEACON_ACCESS_KEY     - any long random string; the app asks for it on
-#                           first visit and the API rejects requests without it
+#   CITEROLL_OPENAI_API_KEY - the OpenAI key (same value as backend/.env locally)
+#   CITEROLL_ACCESS_KEY     - any long random string; a break-glass credential
+#                             for scripts, sent as the X-CiteRoll-Key header
+#
+# EVERY variable below was named BEACON_* until the rename. Render keeps the
+# old names until you change them, and the app no longer reads them, so all of
+# these must be re-entered before or with the deploy that carries the rename.
 #
 # The service names below determine the URLs. If Render reports a name is
 # taken, change BOTH the name and the matching URL env vars.
@@ -19,72 +37,74 @@ services:
     startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     disk:
+      # Keeps its old name on purpose; see the renaming note at the top.
       name: beacon-data
       mountPath: /var/data
       sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
-      - key: BEACON_DATABASE_URL
+      - key: CITEROLL_DATABASE_URL
+        # The file keeps its old name on purpose; see the renaming note.
         value: sqlite:////var/data/beacon.db
-      - key: BEACON_CHROMA_DIR
+      - key: CITEROLL_CHROMA_DIR
         value: /var/data/chroma
-      - key: BEACON_DATA_DIR
+      - key: CITEROLL_DATA_DIR
         value: /var/data/uploads
-      - key: BEACON_RAG_AUTOSYNC
+      - key: CITEROLL_RAG_AUTOSYNC
         value: "1"
-      - key: BEACON_CORS_ORIGINS
+      - key: CITEROLL_CORS_ORIGINS
         value: https://beacon-frontend-app.onrender.com
-      - key: BEACON_OPENAI_API_KEY
+      - key: CITEROLL_OPENAI_API_KEY
         sync: false
-      - key: BEACON_ACCESS_KEY
+      - key: CITEROLL_ACCESS_KEY
         sync: false
       # Google auto-sync (GA4 Data API + Search Console). Client id/secret come
       # from the Google Cloud OAuth client; leave blank to keep it disabled.
-      - key: BEACON_GOOGLE_CLIENT_ID
+      - key: CITEROLL_GOOGLE_CLIENT_ID
         sync: false
-      - key: BEACON_GOOGLE_CLIENT_SECRET
+      - key: CITEROLL_GOOGLE_CLIENT_SECRET
         sync: false
-      - key: BEACON_GOOGLE_REDIRECT_URI
+      - key: CITEROLL_GOOGLE_REDIRECT_URI
         value: https://beacon-backend-s6yd.onrender.com/api/google/callback
-      - key: BEACON_FRONTEND_URL
+      - key: CITEROLL_FRONTEND_URL
         value: https://beacon-frontend-app.onrender.com
-      - key: BEACON_GOOGLE_AUTOSYNC
+      - key: CITEROLL_GOOGLE_AUTOSYNC
         value: "1"
       # Weekly AI Visibility standing-prompt runs (spends OpenAI budget, capped
       # by the per-property daily limit). Off by default; set to "1" to enable.
-      - key: BEACON_AI_VISIBILITY_AUTORUN
+      - key: CITEROLL_AI_VISIBILITY_AUTORUN
         value: "0"
       # Login. The founder's account is created once at startup from these two
       # values (platform admin, owner of the default organization); afterwards
-      # they can stay set or be removed. BEACON_ACCESS_KEY above stays valid as
+      # they can stay set or be removed. CITEROLL_ACCESS_KEY above stays valid as
       # a break-glass credential for scripts.
-      - key: BEACON_BOOTSTRAP_ADMIN_EMAIL
+      - key: CITEROLL_BOOTSTRAP_ADMIN_EMAIL
         sync: false
-      - key: BEACON_BOOTSTRAP_ADMIN_PASSWORD
+      - key: CITEROLL_BOOTSTRAP_ADMIN_PASSWORD
         sync: false
       # Stripe billing (Checkout + Customer Portal). Leave blank to keep online
       # billing off; the app then says invoices are handled by hand. The price
       # ids come from the Stripe dashboard (two recurring per-community prices,
       # one one-time audit price); the webhook secret from the endpoint
       # https://beacon-backend-s6yd.onrender.com/api/billing/webhook.
-      - key: BEACON_STRIPE_SECRET_KEY
+      - key: CITEROLL_STRIPE_SECRET_KEY
         sync: false
-      - key: BEACON_STRIPE_WEBHOOK_SECRET
+      - key: CITEROLL_STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: BEACON_STRIPE_PRICE_STANDARD
+      - key: CITEROLL_STRIPE_PRICE_STANDARD
         sync: false
-      - key: BEACON_STRIPE_PRICE_ADVANCED
+      - key: CITEROLL_STRIPE_PRICE_ADVANCED
         sync: false
-      - key: BEACON_STRIPE_PRICE_AUDIT
+      - key: CITEROLL_STRIPE_PRICE_AUDIT
         sync: false
       # Optional outbound email for invites and resets ("resend" + API key +
       # from address). Blank = links are shown to the admin to pass on.
-      - key: BEACON_EMAIL_PROVIDER
+      - key: CITEROLL_EMAIL_PROVIDER
         value: ""
-      - key: BEACON_EMAIL_API_KEY
+      - key: CITEROLL_EMAIL_API_KEY
         sync: false
-      - key: BEACON_EMAIL_FROM
+      - key: CITEROLL_EMAIL_FROM
         value: ""
 
   - type: web

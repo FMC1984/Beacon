@@ -30,7 +30,7 @@ def _owner(client, db, org, email="owner@acme.example"):
     user = create_user(db, email, PW)
     set_membership(db, user, org.id, "owner")
     r = client.post("/api/auth/login", json={"email": email, "password": PW})
-    return {"Authorization": f"Bearer {r.json()['token']}", "X-Beacon-Org": str(org.id)}
+    return {"Authorization": f"Bearer {r.json()['token']}", "X-CiteRoll-Org": str(org.id)}
 
 
 def _signed(payload: dict) -> tuple[bytes, str]:

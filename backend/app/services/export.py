@@ -190,13 +190,13 @@ def build_export(
         zf.writestr("manifest.txt", "\n".join(manifest_lines) + "\n")
 
     if property_id is not None:
-        name = f"beacon-export-{_slugify(props[0].name)}.zip"
+        name = f"citeroll-export-{_slugify(props[0].name)}.zip"
     elif unassigned:
-        name = "beacon-export-unassigned.zip"
+        name = "citeroll-export-unassigned.zip"
     elif company is not None:
-        name = f"beacon-export-{company.slug}.zip"
+        name = f"citeroll-export-{company.slug}.zip"
     else:
-        name = "beacon-export-portfolio.zip"
+        name = "citeroll-export-portfolio.zip"
     return zip_buf.getvalue(), name
 
 

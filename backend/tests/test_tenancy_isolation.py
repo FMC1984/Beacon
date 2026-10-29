@@ -38,7 +38,7 @@ def _token(client, email):
 def _h(token, org_id=None):
     h = {"Authorization": f"Bearer {token}"}
     if org_id is not None:
-        h["X-Beacon-Org"] = str(org_id)
+        h["X-CiteRoll-Org"] = str(org_id)
     return h
 
 

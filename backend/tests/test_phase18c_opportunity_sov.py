@@ -1,6 +1,6 @@
 """Phase 18C: topic-aware Share of Voice opportunity buckets, extending the
 existing "competitors" Opportunity Engine source (no new source key, avoids
-double corroboration). Never reads prompt-volume or demand data Beacon does
+double corroboration). Never reads prompt-volume or demand data CiteRoll does
 not reliably have - only the operator-asserted AITopic.priority field."""
 
 from datetime import datetime, timedelta, timezone

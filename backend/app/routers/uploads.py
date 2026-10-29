@@ -103,7 +103,7 @@ async def run_upload(
 
     # Queue architecture: enqueue a RAG sync (fast, one row) instead of
     # embedding inline, so the upload response never waits on embeddings. A
-    # worker or (when BEACON_RAG_AUTOSYNC is on) a background task drains it.
+    # worker or (when CITEROLL_RAG_AUTOSYNC is on) a background task drains it.
     job = trigger_rag_sync(
         db,
         property_id=property_id,

@@ -5,8 +5,8 @@ marketing. Tracks AI referral traffic, ties it to CRM/lease outcomes, and
 surfaces Nora, a retrieval-grounded analyst that answers only from ingested,
 cited data.
 
-Read `CLAUDE.md` (build rules), `docs/beacon-prd-v2.md` (product decisions),
-and `docs/beacon-build-plan-v1.md` (schema/architecture) before changing code.
+Read `CLAUDE.md` (build rules), `docs/citeroll-prd-v2.md` (product decisions),
+and `docs/citeroll-build-plan-v1.md` (schema/architecture) before changing code.
 
 ## 1. Starting the app locally
 
@@ -24,8 +24,8 @@ cd frontend
 npm run dev -- --port 3100
 ```
 
-Open http://localhost:3100. Claude Code users: launch configs `beacon-backend`
-and `beacon-frontend` exist in `~/Builder/.claude/launch.json`.
+Open http://localhost:3100. Claude Code users: launch configs `citeroll-backend`
+and `citeroll-frontend` exist in `~/Builder/.claude/launch.json`.
 
 First-time setup: `python3 -m venv backend/.venv`, then
 `backend/.venv/bin/pip install -r backend/requirements.txt`,
@@ -34,30 +34,30 @@ First-time setup: `python3 -m venv backend/.venv`, then
 
 ## 2. Environment variables
 
-`backend/.env` (gitignored, chmod 600). Prefix everything with `BEACON_`:
+`backend/.env` (gitignored, chmod 600). Prefix everything with `CITEROLL_`:
 
-- `BEACON_OPENAI_API_KEY` - OpenAI key for embeddings + Nora generation
-- `BEACON_DEMO_MODE` - `1` for keyless demo mode (currently ON)
-- `BEACON_NORA_MODEL` - generation model, default `gpt-5-mini`
-- `BEACON_DATABASE_URL`, `BEACON_CHROMA_DIR`, `BEACON_DATA_DIR` - defaults fine
-- `BEACON_ACCESS_KEY` - a shared key that still works as a break-glass
-  credential for scripts (`X-Beacon-Key` header). Real sign-in is by user
+- `CITEROLL_OPENAI_API_KEY` - OpenAI key for embeddings + Nora generation
+- `CITEROLL_DEMO_MODE` - `1` for keyless demo mode (currently ON)
+- `CITEROLL_NORA_MODEL` - generation model, default `gpt-5-mini`
+- `CITEROLL_DATABASE_URL`, `CITEROLL_CHROMA_DIR`, `CITEROLL_DATA_DIR` - defaults fine
+- `CITEROLL_ACCESS_KEY` - a shared key that still works as a break-glass
+  credential for scripts (`X-CiteRoll-Key` header). Real sign-in is by user
   account now (see 2e). Leave unset locally.
-- `BEACON_CORS_ORIGINS` - hosted deployments only: extra allowed origins,
+- `CITEROLL_CORS_ORIGINS` - hosted deployments only: extra allowed origins,
   comma-separated (the Render frontend URL).
-- `BEACON_BOOTSTRAP_ADMIN_EMAIL` / `BEACON_BOOTSTRAP_ADMIN_PASSWORD` - creates
+- `CITEROLL_BOOTSTRAP_ADMIN_EMAIL` / `CITEROLL_BOOTSTRAP_ADMIN_PASSWORD` - creates
   the founder's platform-admin login once at startup if it does not exist.
-- `BEACON_STRIPE_SECRET_KEY`, `BEACON_STRIPE_WEBHOOK_SECRET`,
-  `BEACON_STRIPE_PRICE_STANDARD`, `BEACON_STRIPE_PRICE_ADVANCED`,
-  `BEACON_STRIPE_PRICE_AUDIT` - Stripe billing; blank = billing off.
-- `BEACON_EMAIL_PROVIDER` (`resend`), `BEACON_EMAIL_API_KEY`,
-  `BEACON_EMAIL_FROM` - optional outbound email for invites and resets.
+- `CITEROLL_STRIPE_SECRET_KEY`, `CITEROLL_STRIPE_WEBHOOK_SECRET`,
+  `CITEROLL_STRIPE_PRICE_STANDARD`, `CITEROLL_STRIPE_PRICE_ADVANCED`,
+  `CITEROLL_STRIPE_PRICE_AUDIT` - Stripe billing; blank = billing off.
+- `CITEROLL_EMAIL_PROVIDER` (`resend`), `CITEROLL_EMAIL_API_KEY`,
+  `CITEROLL_EMAIL_FROM` - optional outbound email for invites and resets.
 
 ## 2e. Login, teams and billing
 
 **Three ways in.** A signed-in user (`Authorization: Bearer <session>`, an
 opaque token stored hashed with a 30-day sliding expiry); the shared
-`BEACON_ACCESS_KEY` (scripts, break-glass; acts as a platform admin); or
+`CITEROLL_ACCESS_KEY` (scripts, break-glass; acts as a platform admin); or
 **open mode**, which applies only while no user exists AND no access key is
 set, so a fresh local checkout and the test suite behave exactly as before.
 The moment a user exists, sign-in is required.
@@ -66,12 +66,12 @@ The moment a user exists, sign-in is required.
 memberships: `owner` (billing, team, everything), `admin` (edit properties,
 facts, competitors, prompts, uploads), `viewer` (read everything). Platform
 admins (`users.is_platform_admin`) see every organization and can act as one
-with the `X-Beacon-Org: <id>` header, which the frontend sets from the sidebar
+with the `X-CiteRoll-Org: <id>` header, which the frontend sets from the sidebar
 switcher. Everything else is pinned to an organization the user belongs to.
 A property of another organization answers 404, never 403.
 
 **Creating logins.** Invite-only. On Render, set the two
-`BEACON_BOOTSTRAP_ADMIN_*` vars once. Locally:
+`CITEROLL_BOOTSTRAP_ADMIN_*` vars once. Locally:
 `python -m app.cli.create_user --email you@example.com --platform-admin`.
 From then on, Settings > Team creates invite links (14 days) and reset links
 (24 hours); with no email provider configured the links are shown to the admin
@@ -99,10 +99,10 @@ Chroma index, and uploaded files) and a Node web service for the frontend
 2. In the Render dashboard: New > Blueprint > pick the repo. Render reads
    `render.yaml` and creates both services.
 3. When prompted for the two secrets, paste the OpenAI key
-   (`BEACON_OPENAI_API_KEY`, same value as `backend/.env`) and invent a long
-   random `BEACON_ACCESS_KEY` (this is what you type on first visit).
+   (`CITEROLL_OPENAI_API_KEY`, same value as `backend/.env`) and invent a long
+   random `CITEROLL_ACCESS_KEY` (this is what you type on first visit).
 4. If Render renames a service because the name is taken, update
-   `BEACON_CORS_ORIGINS` (backend) and `NEXT_PUBLIC_API_BASE` (frontend) to
+   `CITEROLL_CORS_ORIGINS` (backend) and `NEXT_PUBLIC_API_BASE` (frontend) to
    the real URLs and redeploy.
 
 Migrations run automatically on every deploy (`alembic upgrade head` in the
@@ -133,14 +133,14 @@ One-time Google Cloud setup (free):
    Web application. Authorized redirect URI:
    `https://<backend>.onrender.com/api/google/callback` (and
    `http://localhost:8600/api/google/callback` for local use).
-4. Put the client ID and secret in `BEACON_GOOGLE_CLIENT_ID` /
-   `BEACON_GOOGLE_CLIENT_SECRET` (Render env vars, or `backend/.env`).
+4. Put the client ID and secret in `CITEROLL_GOOGLE_CLIENT_ID` /
+   `CITEROLL_GOOGLE_CLIENT_SECRET` (Render env vars, or `backend/.env`).
 
 Then on the Uploads page: pick a property > "Connect Google" > sign in with
 an account that can read the GA4 property and GSC site > choose which GA4
 property and site feed this CiteRoll property > Sync now. Each sync pulls the
-trailing `BEACON_GOOGLE_SYNC_DAYS` (default 30) days. With
-`BEACON_GOOGLE_AUTOSYNC=1`, every authorized connection re-syncs daily.
+trailing `CITEROLL_GOOGLE_SYNC_DAYS` (default 30) days. With
+`CITEROLL_GOOGLE_AUTOSYNC=1`, every authorized connection re-syncs daily.
 Disconnecting revokes the token and keeps the already-synced data.
 `/api/google/callback` is exempt from the access key (Google's redirect
 cannot send headers); it is protected by an HMAC-signed state instead.
@@ -159,21 +159,21 @@ tab: save a reusable set of prompts a real applicant would ask an AI ("how do I
 apply for housing assistance in {city}"), run them all with one button, and
 watch the visibility score accumulate a trend over time. The scanner only
 scores at 3+ queries, so a standing set run weekly is how a property crosses
-that bar. `BEACON_AI_VISIBILITY_AUTORUN=1` runs every property's active prompts
+that bar. `CITEROLL_AI_VISIBILITY_AUTORUN=1` runs every property's active prompts
 weekly in the background; it spends OpenAI budget, capped by
-`BEACON_AI_VISIBILITY_DAILY_LIMIT`. Score points below the minimum are stored
+`CITEROLL_AI_VISIBILITY_DAILY_LIMIT`. Score points below the minimum are stored
 as "not enough data yet," never a fabricated number.
 
 ## 3. OpenAI billing (LIVE as of 2026-07-05)
 
-CiteRoll is running LIVE: `BEACON_DEMO_MODE=0`, OpenAI quota passes, both
+CiteRoll is running LIVE: `CITEROLL_DEMO_MODE=0`, OpenAI quota passes, both
 providers are `openai`, the RAG index is built with real `text-embedding-3-small`
 embeddings, and Nora generates real answers through the Responses API. Verified
 end to end: the correlation gate blocks thin-data claims, content and review
 answers are grounded with per-source citations, and honest "not enough data"
 responses hold.
 
-To return to keyless demo mode at any time: set `BEACON_DEMO_MODE=1` in
+To return to keyless demo mode at any time: set `CITEROLL_DEMO_MODE=1` in
 `backend/.env`, restart, and rebuild the index (the provider change forces a
 full rebuild automatically). To stay live, keep a monthly usage limit set at
 platform.openai.com (embeddings cost fractions of a cent; Nora answers a few
@@ -562,7 +562,7 @@ determinism boundary once, before the analysis module (Phase 12) is built on it.
   (same standard as Phase 11, limitation documented); URL/domain source
   extraction, de-duplicated and sorted.
 - **Cost / rate controls**: a fixed per-property daily budget
-  (`BEACON_AI_VISIBILITY_DAILY_LIMIT`, default 20). Exceeding it raises and the
+  (`CITEROLL_AI_VISIBILITY_DAILY_LIMIT`, default 20). Exceeding it raises and the
   API returns 429 with an honest message; every execution is logged for cost
   audit. Stored-result reads are never limited.
 - **Hallucination-check hook** (`app/services/ai_visibility/hallucination.py`):
@@ -684,7 +684,7 @@ CiteRoll is provider-agnostic and keeps its knowledge base current automatically
 - **Automatic RAG sync** (`app/services/rag_sync_service.py`): uploads enqueue a
   `RagSyncJob` instead of embedding inline (the UI never waits). A worker drains
   the queue and re-embeds only changed chunks. Drain it three ways: set
-  `BEACON_RAG_AUTOSYNC=1` (background task after upload), run
+  `CITEROLL_RAG_AUTOSYNC=1` (background task after upload), run
   `python -m app.cli.rag_worker [--loop]`, or click "Process Queue" on /admin.
   A full rebuild happens only when the embedding provider or version changes.
 - **Registry** (`rag_chunks`): each chunk records source, page, hash, provider,
@@ -702,7 +702,7 @@ CiteRoll is provider-agnostic and keeps its knowledge base current automatically
 - Cause: the OpenAI account has no billing/credits, or the usage limit is hit.
 - Check: /admin runs a live quota check whenever a key is configured and demo
   mode is off.
-- Workaround: set `BEACON_DEMO_MODE=1` and rebuild the index; everything works
+- Workaround: set `CITEROLL_DEMO_MODE=1` and rebuild the index; everything works
   keylessly, clearly labeled as demo.
 - The app never crashes on quota errors: uploads/dashboards never touch
   OpenAI; Nora and reindex fail with readable messages.
@@ -761,7 +761,7 @@ CiteRoll is provider-agnostic and keeps its knowledge base current automatically
   Nora pipeline (retrieve -> gate -> generate -> cite) and the `reports` table
   which already exists in the schema.
 - Phase 10 (polish: light mode, chart quality, filtering speed) not started.
-- Nora model default is `gpt-5-mini` (config `BEACON_NORA_MODEL`); not yet
+- Nora model default is `gpt-5-mini` (config `CITEROLL_NORA_MODEL`); not yet
   validated against the live API because of the billing blocker.
 
 ## Future Roadmap
@@ -770,7 +770,7 @@ Recommended order. Provider abstraction, connector architecture, and automatic
 RAG sync are DONE (Phase 9); the roadmap below is what remains.
 
 1. **Enable billing + live E2E pass** (hours, do first). Then flip
-   `BEACON_DEMO_MODE` off; the live OpenAI provider is selected automatically.
+   `CITEROLL_DEMO_MODE` off; the live OpenAI provider is selected automatically.
 2. **Reports (was Phase 9 in the old plan) + Phase 10 polish** - reuse the Nora
    retrieve/gate/generate/cite pipeline and the `reports` table.
 3. **Migrate metric chunk-building onto the connectors** - the chunker's GA4/

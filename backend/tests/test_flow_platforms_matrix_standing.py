@@ -27,8 +27,8 @@ def test_every_platform_has_an_honest_availability_state():
     assert {"chatgpt", "gemini", "claude", "perplexity", "copilot", "grok", "google_ai_overviews"} <= set(platform_keys())
     assert platform_availability("chatgpt")["state"] == "live"
     g = platform_availability("gemini")
-    assert g["state"] == "needs_key" and g["env_var"] == "BEACON_GEMINI_API_KEY"
-    assert platform_availability("claude")["env_var"] == "BEACON_ANTHROPIC_API_KEY"
+    assert g["state"] == "needs_key" and g["env_var"] == "CITEROLL_GEMINI_API_KEY"
+    assert platform_availability("claude")["env_var"] == "CITEROLL_ANTHROPIC_API_KEY"
     assert platform_availability("grok")["state"] == "planned"
     assert platform_availability("copilot")["state"] == "no_api"
     assert platform_availability("google_ai_overviews")["state"] == "no_api"
