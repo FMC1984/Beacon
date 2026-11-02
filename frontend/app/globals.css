@@ -3,13 +3,26 @@
 /* Dark-mode first: dark is the default and only theme for now (Phase 10 polish
    may add a light variant). Cheerful accents on a calm dark base. */
 :root {
-  --background: #0b0f17;
-  --surface: #121826;
-  --surface-raised: #1a2234;
-  --border: #232d42;
-  --foreground: #e6ebf5;
-  --muted: #8b96ad;
-  --accent-violet: #a78bfa;
+  /* Neon chrome, calm data layer. The base and the brand accent are vivid;
+     the four accents below them are not decoration, they carry meaning:
+     emerald improved, amber MODELED or still there, pink conflict or
+     declining, cyan MEASURED. Those keep their old values on purpose. Make
+     everything vivid and the state chips stop being the loudest thing on
+     screen, which is the whole job they do.
+
+     The base steps match the separations the previous palette used
+     (background to surface 1.08, surface to raised 1.13) so cards still read
+     as lifted rather than going flat on a darker ground. The brand violet is
+     #BE5CFF rather than a harder #B026FF because it is the link and small
+     label colour, and #B026FF measures 4.13 against the surface, under the
+     4.5 that body text needs. */
+  --background: #0a0418;
+  --surface: #190a32;
+  --surface-raised: #271050;
+  --border: #3a1a72;
+  --foreground: #F6EDFF;
+  --muted: #A992D4;
+  --accent-violet: #BE5CFF;
   --accent-cyan: #22d3ee;
   --accent-amber: #fbbf24;
   --accent-emerald: #34d399;
@@ -38,9 +51,9 @@ body {
      opacity behind everything, fixed so it doesn't scroll away. Text
      contrast is untouched; the print guard below strips it entirely. */
   background:
-    radial-gradient(1400px 640px at 14% -10%, rgba(167, 139, 250, 0.20), transparent 64%),
+    radial-gradient(1400px 640px at 14% -10%, rgba(190, 92, 255, 0.20), transparent 64%),
     radial-gradient(1100px 560px at 88% -12%, rgba(34, 211, 238, 0.13), transparent 62%),
-    radial-gradient(1600px 800px at 50% 120%, rgba(167, 139, 250, 0.08), transparent 64%),
+    radial-gradient(1600px 800px at 50% 120%, rgba(190, 92, 255, 0.08), transparent 64%),
     var(--background);
   background-repeat: no-repeat;
   background-attachment: fixed;
@@ -54,8 +67,8 @@ body {
   border: 1px solid transparent;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, rgba(167, 139, 250, 0.95), rgba(34, 211, 238, 0.8), rgba(167, 139, 250, 0.45)) border-box;
-  box-shadow: 0 0 32px -10px rgba(167, 139, 250, 0.35);
+    linear-gradient(120deg, rgba(190, 92, 255, 0.95), rgba(34, 211, 238, 0.8), rgba(190, 92, 255, 0.45)) border-box;
+  box-shadow: 0 0 32px -10px rgba(190, 92, 255, 0.35);
 }
 
 /* Print-friendly report layout (Phase 16C). The screen app is dark; the
