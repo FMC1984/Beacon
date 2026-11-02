@@ -47,15 +47,44 @@ run it again without checking which direction data should flow first.
 
 ## Access & secrets
 
-- Hosted CiteRoll is behind a shared access key: `BEACON_ACCESS_KEY` env var on
-  Render's backend. The frontend has a one-time unlock screen
-  (`components/AccessGate.tsx`) that stores the key in localStorage and
-  attaches it as `X-Beacon-Key` to every API call via a patched `fetch`.
-  `/api/health` and `/api/google/callback` are exempt (health checks and
-  Google's redirect can't send custom headers).
-- `backend/.env` (gitignored, chmod 600) holds the real OpenAI key locally.
-  Render has its own copy in the dashboard env vars (`sync: false` in
-  render.yaml — entered once by Tina, not in git).
+Current as of 2026-11-02, after the auth deploy. The shared-key unlock screen
+(`AccessGate`) is gone; sign-in is per user.
+
+- **Three ways into the API** (`backend/app/auth/deps.py`):
+  1. A signed-in user: `Authorization: Bearer <session token>`. The frontend's
+     `SessionProvider` adds it through the single patched `window.fetch`; a 401
+     clears the session and returns to `/login`. Browser keys are `citeroll.*`.
+  2. The access key: `X-CiteRoll-Key` matching `CITEROLL_ACCESS_KEY`. It acts
+     as a platform admin, so treat it as a break-glass credential for scripts,
+     not something to hand out.
+  3. Open mode, with nothing at all: only while no user exists and no access key
+     is configured, which means a fresh local checkout or the test suite. Never
+     the hosted app, which has both.
+  Platform admins see every organization unless `X-CiteRoll-Org` names one;
+  everyone else is pinned to an organization they belong to.
+- **Public routes** (no credential): health, the briefing share link, Google's
+  OAuth callback, the Stripe webhook, and sign-in, invite and password reset.
+  The health check and Google's redirect cannot send custom headers, which is
+  why they are public.
+- **The founder's login** comes from `CITEROLL_BOOTSTRAP_ADMIN_EMAIL` and
+  `CITEROLL_BOOTSTRAP_ADMIN_PASSWORD` on Render. `bootstrap_admin()` runs at
+  every startup and creates that user once as a platform admin and owner of the
+  default organization; if the email already exists it does nothing. A typo in
+  either value is fixed by correcting it on Render and letting the service
+  restart, with no push needed. Locally, use
+  `python -m app.cli.create_user --email ... --platform-admin`.
+- **Secrets live in Render's dashboard**, as the `sync: false` entries in
+  `render.yaml`, entered by Tina and never in git. Set on `beacon-backend` as of
+  2026-11-02: `CITEROLL_OPENAI_API_KEY`, `CITEROLL_GOOGLE_CLIENT_ID`,
+  `CITEROLL_GOOGLE_CLIENT_SECRET`, `CITEROLL_EMAIL_API_KEY`,
+  `CITEROLL_ACCESS_KEY` and the two bootstrap values. The five
+  `CITEROLL_STRIPE_*` values are deliberately unset: billing is off, and the
+  default organization has an active billing override from migration
+  `1b2c3d4e5f60`, so it is not read-only. The old `BEACON_*` entries are still
+  there as a fallback; delete them once Google sync, Nora and email have each
+  worked on the new code.
+- `backend/.env` (gitignored, chmod 600) holds the local
+  `CITEROLL_OPENAI_API_KEY` plus a couple of local toggles.
 - **Never commit `.env`, `beacon.db`, `.chroma/`, or `data/`.** `.gitignore`
   already excludes these; double-check `git status` before any commit that
   touches config.
