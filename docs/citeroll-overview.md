@@ -1,6 +1,7 @@
 # CiteRoll: what is built, what is next, and why
 
-Last written 2026-11-07. This is the orientation document: the shape of the
+Last updated 2026-11-08, when the Misinformation Incidents work landed. This
+is the orientation document: the shape of the
 product, the state of the build, and the reasoning behind the choices that are
 not obvious from the code. Operational detail lives in `README.md`, build rules
 in `CLAUDE.md`, session-by-session history in `HANDOFF.md`, and product
@@ -199,21 +200,23 @@ and the GitHub repository.
    example floor plans missing from raw HTML on 67 of 412 communities across
    four site templates, so an enterprise sees the handful of systemic problems
    behind most gaps.
-4. **AI Misinformation Incidents: the approved set is built.** The plan is
-   `docs/citeroll-incidents-plan-v1.md`, which absorbed the earlier Content Fix
-   workspace plan: the briefs and the drafts are resolution tools hanging off
-   an incident rather than standalone features. All four approved phases
-   shipped on 2026-11-08: 1A (the fact layer), 1B (detection with source
-   tracing and the incident lifecycle), 1C (the deterministic briefs,
-   structured data from verified facts, and portfolio grouping) and 3.1 (the
-   compliance audit export: one stored, checksummed document per property per
-   period, framed as tamper-evident rather than tamper-proof). Deferred by
-   decision: the drafting workspace, share links that let a vendor write back,
-   lead source capture, the AI Influence report (no CRM data exists to read
-   yet) and fair-housing review of stored answers. One open decision the export
-   surfaced: the claim extractor and the incident extractor disagree about
-   whether an incident needs a confirmed fact, and the export prints each
-   incident's fact state rather than hiding it.
+
+Already landed, kept in this section because the deferred slices live with it.
+
+**AI Misinformation Incidents: the approved set is built.** The plan is
+`docs/citeroll-incidents-plan-v1.md`, which absorbed the earlier Content Fix
+workspace plan: the briefs and the drafts are resolution tools hanging off an
+incident rather than standalone features. All four approved phases shipped on
+2026-11-08: 1A (the fact layer), 1B (detection with source tracing and the
+incident lifecycle), 1C (the deterministic briefs, structured data from
+verified facts, and portfolio grouping) and 3.1 (the compliance audit export:
+one stored, checksummed document per property per period, framed as
+tamper-evident rather than tamper-proof). Deferred by decision: the drafting
+workspace, share links that let a vendor write back, lead source capture, the
+AI Influence report (no CRM data exists to read yet) and fair-housing review of
+stored answers. One open decision the export surfaced: the claim extractor and
+the incident extractor disagree about whether an incident needs a confirmed
+fact, and the export prints each incident's fact state rather than hiding it.
 
 ### Set aside for now
 
@@ -266,8 +269,25 @@ evidence while people act.
 - **The classifier has not been validated against a real source-level GA4
   export.** The only real export seen so far was channel-group grain with no
   session source, and the parser correctly rejected it.
-- **`README.md` sections 8 and 9 are stale.** They stop at Phase 11 and still
-  describe reports as not started, which the eight shipped reports contradict.
+- **Three documents disagree about lead source capture (slice 2.1).** The
+  plan's own decision 2.0 and section 8 say to build 2.1 now and defer only
+  2.2; this document and `README.md` section 9 both list 2.1 as deferred. The
+  two were written after the plan, so they are probably right and the plan's
+  sequencing line was left behind, but one of the three needs correcting so a
+  later session is not told two different things.
+- **Report CSV links still download through a plain anchor** in
+  `components/reports/ExportMenu.tsx`, which never passes through the session
+  fetch patch and so answers 401 once auth is on. The audit export downloads
+  through fetch and a blob instead; the report links need the same treatment.
+- **Readability findings stored before rule identity landed carry no
+  `rule_id`** and are skipped rather than guessed at, so a property shows no
+  Technical Fix briefs until its next weekly check runs.
+- **The asset-host signal in portfolio grouping is a hook returning None**
+  until the readability check captures asset hosts.
+- **`README.md` sections 8 and 9 were rewritten on 2026-11-08, but the Future
+  Roadmap section below them was not.** It still lists reports and polish as
+  not started and names the AI Visibility Scanner, Competitor Intelligence and
+  the Opportunity Engine as remaining, all of which shipped.
 
 ## Hard rules that are still binding
 
